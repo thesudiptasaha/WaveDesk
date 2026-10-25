@@ -45,21 +45,145 @@ function CreditSelect({ label, field, skillKey, row, patch, team, disabled }) {
   );
 }
 
+const STAFF_GROUPS = [
+  {
+    id: 'idea',
+    title: 'Idea & Script',
+    hint: 'who thought of it and wrote it',
+    stripe: 'bg-sky-400',
+    chip: 'bg-sky-400/15 text-sky-200',
+    fields: [
+      { field: 'concept_creator', label: 'Concept Creator', skillKey: 'role_concept_creator' },
+      { field: 'writer', label: 'Research & Script Writer', skillKey: 'role_research_script_writer' },
+      { field: 'presenter_name', label: 'Presenter', skillKey: 'role_presenter' },
+    ],
+  },
+  {
+    id: 'crew',
+    title: 'Production Crew',
+    hint: 'on the shoot',
+    stripe: 'bg-red-400',
+    chip: 'bg-red-400/15 text-red-200',
+    fields: [
+      { field: 'producer', label: 'Producer', skillKey: 'role_producer' },
+      { field: 'camera_operator', label: 'Camera Operator', skillKey: 'role_camera_operator' },
+      { field: 'teleprompter_operator', label: 'Teleprompter Operator', skillKey: 'role_teleprompter_operator' },
+      { field: 'light_designer', label: 'Light Designer', skillKey: 'role_light_designer' },
+      { field: 'sound_recordist', label: 'Sound Recordist', skillKey: 'role_sound_recordist' },
+      { field: 'voice_over_artist', label: 'Voice Over Artist', skillKey: 'role_voice_over_artist' },
+    ],
+  },
+  {
+    id: 'post',
+    title: 'Post-Production',
+    hint: 'after the shoot',
+    stripe: 'bg-amber-400',
+    chip: 'bg-amber-400/15 text-amber-300',
+    fields: [
+      { field: 'video_editor', label: 'Video Editor', skillKey: 'role_video_editor' },
+      { field: 'motion_graphics_designer', label: 'Motion Graphics Designer', skillKey: 'role_motion_graphics_designer' },
+      { field: 'graphic_designer', label: 'Graphic Designer', skillKey: 'role_graphic_designer' },
+      { field: 'colorist', label: 'Colorist', skillKey: 'role_colorist' },
+      { field: 'audio_mixer', label: 'Audio Mixer', skillKey: 'role_audio_mixer' },
+    ],
+  },
+  {
+    id: 'publish',
+    title: 'Publishing',
+    hint: 'who puts it live',
+    stripe: 'bg-emerald-400',
+    chip: 'bg-emerald-400/15 text-emerald-200',
+    fields: [
+      { field: 'publisher', label: 'Publisher', skillKey: 'role_publisher' },
+    ],
+  },
+  {
+    id: 'live',
+    title: 'Live Crew',
+    hint: 'shown only for LIVE content',
+    stripe: 'bg-violet-400',
+    chip: 'bg-violet-400/15 text-violet-300',
+    fields: [
+      { field: 'live_video_switcher', label: 'Live Video Switcher', skillKey: 'role_live_video_switcher' },
+      { field: 'live_audio_mixer', label: 'Live Audio Mixer', skillKey: 'role_live_audio_mixer' },
+    ],
+  },
+];
+
+function StaffAssignment({ row, actor, team, patch }) {
+  const active = !!actor && actor.active !== false;
+  const okPres = can(actor, 'can_assign_presenter');
+  const lockMsg = (label) => `You need the “${label}” permission`;
+  const HIDE_BY_TYPE = { PACKAGE: ['camera_operator', 'teleprompter_operator', 'light_designer', 'sound_recordist'], LIVE: ['video_editor'] };
+  const showCredit = (field) => !((HIDE_BY_TYPE[row.content_type] || []).includes(field) && !row[field]);
+
+  return (
+    <div>
+      <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Staff assignment</div>
+      <div className="space-y-4">
+        {STAFF_GROUPS.map((g) => {
+          if (g.id === 'live' && !(row.content_type === 'LIVE' || row.live_video_switcher || row.live_audio_mixer)) {
+            return null;
+          }
+          const visibleFields = g.fields.filter((f) => showCredit(f.field));
+          if (visibleFields.length === 0) return null;
+          const assigned = visibleFields.filter((f) => !!row[f.field]).length;
+          const visible = visibleFields.length;
+
+          return (
+            <div key={g.id} className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
+              <div className={`absolute inset-y-0 left-0 w-1.5 ${g.stripe}`} />
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${g.chip}`}>{g.title}</span>
+                  <span className="hidden text-[12px] text-zinc-500 sm:inline">{g.hint}</span>
+                </div>
+                <span className="text-[12px] font-semibold text-zinc-400">{assigned} / {visible}</span>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {visibleFields.map((f) =>
+                  f.field === 'presenter_name' ? (
+                    <Field key={f.field} label="Presenter" locked={!okPres} lockMessage={lockMsg('Assign Presenter')}>
+                      <SelectBox
+                        value={row.presenter_name}
+                        disabled={!okPres}
+                        options={team.filter((m) => m.active !== false).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }))}
+                        onChange={(v) => patch({ presenter_name: v })}
+                        placeholder="Unassigned"
+                      />
+                    </Field>
+                  ) : (
+                    <CreditSelect
+                      key={f.field}
+                      label={f.label}
+                      field={f.field}
+                      skillKey={f.skillKey}
+                      row={row}
+                      patch={patch}
+                      team={team}
+                      disabled={!active}
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function EditorialTab({ row, actor, team, channels, platforms = PLATFORMS, patch, actions, onRun, onAddPlatform }) {
   const lockMsg = (label) => `You need the “${label}” permission`;
   const okMeta = can(actor, 'can_edit_content_details');
   const okSched = can(actor, 'can_reschedule_content');
   const heldLock = row.status === 'On Hold' && !isManager(actor);
-  const okPres = can(actor, 'can_assign_presenter');
   const okChan = can(actor, 'can_change_channel');
   const okEditor = can(actor, 'can_assign_video_editor');
-  const [showExtended, setShowExtended] = useState(false);
-  const active = !!actor && actor.active !== false;
-  const HIDE_BY_TYPE = { PACKAGE: ['camera_operator', 'light_designer', 'sound_recordist'], LIVE: ['video_editor'] };
-  const showCredit = (field) => !((HIDE_BY_TYPE[row.content_type] || []).includes(field) && !row[field]);
 
   return (
-    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:space-y-0">
+    <div className="space-y-6 lg:max-w-3xl">
       <div className="space-y-6">
         <section className="grid grid-cols-1 gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -120,46 +244,6 @@ function EditorialTab({ row, actor, team, channels, platforms = PLATFORMS, patch
               ) : null}
             </div>
           </Field>
-        </section>
-      </div>
-
-      <div>
-        <section>
-          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Staff assignment</div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <CreditSelect label="Concept Creator" field="concept_creator" skillKey="role_concept_creator" row={row} patch={patch} team={team} disabled={!active} />
-            <CreditSelect label="Research & Script Writer" field="writer" skillKey="role_research_script_writer" row={row} patch={patch} team={team} disabled={!active} />
-            <Field label="Presenter" locked={!okPres} lockMessage={lockMsg('Assign Presenter')}>
-              <SelectBox value={row.presenter_name} disabled={!okPres} options={team.filter((m) => m.active !== false).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }))} onChange={(v) => patch({ presenter_name: v })} placeholder="Unassigned" />
-            </Field>
-            <CreditSelect label="Producer" field="producer" skillKey="role_producer" row={row} patch={patch} team={team} disabled={!active} />
-            {showCredit('camera_operator') ? (<CreditSelect label="Camera Operator" field="camera_operator" skillKey="role_camera_operator" row={row} patch={patch} team={team} disabled={!active} />) : null}
-            {showCredit('video_editor') ? (<CreditSelect label="Video Editor" field="video_editor" skillKey="role_video_editor" row={row} patch={patch} team={team} disabled={!active} />) : null}
-            <CreditSelect label="Publisher" field="publisher" skillKey="role_publisher" row={row} patch={patch} team={team} disabled={!active} />
-          </div>
-          
-          <div className="mt-4">
-            <button 
-              onClick={() => setShowExtended(!showExtended)}
-              className="text-[12px] font-medium text-sky-400 hover:text-sky-300 transition"
-            >
-              {showExtended ? 'Hide Credits' : 'See More Credits'}
-            </button>
-            
-            {showExtended ? (
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 border-t border-white/[0.06] pt-4">
-                {showCredit('light_designer') ? (<CreditSelect label="Light Designer" field="light_designer" skillKey="role_light_designer" row={row} patch={patch} team={team} disabled={!active} />) : null}
-                {showCredit('sound_recordist') ? (<CreditSelect label="Sound Recordist" field="sound_recordist" skillKey="role_sound_recordist" row={row} patch={patch} team={team} disabled={!active} />) : null}
-                <CreditSelect label="Voice Over Artist" field="voice_over_artist" skillKey="role_voice_over_artist" row={row} patch={patch} team={team} disabled={!active} />
-                <CreditSelect label="Motion Graphics Designer" field="motion_graphics_designer" skillKey="role_motion_graphics_designer" row={row} patch={patch} team={team} disabled={!active} />
-                <CreditSelect label="Graphic Designer" field="graphic_designer" skillKey="role_graphic_designer" row={row} patch={patch} team={team} disabled={!active} />
-                <CreditSelect label="Colorist" field="colorist" skillKey="role_colorist" row={row} patch={patch} team={team} disabled={!active} />
-                <CreditSelect label="Audio Mixer" field="audio_mixer" skillKey="role_audio_mixer" row={row} patch={patch} team={team} disabled={!active} />
-                <CreditSelect label="Live Video Switcher" field="live_video_switcher" skillKey="role_live_video_switcher" row={row} patch={patch} team={team} disabled={!active} />
-                <CreditSelect label="Live Audio Mixer" field="live_audio_mixer" skillKey="role_live_audio_mixer" row={row} patch={patch} team={team} disabled={!active} />
-              </div>
-            ) : null}
-          </div>
         </section>
       </div>
     </div>
@@ -481,11 +565,13 @@ function getPublishedLinks(row) {
   return {};
 }
 
-function ProductionTab({ row, actor, patch }) {
+function ProductionTab({ row, actor, team, patch }) {
   const active = !!actor && actor.active !== false;
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <StaffAssignment row={row} actor={actor} team={team} patch={patch} />
       <section className="space-y-4">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Files & links</div>
         <LinkRow label="Raw footage" value={row.raw_footage_link} disabled={!active} onCommit={(v) => patch({ raw_footage_link: v })} />
         <LinkRow label="Project file" value={row.project_file_url} disabled={!active} onCommit={(v) => patch({ project_file_url: v })} />
         <LinkRow label="Master export" value={row.master_export_url} disabled={!active} onCommit={(v) => patch({ master_export_url: v })} />
@@ -1102,7 +1188,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {tab === 'editorial' ? <EditorialTab row={row} actor={actor} team={team} channels={channels} platforms={platforms} patch={patch} actions={actions} onRun={(a) => onRun(row, a)} onAddPlatform={onAddPlatform} /> : null}
           {tab === 'script' ? <ScriptTab row={row} actor={actor} patch={patch} /> : null}
-          {tab === 'production' ? <ProductionTab row={row} actor={actor} patch={patch} /> : null}
+          {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
           {tab === 'packaging' ? <PackagingTab row={row} actor={actor} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
           {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
         </div>

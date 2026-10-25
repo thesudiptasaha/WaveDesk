@@ -113,11 +113,11 @@ Oct 4, 2026 · @EEA
 
 | ট্যাব | ভেতরে কী |
 | --- | --- |
-| Overview | Title, thumbnail text, channel, প্রকাশের সময়, লোক (writer, presenter, video editor, camera operator), archive shelf ID, target platform; পারমিশন না থাকলে ঘর লক |
-| Script Desk | পড়ার ও লেখার অংশ, শব্দ গণনা, প্রচারের মিনিট (১৫০ শব্দ = ১ মিনিট), Copy Script, Lock/Unlock (Manager, Owner), PACKAGE-এর raw footage link |
-| Assets & Shorts | raw footage, project file, master export, live video লিংক; shorts-এর তালিকা (নিজস্ব ID, thumb text, platform, URL, আপলোডের সময়, Pending/Published); নতুন short যোগের ফর্ম |
+| Editorial | Title, thumbnail text, channel, প্রকাশের সময়, archive shelf ID, target platform; পারমিশন না থাকলে ঘর লক |
+| Script | পড়ার ও লেখার অংশ, শব্দ গণনা, প্রচারের মিনিট (১৫০ শব্দ = ১ মিনিট), Copy Script, Lock/Unlock (Manager, Owner), PACKAGE-এর raw footage link |
+| Production | Staff assignment এখন Production ট্যাবে থাকে ("Files & links"-এর উপরে), রঙিন গ্রুপ কার্ড হিসেবে: Idea & Script (Concept Creator, Research & Script Writer, Presenter), Production Crew (Producer, Camera Operator, Teleprompter Operator, Light Designer, Sound Recordist, Voice Over Artist), Post-Production (Video Editor, Motion Graphics Designer, Graphic Designer, Colorist, Audio Mixer), Publishing (Publisher), এবং Live Crew (Live Video Switcher, Live Audio Mixer; শুধু LIVE কনটেন্টের জন্য)। এখন আর "See More Credits" বাটন নেই। খালি থাকলে PACKAGE-এ Camera Operator, Teleprompter Operator, Light Designer ও Sound Recordist লুকানো থাকে; LIVE-এ খালি থাকলে Video Editor লুকানো থাকে। নিচে "Files & links" (raw footage, project file, master export)। |
+| Packaging | Target platforms প্রকাশের লিংক, shorts-এর তালিকা (নিজস্ব ID, thumb text, platform, URL, আপলোডের সময়, Pending/Published); নতুন short যোগের ফর্ম |
 | QC & Audit | Revision note, QA remark, Audit comment; hold/drop/re-shoot-এর কারণ; পুরো audit trail (কে, রোল, কখন) |
-| Metadata | Post caption, SEO keywords, hashtags (# আপনি যোগ হয়) |
 
 Drawer-এর ফুটারে পরের ধাপের বাটন ও Delete permanently (শুধু Manager, Owner; নিশ্চিতকরণসহ)।
 
