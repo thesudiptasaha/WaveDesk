@@ -1247,6 +1247,12 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
     return ok;
   };
   const actions = getActions(row, actor);
+  const mainActions = actions.filter(
+    (a) => a.id !== 'hold' && a.id !== 'drop' && a.id !== 'download_script' && a.id !== 'copy_script'
+  );
+  const dangerActions = ['hold', 'drop']
+    .map((id) => actions.find((a) => a.id === id))
+    .filter(Boolean);
   const tabs = [
     ['editorial', 'Editorial'],
     ['production', 'Production'],
@@ -1369,22 +1375,33 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
           </div>
         </div>
-        <footer className="border-t border-white/[0.08] bg-black/70 px-6 py-4 backdrop-blur-xl">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Next step</div>
-          <ActionButtons actions={actions} onRun={(a) => onRun(row, a)} />
-          <div className="mt-3 border-t border-white/[0.06] pt-3">
-            <button
-              className={btnDanger}
-              disabled={!isManager(actor)}
-              title={isManager(actor) ? 'Delete this content forever' : 'Only Managers and the Owner can delete content'}
-              onClick={() => onDelete(row)}
-            >
-              <Icon name={isManager(actor) ? 'trash' : 'lock'} className="h-3.5 w-3.5" /> Delete permanently
-            </button>
+        <footer className="border-t border-white/[0.08] bg-black/70 backdrop-blur-xl flex flex-col lg:flex-row">
+          <div className="hidden lg:block lg:w-[470px] lg:shrink-0 border-r border-white/[0.06] bg-white/[0.02]" aria-hidden="true" />
+          <div className="min-w-0 flex-1 px-6 py-4">
+            <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 shrink-0">Next step</span>
+                <ActionButtons actions={mainActions} onRun={(a) => onRun(row, a)} />
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 lg:ml-auto">
+                {dangerActions.length > 0 ? (
+                  <ActionButtons actions={dangerActions} onRun={(a) => onRun(row, a)} />
+                ) : null}
+                <button
+                  type="button"
+                  className={btnDanger}
+                  disabled={!isManager(actor)}
+                  title={isManager(actor) ? 'Delete this content forever' : 'Only Managers and the Owner can delete content'}
+                  onClick={() => onDelete(row)}
+                >
+                  <Icon name={isManager(actor) ? 'trash' : 'lock'} className="h-3.5 w-3.5" /> Delete permanently
+                </button>
+              </div>
+            </div>
+            {actions.some((a) => a.allowed && a.blocked) ? (
+              <p className="mt-2 text-[12px] text-amber-400/80">{actions.find((a) => a.allowed && a.blocked).blocked}</p>
+            ) : null}
           </div>
-          {actions.some((a) => a.allowed && a.blocked) ? (
-            <p className="mt-2 text-[12px] text-amber-400/80">{actions.find((a) => a.allowed && a.blocked).blocked}</p>
-          ) : null}
         </footer>
       </aside>
     </div>

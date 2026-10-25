@@ -176,7 +176,7 @@ The app is one page (`app/page.js`) with a sticky header, the rundown, a second 
 | Publish | The right side (internal tab id is still "packaging"; the fixed Details panel stays on the left) stacks in one column: Publisher (same field as the Publishing card in the Production tab), Post caption (6 lines), SEO keywords/tags (6 lines), Hashtags (4 lines), each with a character/tag/hashtag count and a Copy button (shows "Copied" for one second; works even when the field is read-only), then Published Links per platform (two columns on wide screens), then the Short Content section (list of shorts and the add-short form, unchanged). |
 | QC & Audit | Add a Revision note, QA remark or Audit comment. Shows hold, drop and re-shoot reasons, the list of revision requests and the full audit trail with who, role and time. |
 
-The drawer footer shows the **Next step** workflow buttons and a **Delete permanently** button (Managers and Owner only, with a confirmation dialog).
+The drawer footer is now ONE row. On PC it starts at the divider line (the area under the fixed Details panel is empty): on the left the "Next step" label and the main action buttons (including Resume and Restore); on the far right Hold, Drop and Delete permanently. The Download/Copy script button is no longer in the footer (Copy Script is in the Editorial tab). Delete, Hold and Drop are never hidden for lack of permission: they stay visible, grey with a lock icon (Hold and Drop simply do not exist for Published, Dropped and On Hold content). On phones the footer is two rows: Next step and main buttons on top, Hold, Drop and Delete at the right below.
 
 **Modals**
 
