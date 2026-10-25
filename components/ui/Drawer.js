@@ -538,7 +538,7 @@ function LinkRow({ label, value, disabled, onCommit }) {
     <Field label={label} locked={disabled} lockMessage="Inactive members cannot edit">
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <BlurInput value={value} disabled={disabled} onCommit={onCommit} placeholder="https://…" />
+          <BlurInput value={value} disabled={disabled} onCommit={onCommit} placeholder="https://..." />
         </div>
         {safeHttpUrl(value) ? (
             <a href={safeHttpUrl(value)} target="_blank" rel="noopener noreferrer" className={`${btnGhost} !px-3`} title="Open link">
@@ -547,6 +547,81 @@ function LinkRow({ label, value, disabled, onCommit }) {
           ) : null}
       </div>
     </Field>
+  );
+}
+
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const hasText = Boolean(text && String(text).trim());
+
+  const handleCopy = async () => {
+    if (!hasText) return;
+    let ok = false;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(String(text));
+        ok = true;
+      } else {
+        throw new Error('Clipboard API unavailable');
+      }
+    } catch (_) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = String(text);
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (__) {
+        ok = false;
+      }
+    }
+    if (ok) {
+      setCopied(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        setCopied(false);
+      }, 1000);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      disabled={!hasText}
+      onClick={handleCopy}
+      className={`${btnGhost} !px-3 !py-1 !text-[11px] inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed ${
+        copied ? '!border-emerald-400/40 !text-emerald-300' : ''
+      }`}
+      title={copied ? 'Copied' : 'Copy'}
+    >
+      {copied ? (
+        <>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Copied</span>
+        </>
+      ) : (
+        <>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          <span>Copy</span>
+        </>
+      )}
+    </button>
   );
 }
 
@@ -585,10 +660,10 @@ function ProductionTab({ row, actor, team, patch }) {
   );
 }
 
-function PackagingTab({ row, actor, patch, platforms = PLATFORMS, onAddPlatform }) {
+function PackagingTab({ row, actor, team = [], patch, platforms = PLATFORMS, onAddPlatform }) {
   const active = !!actor && actor.active !== false;
   const ok = can(actor, 'can_edit_content_details');
-  const msg = 'You need the “Edit Content Details” permission';
+  const msg = 'You need the "Edit Content Details" permission';
 
   // Short Content Creation Form State
   const [shortPlatforms, setShortPlatforms] = useState(
@@ -647,243 +722,314 @@ function PackagingTab({ row, actor, patch, platforms = PLATFORMS, onAddPlatform 
     setShortUrl('');
   };
 
-  return (
-    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:space-y-0">
-      <div className="space-y-6">
-        {/* 1. Post Caption, SEO & Hashtags */}
-        <section className="space-y-4">
-          {!ok ? (
-            <p className="flex items-center gap-1.5 text-[12px] text-zinc-500">
-              <LockIcon message={msg} /> Read-only — {msg.toLowerCase()} to make changes.
-            </p>
-          ) : (
-            <p className="text-[12px] text-zinc-500">Changes save automatically when you click away from a field.</p>
-          )}
-          <Field label="Post caption / social copy" locked={!ok} lockMessage={msg}>
-            <BlurInput multiline rows={4} value={row.post_caption} disabled={!ok} onCommit={(v) => patch({ post_caption: v })} placeholder="Caption that goes out with the post…" />
-          </Field>
-          <Field label="SEO keywords / tags" locked={!ok} lockMessage={msg} hint="comma separated">
-            <BlurInput multiline rows={2} value={row.seo_keywords} disabled={!ok} onCommit={(v) => patch({ seo_keywords: v })} placeholder="budget, fiscal year, economy" />
-          </Field>
-          <Field label="Hashtags (#)" locked={!ok} lockMessage={msg} hint="# is added for you">
-            <BlurInput multiline rows={2} value={row.hashtags} disabled={!ok} onCommit={(v) => patch({ hashtags: normalizeHashtags(v) })} placeholder="#budget #economy" />
-          </Field>
-        </section>
+  const captionCount = `${(row.post_caption || '').length} characters`;
+  const tagCount = `${(row.seo_keywords || '').split(',').map((t) => t.trim()).filter(Boolean).length} tags`;
+  const hashtagCount = `${(row.hashtags || '').split(/\s+/).filter(Boolean).length} hashtags`;
 
-        {/* 2. Published Link (One for each platform) */}
-        <section className="border-t border-white/[0.08] pt-4">
-          <div className="mb-2">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Published Links</div>
-            <p className="text-[12px] text-zinc-500">Published live URLs for each platform where this content is live.</p>
+  return (
+    <div className="space-y-6">
+      {/* a) Publisher */}
+      <div className="w-full lg:w-1/2">
+        <CreditSelect
+          label="Publisher"
+          field="publisher"
+          skillKey="role_publisher"
+          row={row}
+          patch={patch}
+          team={team}
+          disabled={!active}
+        />
+      </div>
+
+      {/* b, c, d: Post Caption, SEO keywords & Hashtags */}
+      <section className="space-y-4">
+        {!ok ? (
+          <p className="flex items-center gap-1.5 text-[12px] text-zinc-500">
+            <LockIcon message={msg} /> Read-only -- {msg.toLowerCase()} to make changes.
+          </p>
+        ) : (
+          <p className="text-[12px] text-zinc-500">Changes save automatically when you click away from a field.</p>
+        )}
+
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              Post caption / social copy
+              {!ok ? <LockIcon message={msg} /> : null}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="normal-case tracking-normal text-zinc-500">{captionCount}</span>
+              <CopyButton text={row.post_caption || ''} />
+            </div>
           </div>
-          <div className="space-y-3 mt-3">
-            {targetPlatforms.map((pId) => {
-              const pMeta = allPlatforms.find((p) => p.id === pId) || { id: pId, label: pId };
-              const currentUrl = pubLinks[pId] || '';
-              return (
-                <Field key={pId} label={`${pMeta.label} Published Link`} locked={!active} lockMessage="Inactive members cannot edit">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <BlurInput
-                        value={currentUrl}
-                        disabled={!active}
-                        onCommit={(v) => onCommitPublishedLink(pId, v)}
-                        placeholder={`https://${pId}.com/…`}
-                      />
+          <BlurInput
+            multiline
+            rows={6}
+            value={row.post_caption}
+            disabled={!ok}
+            onCommit={(v) => patch({ post_caption: v })}
+            placeholder="Caption that goes out with the post..."
+          />
+        </div>
+
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              SEO keywords / tags
+              {!ok ? <LockIcon message={msg} /> : null}
+              <span className="normal-case tracking-normal text-zinc-600">comma separated</span>
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="normal-case tracking-normal text-zinc-500">{tagCount}</span>
+              <CopyButton text={row.seo_keywords || ''} />
+            </div>
+          </div>
+          <BlurInput
+            multiline
+            rows={6}
+            value={row.seo_keywords}
+            disabled={!ok}
+            onCommit={(v) => patch({ seo_keywords: v })}
+            placeholder="budget, fiscal year, economy"
+          />
+        </div>
+
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              Hashtags (#)
+              {!ok ? <LockIcon message={msg} /> : null}
+              <span className="normal-case tracking-normal text-zinc-600"># is added for you</span>
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="normal-case tracking-normal text-zinc-500">{hashtagCount}</span>
+              <CopyButton text={row.hashtags || ''} />
+            </div>
+          </div>
+          <BlurInput
+            multiline
+            rows={4}
+            value={row.hashtags}
+            disabled={!ok}
+            onCommit={(v) => patch({ hashtags: normalizeHashtags(v) })}
+            placeholder="#budget #economy"
+          />
+        </div>
+      </section>
+
+      {/* e) Published Links */}
+      <section className="border-t border-white/[0.08] pt-4">
+        <div className="mb-2">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Published Links</div>
+          <p className="text-[12px] text-zinc-500">Published live URLs for each platform where this content is live.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-3">
+          {targetPlatforms.map((pId) => {
+            const pMeta = allPlatforms.find((p) => p.id === pId) || { id: pId, label: pId };
+            const currentUrl = pubLinks[pId] || '';
+            return (
+              <Field key={pId} label={`${pMeta.label} Published Link`} locked={!active} lockMessage="Inactive members cannot edit">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <BlurInput
+                      value={currentUrl}
+                      disabled={!active}
+                      onCommit={(v) => onCommitPublishedLink(pId, v)}
+                      placeholder={`https://${pId}.com/...`}
+                    />
+                  </div>
+                  {safeHttpUrl(currentUrl) ? (
+                    <a
+                      href={safeHttpUrl(currentUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${btnGhost} !px-3`}
+                      title={`Open ${pMeta.label} link`}
+                    >
+                      <Icon name="link" />
+                    </a>
+                  ) : null}
+                </div>
+              </Field>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* f) Divider & Short Content */}
+      <hr className="border-white/[0.08]" />
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Short Content ({row.shorts.length})</div>
+        </div>
+
+        {/* Existing Short Content Items */}
+        <div className="space-y-2">
+          {row.shorts.map((s, i) => {
+            const itemPlatforms = s.platforms && Array.isArray(s.platforms) && s.platforms.length > 0
+              ? s.platforms
+              : (s.platform ? [s.platform] : []);
+
+            return (
+              <div key={s.id} className="flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-[11px] text-zinc-500">{shortUid(s, i)}</span>
+                    <div className="flex flex-wrap gap-1">
+                      {itemPlatforms.map((pid) => {
+                        const pm = allPlatforms.find((p) => p.id === pid);
+                        return (
+                          <span key={pid} className="rounded-full bg-sky-500/10 border border-sky-400/20 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                            {pm?.label || pid}
+                          </span>
+                        );
+                      })}
                     </div>
-                    {safeHttpUrl(currentUrl) ? (
-                      <a
-                        href={safeHttpUrl(currentUrl)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`${btnGhost} !px-3`}
-                        title={`Open ${pMeta.label} link`}
-                      >
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={!active}
+                      onClick={() => updateShort(s.id, { published: !s.published })}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset disabled:opacity-50 transition ${
+                        s.published ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/25' : 'bg-white/[0.04] text-zinc-400 ring-white/10'
+                      }`}
+                    >
+                      {s.published ? 'Published' : 'Pending'}
+                    </button>
+                    {safeHttpUrl(s.url) ? (
+                      <a href={safeHttpUrl(s.url)} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white" title="Open short URL">
                         <Icon name="link" />
                       </a>
                     ) : null}
-                  </div>
-                </Field>
-              );
-            })}
-          </div>
-        </section>
-      </div>
-
-      <div>
-        {/* 3. Short Content (Stripped down: platform toggles, Caption, On Video Text, Date & Time) */}
-        <section className="border-t border-white/[0.08] pt-4 lg:border-t-0 lg:pt-0">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Short Content ({row.shorts.length})</div>
-          </div>
-
-          {/* Existing Short Content Items */}
-          <div className="space-y-2">
-            {row.shorts.map((s, i) => {
-              const itemPlatforms = s.platforms && Array.isArray(s.platforms) && s.platforms.length > 0
-                ? s.platforms
-                : (s.platform ? [s.platform] : []);
-
-              return (
-                <div key={s.id} className="flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-[11px] text-zinc-500">{shortUid(s, i)}</span>
-                      <div className="flex flex-wrap gap-1">
-                        {itemPlatforms.map((pid) => {
-                          const pm = allPlatforms.find((p) => p.id === pid);
-                          return (
-                            <span key={pid} className="rounded-full bg-sky-500/10 border border-sky-400/20 px-2 py-0.5 text-[10px] font-medium text-sky-300">
-                              {pm?.label || pid}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        disabled={!active}
-                        onClick={() => updateShort(s.id, { published: !s.published })}
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset disabled:opacity-50 transition ${
-                          s.published ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/25' : 'bg-white/[0.04] text-zinc-400 ring-white/10'
-                        }`}
-                      >
-                        {s.published ? 'Published' : 'Pending'}
-                      </button>
-                      {safeHttpUrl(s.url) ? (
-                        <a href={safeHttpUrl(s.url)} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white" title="Open short URL">
-                          <Icon name="link" />
-                        </a>
-                      ) : null}
-                      <button disabled={!active} onClick={() => patch({ shorts: row.shorts.filter((x) => x.id !== s.id) })} className="text-zinc-500 hover:text-red-400 disabled:opacity-40" title="Delete short">
-                        <Icon name="trash" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {s.on_video_text || s.thumb_text ? (
-                    <div className="text-[12px] text-amber-300/90 font-medium">
-                      <span className="text-zinc-500 text-[11px] font-normal uppercase mr-1">On Video:</span>
-                      {s.on_video_text || s.thumb_text}
-                    </div>
-                  ) : null}
-
-                  {s.caption || s.title ? (
-                    <div className="text-[13px] text-zinc-200 whitespace-pre-wrap">
-                      {s.caption || s.title}
-                    </div>
-                  ) : null}
-
-                  <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1 border-t border-white/[0.04]">
-                    <span>{s.publish_at ? `Publish: ${formatStamp(s.publish_at)}` : 'No publish time set'}</span>
-                    {s.url ? <span className="truncate max-w-[200px] text-zinc-400">{s.url}</span> : null}
+                    <button disabled={!active} onClick={() => patch({ shorts: row.shorts.filter((x) => x.id !== s.id) })} className="text-zinc-500 hover:text-red-400 disabled:opacity-40" title="Delete short">
+                      <Icon name="trash" />
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-            {row.shorts.length === 0 ? <p className="text-[13px] text-zinc-600">No short content yet.</p> : null}
-          </div>
 
-          {/* Add Short Content Form */}
-          <div className="mt-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
-            <div className="text-[12px] font-semibold text-zinc-300">Add Short Content</div>
-
-            {/* Platform selection toggle similar to main content */}
-            <div>
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1.5">Target Platforms</label>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {allPlatforms.map((p) => {
-                  const on = shortPlatforms.includes(p.id);
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      disabled={!active}
-                      onClick={() => {
-                        setShortPlatforms((prev) =>
-                          prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id]
-                        );
-                      }}
-                      className={`rounded-full border px-2.5 py-1 text-[11px] transition disabled:cursor-not-allowed ${
-                        on
-                          ? 'border-sky-400/50 bg-sky-500/15 text-sky-200 font-medium'
-                          : 'border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:bg-white/[0.08]'
-                      }`}
-                    >
-                      {p.label || p.name}
-                    </button>
-                  );
-                })}
-                {onAddPlatform && isManager(actor) ? (
-                  <button
-                    type="button"
-                    onClick={onAddPlatform}
-                    className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300 transition hover:bg-sky-500/20"
-                    title="Add a new publish platform"
-                  >
-                    + Add
-                  </button>
+                {s.on_video_text || s.thumb_text ? (
+                  <div className="text-[12px] text-amber-300/90 font-medium">
+                    <span className="text-zinc-500 text-[11px] font-normal uppercase mr-1">On Video:</span>
+                    {s.on_video_text || s.thumb_text}
+                  </div>
                 ) : null}
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">On Video Text</label>
-                <input
-                  className={inputBase}
-                  placeholder="Text overlay appearing on the video…"
-                  value={onVideoText}
-                  disabled={!active}
-                  onChange={(e) => setOnVideoText(e.target.value)}
-                />
-              </div>
+                {s.caption || s.title ? (
+                  <div className="text-[13px] text-zinc-200 whitespace-pre-wrap">
+                    {s.caption || s.title}
+                  </div>
+                ) : null}
 
-              <div className="sm:col-span-2">
-                <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Caption Text</label>
-                <textarea
-                  rows={2}
-                  className={`${inputBase} resize-y`}
-                  placeholder="Short caption / social copy…"
-                  value={captionText}
-                  disabled={!active}
-                  onChange={(e) => setCaptionText(e.target.value)}
-                />
+                <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1 border-t border-white/[0.04]">
+                  <span>{s.publish_at ? `Publish: ${formatStamp(s.publish_at)}` : 'No publish time set'}</span>
+                  {s.url ? <span className="truncate max-w-[200px] text-zinc-400">{s.url}</span> : null}
+                </div>
               </div>
+            );
+          })}
+          {row.shorts.length === 0 ? <p className="text-[13px] text-zinc-600">No short content yet.</p> : null}
+        </div>
 
-              <div>
-                <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Publish Date & Time</label>
-                <input
-                  type="datetime-local"
-                  className={`${inputBase} [color-scheme:dark]`}
-                  value={shortWhen}
-                  disabled={!active}
-                  onChange={(e) => setShortWhen(e.target.value)}
-                />
-              </div>
+        {/* Add Short Content Form */}
+        <div className="mt-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+          <div className="text-[12px] font-semibold text-zinc-300">Add Short Content</div>
 
-              <div>
-                <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Published Link (optional)</label>
-                <input
-                  className={inputBase}
-                  placeholder="https://…"
-                  value={shortUrl}
-                  disabled={!active}
-                  onChange={(e) => setShortUrl(e.target.value)}
-                />
-              </div>
-
-              <button
-                className={`${btnPrimary} sm:col-span-2 mt-1`}
-                disabled={!active || (!captionText.trim() && !onVideoText.trim())}
-                onClick={handleAddShort}
-              >
-                <Icon name="plus" /> Add Short Content
-              </button>
+          {/* Platform selection toggle similar to main content */}
+          <div>
+            <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1.5">Target Platforms</label>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {allPlatforms.map((p) => {
+                const on = shortPlatforms.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    disabled={!active}
+                    onClick={() => {
+                      setShortPlatforms((prev) =>
+                        prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id]
+                      );
+                    }}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] transition disabled:cursor-not-allowed ${
+                      on
+                        ? 'border-sky-400/50 bg-sky-500/15 text-sky-200 font-medium'
+                        : 'border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:bg-white/[0.08]'
+                    }`}
+                  >
+                    {p.label || p.name}
+                  </button>
+                );
+              })}
+              {onAddPlatform && isManager(actor) ? (
+                <button
+                  type="button"
+                  onClick={onAddPlatform}
+                  className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300 transition hover:bg-sky-500/20"
+                  title="Add a new publish platform"
+                >
+                  + Add
+                </button>
+              ) : null}
             </div>
           </div>
-        </section>
-      </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">On Video Text</label>
+              <input
+                className={inputBase}
+                placeholder="Text overlay appearing on the video..."
+                value={onVideoText}
+                disabled={!active}
+                onChange={(e) => setOnVideoText(e.target.value)}
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Caption Text</label>
+              <textarea
+                rows={2}
+                className={`${inputBase} resize-y`}
+                placeholder="Short caption / social copy..."
+                value={captionText}
+                disabled={!active}
+                onChange={(e) => setCaptionText(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Publish Date & Time</label>
+              <input
+                type="datetime-local"
+                className={`${inputBase} [color-scheme:dark]`}
+                value={shortWhen}
+                disabled={!active}
+                onChange={(e) => setShortWhen(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Published Link (optional)</label>
+              <input
+                className={inputBase}
+                placeholder="https://..."
+                value={shortUrl}
+                disabled={!active}
+                onChange={(e) => setShortUrl(e.target.value)}
+              />
+            </div>
+
+            <button
+              className={`${btnPrimary} sm:col-span-2 mt-1`}
+              disabled={!active || (!captionText.trim() && !onVideoText.trim())}
+              onClick={handleAddShort}
+            >
+              <Icon name="plus" /> Add Short Content
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1104,7 +1250,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   const tabs = [
     ['editorial', 'Editorial'],
     ['production', 'Production'],
-    ['packaging', 'Packaging'],
+    ['packaging', 'Publish'],
     ['qc', 'QC & Audit'],
   ];
   return (
@@ -1219,7 +1365,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
           <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
             {tab === 'editorial' ? <ScriptTab row={row} actor={actor} patch={patch} /> : null}
             {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
-            {tab === 'packaging' ? <PackagingTab row={row} actor={actor} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
+            {tab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
             {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
           </div>
         </div>
