@@ -59,105 +59,109 @@ function EditorialTab({ row, actor, team, channels, platforms = PLATFORMS, patch
   const showCredit = (field) => !((HIDE_BY_TYPE[row.content_type] || []).includes(field) && !row[field]);
 
   return (
-    <div className="space-y-6">
-      <section className="grid grid-cols-1 gap-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Channel" locked={!okChan} lockMessage={lockMsg('Change Channel')}>
-            <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
-          </Field>
-          <Field label="Scheduled publish" locked={!okSched || heldLock} lockMessage={heldLock ? 'Only Managers and the Owner can reschedule held content' : lockMsg('Reschedule Content')}>
-              <input
-                type="datetime-local"
-                disabled={!okSched || heldLock}
-                value={toLocalInput(row.scheduled_publish_time)}
-                onChange={(e) => e.target.value && patch({ scheduled_publish_time: fromLocalInput(e.target.value) })}
-                className={`${(okSched && !heldLock) ? inputBase : inputLocked} [color-scheme:dark]`}
-              />
+    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:space-y-0">
+      <div className="space-y-6">
+        <section className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Channel" locked={!okChan} lockMessage={lockMsg('Change Channel')}>
+              <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
             </Field>
-        </div>
-        <Field label="Slug name" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')} hint={`${(row.slug_name || '').length}/${SLUG_MAX}`}>
-          <BlurInput value={row.slug_name} disabled={!okMeta} maxLength={SLUG_MAX} onCommit={(v) => { const s = normalizeSlugInput(v); if (s) patch({ slug_name: s }); }} placeholder="Slug name" />
-        </Field>
-        <Field label="Title" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-          <BlurInput value={row.title} disabled={!okMeta} onCommit={(v) => patch({ title: v })} placeholder="Title" />
-        </Field>
-        <Field label="Thumbnail text (Hook)" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-          <BlurInput value={row.thumbnail_text} disabled={!okMeta} onCommit={(v) => patch({ thumbnail_text: v })} placeholder="Hook on the thumbnail" />
-        </Field>
-      </section>
-
-      <section>
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Staff assignment</div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <CreditSelect label="Concept Creator" field="concept_creator" skillKey="role_concept_creator" row={row} patch={patch} team={team} disabled={!active} />
-          <CreditSelect label="Research & Script Writer" field="writer" skillKey="role_research_script_writer" row={row} patch={patch} team={team} disabled={!active} />
-          <Field label="Presenter" locked={!okPres} lockMessage={lockMsg('Assign Presenter')}>
-            <SelectBox value={row.presenter_name} disabled={!okPres} options={team.filter((m) => m.active !== false).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }))} onChange={(v) => patch({ presenter_name: v })} placeholder="Unassigned" />
+            <Field label="Scheduled publish" locked={!okSched || heldLock} lockMessage={heldLock ? 'Only Managers and the Owner can reschedule held content' : lockMsg('Reschedule Content')}>
+                <input
+                  type="datetime-local"
+                  disabled={!okSched || heldLock}
+                  value={toLocalInput(row.scheduled_publish_time)}
+                  onChange={(e) => e.target.value && patch({ scheduled_publish_time: fromLocalInput(e.target.value) })}
+                  className={`${(okSched && !heldLock) ? inputBase : inputLocked} [color-scheme:dark]`}
+                />
+              </Field>
+          </div>
+          <Field label="Slug name" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')} hint={`${(row.slug_name || '').length}/${SLUG_MAX}`}>
+            <BlurInput value={row.slug_name} disabled={!okMeta} maxLength={SLUG_MAX} onCommit={(v) => { const s = normalizeSlugInput(v); if (s) patch({ slug_name: s }); }} placeholder="Slug name" />
           </Field>
-          <CreditSelect label="Producer" field="producer" skillKey="role_producer" row={row} patch={patch} team={team} disabled={!active} />
-          {showCredit('camera_operator') ? (<CreditSelect label="Camera Operator" field="camera_operator" skillKey="role_camera_operator" row={row} patch={patch} team={team} disabled={!active} />) : null}
-          {showCredit('video_editor') ? (<CreditSelect label="Video Editor" field="video_editor" skillKey="role_video_editor" row={row} patch={patch} team={team} disabled={!active} />) : null}
-          <CreditSelect label="Publisher" field="publisher" skillKey="role_publisher" row={row} patch={patch} team={team} disabled={!active} />
-        </div>
-        
-        <div className="mt-4">
-          <button 
-            onClick={() => setShowExtended(!showExtended)}
-            className="text-[12px] font-medium text-sky-400 hover:text-sky-300 transition"
-          >
-            {showExtended ? 'Hide Credits' : 'See More Credits'}
-          </button>
-          
-          {showExtended ? (
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 border-t border-white/[0.06] pt-4">
-              {showCredit('light_designer') ? (<CreditSelect label="Light Designer" field="light_designer" skillKey="role_light_designer" row={row} patch={patch} team={team} disabled={!active} />) : null}
-              {showCredit('sound_recordist') ? (<CreditSelect label="Sound Recordist" field="sound_recordist" skillKey="role_sound_recordist" row={row} patch={patch} team={team} disabled={!active} />) : null}
-              <CreditSelect label="Voice Over Artist" field="voice_over_artist" skillKey="role_voice_over_artist" row={row} patch={patch} team={team} disabled={!active} />
-              <CreditSelect label="Motion Graphics Designer" field="motion_graphics_designer" skillKey="role_motion_graphics_designer" row={row} patch={patch} team={team} disabled={!active} />
-              <CreditSelect label="Graphic Designer" field="graphic_designer" skillKey="role_graphic_designer" row={row} patch={patch} team={team} disabled={!active} />
-              <CreditSelect label="Colorist" field="colorist" skillKey="role_colorist" row={row} patch={patch} team={team} disabled={!active} />
-              <CreditSelect label="Audio Mixer" field="audio_mixer" skillKey="role_audio_mixer" row={row} patch={patch} team={team} disabled={!active} />
-              <CreditSelect label="Live Video Switcher" field="live_video_switcher" skillKey="role_live_video_switcher" row={row} patch={patch} team={team} disabled={!active} />
-              <CreditSelect label="Live Audio Mixer" field="live_audio_mixer" skillKey="role_live_audio_mixer" row={row} patch={patch} team={team} disabled={!active} />
-            </div>
-          ) : null}
-        </div>
-      </section>
+          <Field label="Title" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+            <BlurInput value={row.title} disabled={!okMeta} onCommit={(v) => patch({ title: v })} placeholder="Title" />
+          </Field>
+          <Field label="Thumbnail text (Hook)" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+            <BlurInput value={row.thumbnail_text} disabled={!okMeta} onCommit={(v) => patch({ thumbnail_text: v })} placeholder="Hook on the thumbnail" />
+          </Field>
+        </section>
 
-      <section className="grid grid-cols-1 gap-4">
-        <Field label="Archive shelf ID" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-          <BlurInput value={row.archive_shelf_id} disabled={!okMeta} onCommit={(v) => patch({ archive_shelf_id: v })} placeholder="e.g. SHELF-A12" />
-        </Field>
-        <Field label="Target platforms" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-          <div className="flex flex-wrap items-center gap-2">
-            {(platforms || PLATFORMS).map((p) => {
-              const on = row.target_platforms.includes(p.id);
-              return (
+        <section className="grid grid-cols-1 gap-4">
+          <Field label="Archive shelf ID" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+            <BlurInput value={row.archive_shelf_id} disabled={!okMeta} onCommit={(v) => patch({ archive_shelf_id: v })} placeholder="e.g. SHELF-A12" />
+          </Field>
+          <Field label="Target platforms" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+            <div className="flex flex-wrap items-center gap-2">
+              {(platforms || PLATFORMS).map((p) => {
+                const on = row.target_platforms.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    disabled={!okMeta}
+                    onClick={() => patch({ target_platforms: on ? row.target_platforms.filter((x) => x !== p.id) : [...row.target_platforms, p.id] })}
+                    className={`rounded-full border px-3 py-1.5 text-[12px] transition disabled:cursor-not-allowed ${
+                      on ? 'border-sky-400/50 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] bg-white/[0.03] text-zinc-400'
+                    } ${okMeta && !on ? 'hover:bg-white/[0.08]' : ''}`}
+                  >
+                    {p.label || p.name}
+                  </button>
+                );
+              })}
+              {onAddPlatform && isManager(actor) ? (
                 <button
-                  key={p.id}
-                  disabled={!okMeta}
-                  onClick={() => patch({ target_platforms: on ? row.target_platforms.filter((x) => x !== p.id) : [...row.target_platforms, p.id] })}
-                  className={`rounded-full border px-3 py-1.5 text-[12px] transition disabled:cursor-not-allowed ${
-                    on ? 'border-sky-400/50 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] bg-white/[0.03] text-zinc-400'
-                  } ${okMeta && !on ? 'hover:bg-white/[0.08]' : ''}`}
+                  type="button"
+                  onClick={onAddPlatform}
+                  className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-[12px] font-medium text-sky-300 transition hover:bg-sky-500/20"
+                  title="Add a new publish platform"
                 >
-                  {p.label || p.name}
+                  + Add platform
                 </button>
-              );
-            })}
-            {onAddPlatform && isManager(actor) ? (
-              <button
-                type="button"
-                onClick={onAddPlatform}
-                className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-[12px] font-medium text-sky-300 transition hover:bg-sky-500/20"
-                title="Add a new publish platform"
-              >
-                + Add platform
-              </button>
+              ) : null}
+            </div>
+          </Field>
+        </section>
+      </div>
+
+      <div>
+        <section>
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Staff assignment</div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <CreditSelect label="Concept Creator" field="concept_creator" skillKey="role_concept_creator" row={row} patch={patch} team={team} disabled={!active} />
+            <CreditSelect label="Research & Script Writer" field="writer" skillKey="role_research_script_writer" row={row} patch={patch} team={team} disabled={!active} />
+            <Field label="Presenter" locked={!okPres} lockMessage={lockMsg('Assign Presenter')}>
+              <SelectBox value={row.presenter_name} disabled={!okPres} options={team.filter((m) => m.active !== false).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }))} onChange={(v) => patch({ presenter_name: v })} placeholder="Unassigned" />
+            </Field>
+            <CreditSelect label="Producer" field="producer" skillKey="role_producer" row={row} patch={patch} team={team} disabled={!active} />
+            {showCredit('camera_operator') ? (<CreditSelect label="Camera Operator" field="camera_operator" skillKey="role_camera_operator" row={row} patch={patch} team={team} disabled={!active} />) : null}
+            {showCredit('video_editor') ? (<CreditSelect label="Video Editor" field="video_editor" skillKey="role_video_editor" row={row} patch={patch} team={team} disabled={!active} />) : null}
+            <CreditSelect label="Publisher" field="publisher" skillKey="role_publisher" row={row} patch={patch} team={team} disabled={!active} />
+          </div>
+          
+          <div className="mt-4">
+            <button 
+              onClick={() => setShowExtended(!showExtended)}
+              className="text-[12px] font-medium text-sky-400 hover:text-sky-300 transition"
+            >
+              {showExtended ? 'Hide Credits' : 'See More Credits'}
+            </button>
+            
+            {showExtended ? (
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 border-t border-white/[0.06] pt-4">
+                {showCredit('light_designer') ? (<CreditSelect label="Light Designer" field="light_designer" skillKey="role_light_designer" row={row} patch={patch} team={team} disabled={!active} />) : null}
+                {showCredit('sound_recordist') ? (<CreditSelect label="Sound Recordist" field="sound_recordist" skillKey="role_sound_recordist" row={row} patch={patch} team={team} disabled={!active} />) : null}
+                <CreditSelect label="Voice Over Artist" field="voice_over_artist" skillKey="role_voice_over_artist" row={row} patch={patch} team={team} disabled={!active} />
+                <CreditSelect label="Motion Graphics Designer" field="motion_graphics_designer" skillKey="role_motion_graphics_designer" row={row} patch={patch} team={team} disabled={!active} />
+                <CreditSelect label="Graphic Designer" field="graphic_designer" skillKey="role_graphic_designer" row={row} patch={patch} team={team} disabled={!active} />
+                <CreditSelect label="Colorist" field="colorist" skillKey="role_colorist" row={row} patch={patch} team={team} disabled={!active} />
+                <CreditSelect label="Audio Mixer" field="audio_mixer" skillKey="role_audio_mixer" row={row} patch={patch} team={team} disabled={!active} />
+                <CreditSelect label="Live Video Switcher" field="live_video_switcher" skillKey="role_live_video_switcher" row={row} patch={patch} team={team} disabled={!active} />
+                <CreditSelect label="Live Audio Mixer" field="live_audio_mixer" skillKey="role_live_audio_mixer" row={row} patch={patch} team={team} disabled={!active} />
+              </div>
             ) : null}
           </div>
-        </Field>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
@@ -243,8 +247,20 @@ function ScriptTab({ row, actor, patch }) {
     }
   };
 
+  const handleOpenPrompter = () => {
+    if (typeof document !== 'undefined') {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) {
+        docEl.requestFullscreen().catch(() => {});
+      } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+      }
+    }
+    setShowPrompter(true);
+  };
+
   return (
-    <div>
+    <div className="w-full max-w-5xl mx-auto">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 text-[12px] text-zinc-500">
           <span>
@@ -373,35 +389,35 @@ function ScriptTab({ row, actor, patch }) {
         </div>
       ) : text ? (
         <>
-{richEnabled ? (
-          <article
-            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-6 text-[17px] leading-[1.9] text-zinc-200 [&_p]:mb-5 [&_p:last-child]:mb-0 [&_mark]:bg-yellow-400 [&_mark]:text-gray-900 [&_mark]:rounded-sm [&_mark]:px-1 [&_mark]:py-0.5 [&_u]:underline-offset-2"
-            style={{ fontFamily: 'Georgia, "Noto Serif Bengali", "Times New Roman", serif' }}
-            dangerouslySetInnerHTML={{ __html: sanitizeScriptHtml(scriptToHtml(row.script)) }}
-          />
-        ) : (
-          <article
-            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-6 text-[17px] leading-[1.9] text-zinc-200"
-            style={{ fontFamily: 'Georgia, "Noto Serif Bengali", "Times New Roman", serif' }}
-          >
-            {text.split(/\n{2,}/).map((para, i) => (
-              <p key={i} className="mb-5 whitespace-pre-wrap last:mb-0">
-                {para}
-              </p>
-            ))}
-          </article>
-        )}
           {isFeatureEnabled('teleprompter') && text.trim() ? (
-            <div className="mt-4">
+            <div className="mb-4">
               <button 
-                onClick={() => setShowPrompter(true)}
+                onClick={handleOpenPrompter}
                 className="w-full rounded-xl bg-indigo-500/10 px-4 py-3 text-[14px] font-semibold text-indigo-300 transition hover:bg-indigo-500/20 border border-indigo-500/20 shadow-sm flex justify-center items-center gap-2"
               >
                 Script Play
               </button>
             </div>
           ) : null}
-          </>
+          {richEnabled ? (
+            <article
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-6 text-[17px] leading-[1.9] text-zinc-200 [&_p]:mb-5 [&_p:last-child]:mb-0 [&_mark]:bg-yellow-400 [&_mark]:text-gray-900 [&_mark]:rounded-sm [&_mark]:px-1 [&_mark]:py-0.5 [&_u]:underline-offset-2"
+              style={{ fontFamily: 'Georgia, "Noto Serif Bengali", "Times New Roman", serif' }}
+              dangerouslySetInnerHTML={{ __html: sanitizeScriptHtml(scriptToHtml(row.script)) }}
+            />
+          ) : (
+            <article
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-6 text-[17px] leading-[1.9] text-zinc-200"
+              style={{ fontFamily: 'Georgia, "Noto Serif Bengali", "Times New Roman", serif' }}
+            >
+              {text.split(/\n{2,}/).map((para, i) => (
+                <p key={i} className="mb-5 whitespace-pre-wrap last:mb-0">
+                  {para}
+                </p>
+              ))}
+            </article>
+          )}
+        </>
       ) : (
         <div className="rounded-2xl border border-dashed border-white/[0.1] px-6 py-12 text-center text-[14px] text-zinc-500">
           No script yet.{canEdit ? ' Click Edit to write one.' : ''}
@@ -541,238 +557,242 @@ function PackagingTab({ row, actor, patch, platforms = PLATFORMS, onAddPlatform 
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Post Caption, SEO & Hashtags */}
-      <section className="space-y-4">
-        {!ok ? (
-          <p className="flex items-center gap-1.5 text-[12px] text-zinc-500">
-            <LockIcon message={msg} /> Read-only — {msg.toLowerCase()} to make changes.
-          </p>
-        ) : (
-          <p className="text-[12px] text-zinc-500">Changes save automatically when you click away from a field.</p>
-        )}
-        <Field label="Post caption / social copy" locked={!ok} lockMessage={msg}>
-          <BlurInput multiline rows={4} value={row.post_caption} disabled={!ok} onCommit={(v) => patch({ post_caption: v })} placeholder="Caption that goes out with the post…" />
-        </Field>
-        <Field label="SEO keywords / tags" locked={!ok} lockMessage={msg} hint="comma separated">
-          <BlurInput multiline rows={2} value={row.seo_keywords} disabled={!ok} onCommit={(v) => patch({ seo_keywords: v })} placeholder="budget, fiscal year, economy" />
-        </Field>
-        <Field label="Hashtags (#)" locked={!ok} lockMessage={msg} hint="# is added for you">
-          <BlurInput multiline rows={2} value={row.hashtags} disabled={!ok} onCommit={(v) => patch({ hashtags: normalizeHashtags(v) })} placeholder="#budget #economy" />
-        </Field>
-      </section>
+    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:space-y-0">
+      <div className="space-y-6">
+        {/* 1. Post Caption, SEO & Hashtags */}
+        <section className="space-y-4">
+          {!ok ? (
+            <p className="flex items-center gap-1.5 text-[12px] text-zinc-500">
+              <LockIcon message={msg} /> Read-only — {msg.toLowerCase()} to make changes.
+            </p>
+          ) : (
+            <p className="text-[12px] text-zinc-500">Changes save automatically when you click away from a field.</p>
+          )}
+          <Field label="Post caption / social copy" locked={!ok} lockMessage={msg}>
+            <BlurInput multiline rows={4} value={row.post_caption} disabled={!ok} onCommit={(v) => patch({ post_caption: v })} placeholder="Caption that goes out with the post…" />
+          </Field>
+          <Field label="SEO keywords / tags" locked={!ok} lockMessage={msg} hint="comma separated">
+            <BlurInput multiline rows={2} value={row.seo_keywords} disabled={!ok} onCommit={(v) => patch({ seo_keywords: v })} placeholder="budget, fiscal year, economy" />
+          </Field>
+          <Field label="Hashtags (#)" locked={!ok} lockMessage={msg} hint="# is added for you">
+            <BlurInput multiline rows={2} value={row.hashtags} disabled={!ok} onCommit={(v) => patch({ hashtags: normalizeHashtags(v) })} placeholder="#budget #economy" />
+          </Field>
+        </section>
 
-      {/* 2. Published Link (One for each platform) */}
-      <section className="border-t border-white/[0.08] pt-4">
-        <div className="mb-2">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Published Links</div>
-          <p className="text-[12px] text-zinc-500">Published live URLs for each platform where this content is live.</p>
-        </div>
-        <div className="space-y-3 mt-3">
-          {targetPlatforms.map((pId) => {
-            const pMeta = allPlatforms.find((p) => p.id === pId) || { id: pId, label: pId };
-            const currentUrl = pubLinks[pId] || '';
-            return (
-              <Field key={pId} label={`${pMeta.label} Published Link`} locked={!active} lockMessage="Inactive members cannot edit">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <BlurInput
-                      value={currentUrl}
-                      disabled={!active}
-                      onCommit={(v) => onCommitPublishedLink(pId, v)}
-                      placeholder={`https://${pId}.com/…`}
-                    />
-                  </div>
-                  {safeHttpUrl(currentUrl) ? (
-                    <a
-                      href={safeHttpUrl(currentUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`${btnGhost} !px-3`}
-                      title={`Open ${pMeta.label} link`}
-                    >
-                      <Icon name="link" />
-                    </a>
-                  ) : null}
-                </div>
-              </Field>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 3. Short Content (Stripped down: platform toggles, Caption, On Video Text, Date & Time) */}
-      <section className="border-t border-white/[0.08] pt-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Short Content ({row.shorts.length})</div>
-        </div>
-
-        {/* Existing Short Content Items */}
-        <div className="space-y-2">
-          {row.shorts.map((s, i) => {
-            const itemPlatforms = s.platforms && Array.isArray(s.platforms) && s.platforms.length > 0
-              ? s.platforms
-              : (s.platform ? [s.platform] : []);
-
-            return (
-              <div key={s.id} className="flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-[11px] text-zinc-500">{shortUid(s, i)}</span>
-                    <div className="flex flex-wrap gap-1">
-                      {itemPlatforms.map((pid) => {
-                        const pm = allPlatforms.find((p) => p.id === pid);
-                        return (
-                          <span key={pid} className="rounded-full bg-sky-500/10 border border-sky-400/20 px-2 py-0.5 text-[10px] font-medium text-sky-300">
-                            {pm?.label || pid}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
+        {/* 2. Published Link (One for each platform) */}
+        <section className="border-t border-white/[0.08] pt-4">
+          <div className="mb-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Published Links</div>
+            <p className="text-[12px] text-zinc-500">Published live URLs for each platform where this content is live.</p>
+          </div>
+          <div className="space-y-3 mt-3">
+            {targetPlatforms.map((pId) => {
+              const pMeta = allPlatforms.find((p) => p.id === pId) || { id: pId, label: pId };
+              const currentUrl = pubLinks[pId] || '';
+              return (
+                <Field key={pId} label={`${pMeta.label} Published Link`} locked={!active} lockMessage="Inactive members cannot edit">
                   <div className="flex items-center gap-2">
-                    <button
-                      disabled={!active}
-                      onClick={() => updateShort(s.id, { published: !s.published })}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset disabled:opacity-50 transition ${
-                        s.published ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/25' : 'bg-white/[0.04] text-zinc-400 ring-white/10'
-                      }`}
-                    >
-                      {s.published ? 'Published' : 'Pending'}
-                    </button>
-                    {safeHttpUrl(s.url) ? (
-                      <a href={safeHttpUrl(s.url)} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white" title="Open short URL">
+                    <div className="flex-1">
+                      <BlurInput
+                        value={currentUrl}
+                        disabled={!active}
+                        onCommit={(v) => onCommitPublishedLink(pId, v)}
+                        placeholder={`https://${pId}.com/…`}
+                      />
+                    </div>
+                    {safeHttpUrl(currentUrl) ? (
+                      <a
+                        href={safeHttpUrl(currentUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`${btnGhost} !px-3`}
+                        title={`Open ${pMeta.label} link`}
+                      >
                         <Icon name="link" />
                       </a>
                     ) : null}
-                    <button disabled={!active} onClick={() => patch({ shorts: row.shorts.filter((x) => x.id !== s.id) })} className="text-zinc-500 hover:text-red-400 disabled:opacity-40" title="Delete short">
-                      <Icon name="trash" />
+                  </div>
+                </Field>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+
+      <div>
+        {/* 3. Short Content (Stripped down: platform toggles, Caption, On Video Text, Date & Time) */}
+        <section className="border-t border-white/[0.08] pt-4 lg:border-t-0 lg:pt-0">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Short Content ({row.shorts.length})</div>
+          </div>
+
+          {/* Existing Short Content Items */}
+          <div className="space-y-2">
+            {row.shorts.map((s, i) => {
+              const itemPlatforms = s.platforms && Array.isArray(s.platforms) && s.platforms.length > 0
+                ? s.platforms
+                : (s.platform ? [s.platform] : []);
+
+              return (
+                <div key={s.id} className="flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-[11px] text-zinc-500">{shortUid(s, i)}</span>
+                      <div className="flex flex-wrap gap-1">
+                        {itemPlatforms.map((pid) => {
+                          const pm = allPlatforms.find((p) => p.id === pid);
+                          return (
+                            <span key={pid} className="rounded-full bg-sky-500/10 border border-sky-400/20 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                              {pm?.label || pid}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        disabled={!active}
+                        onClick={() => updateShort(s.id, { published: !s.published })}
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset disabled:opacity-50 transition ${
+                          s.published ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/25' : 'bg-white/[0.04] text-zinc-400 ring-white/10'
+                        }`}
+                      >
+                        {s.published ? 'Published' : 'Pending'}
+                      </button>
+                      {safeHttpUrl(s.url) ? (
+                        <a href={safeHttpUrl(s.url)} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white" title="Open short URL">
+                          <Icon name="link" />
+                        </a>
+                      ) : null}
+                      <button disabled={!active} onClick={() => patch({ shorts: row.shorts.filter((x) => x !== s.id) })} className="text-zinc-500 hover:text-red-400 disabled:opacity-40" title="Delete short">
+                        <Icon name="trash" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {s.on_video_text || s.thumb_text ? (
+                    <div className="text-[12px] text-amber-300/90 font-medium">
+                      <span className="text-zinc-500 text-[11px] font-normal uppercase mr-1">On Video:</span>
+                      {s.on_video_text || s.thumb_text}
+                    </div>
+                  ) : null}
+
+                  {s.caption || s.title ? (
+                    <div className="text-[13px] text-zinc-200 whitespace-pre-wrap">
+                      {s.caption || s.title}
+                    </div>
+                  ) : null}
+
+                  <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1 border-t border-white/[0.04]">
+                    <span>{s.publish_at ? `Publish: ${formatStamp(s.publish_at)}` : 'No publish time set'}</span>
+                    {s.url ? <span className="truncate max-w-[200px] text-zinc-400">{s.url}</span> : null}
+                  </div>
+                </div>
+              );
+            })}
+            {row.shorts.length === 0 ? <p className="text-[13px] text-zinc-600">No short content yet.</p> : null}
+          </div>
+
+          {/* Add Short Content Form */}
+          <div className="mt-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+            <div className="text-[12px] font-semibold text-zinc-300">Add Short Content</div>
+
+            {/* Platform selection toggle similar to main content */}
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1.5">Target Platforms</label>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {allPlatforms.map((p) => {
+                  const on = shortPlatforms.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={!active}
+                      onClick={() => {
+                        setShortPlatforms((prev) =>
+                          prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id]
+                        );
+                      }}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] transition disabled:cursor-not-allowed ${
+                        on
+                          ? 'border-sky-400/50 bg-sky-500/15 text-sky-200 font-medium'
+                          : 'border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:bg-white/[0.08]'
+                      }`}
+                    >
+                      {p.label || p.name}
                     </button>
-                  </div>
-                </div>
-
-                {s.on_video_text || s.thumb_text ? (
-                  <div className="text-[12px] text-amber-300/90 font-medium">
-                    <span className="text-zinc-500 text-[11px] font-normal uppercase mr-1">On Video:</span>
-                    {s.on_video_text || s.thumb_text}
-                  </div>
-                ) : null}
-
-                {s.caption || s.title ? (
-                  <div className="text-[13px] text-zinc-200 whitespace-pre-wrap">
-                    {s.caption || s.title}
-                  </div>
-                ) : null}
-
-                <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1 border-t border-white/[0.04]">
-                  <span>{s.publish_at ? `Publish: ${formatStamp(s.publish_at)}` : 'No publish time set'}</span>
-                  {s.url ? <span className="truncate max-w-[200px] text-zinc-400">{s.url}</span> : null}
-                </div>
-              </div>
-            );
-          })}
-          {row.shorts.length === 0 ? <p className="text-[13px] text-zinc-600">No short content yet.</p> : null}
-        </div>
-
-        {/* Add Short Content Form */}
-        <div className="mt-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
-          <div className="text-[12px] font-semibold text-zinc-300">Add Short Content</div>
-
-          {/* Platform selection toggle similar to main content */}
-          <div>
-            <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1.5">Target Platforms</label>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {allPlatforms.map((p) => {
-                const on = shortPlatforms.includes(p.id);
-                return (
+                  );
+                })}
+                {onAddPlatform && isManager(actor) ? (
                   <button
-                    key={p.id}
                     type="button"
-                    disabled={!active}
-                    onClick={() => {
-                      setShortPlatforms((prev) =>
-                        prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id]
-                      );
-                    }}
-                    className={`rounded-full border px-2.5 py-1 text-[11px] transition disabled:cursor-not-allowed ${
-                      on
-                        ? 'border-sky-400/50 bg-sky-500/15 text-sky-200 font-medium'
-                        : 'border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:bg-white/[0.08]'
-                    }`}
+                    onClick={onAddPlatform}
+                    className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300 transition hover:bg-sky-500/20"
+                    title="Add a new publish platform"
                   >
-                    {p.label || p.name}
+                    + Add
                   </button>
-                );
-              })}
-              {onAddPlatform && isManager(actor) ? (
-                <button
-                  type="button"
-                  onClick={onAddPlatform}
-                  className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300 transition hover:bg-sky-500/20"
-                  title="Add a new publish platform"
-                >
-                  + Add
-                </button>
-              ) : null}
+                ) : null}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">On Video Text</label>
+                <input
+                  className={inputBase}
+                  placeholder="Text overlay appearing on the video…"
+                  value={onVideoText}
+                  disabled={!active}
+                  onChange={(e) => setOnVideoText(e.target.value)}
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Caption Text</label>
+                <textarea
+                  rows={2}
+                  className={`${inputBase} resize-y`}
+                  placeholder="Short caption / social copy…"
+                  value={captionText}
+                  disabled={!active}
+                  onChange={(e) => setCaptionText(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Publish Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className={`${inputBase} [color-scheme:dark]`}
+                  value={shortWhen}
+                  disabled={!active}
+                  onChange={(e) => setShortWhen(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Published Link (optional)</label>
+                <input
+                  className={inputBase}
+                  placeholder="https://…"
+                  value={shortUrl}
+                  disabled={!active}
+                  onChange={(e) => setShortUrl(e.target.value)}
+                />
+              </div>
+
+              <button
+                className={`${btnPrimary} sm:col-span-2 mt-1`}
+                disabled={!active || (!captionText.trim() && !onVideoText.trim())}
+                onClick={handleAddShort}
+              >
+                <Icon name="plus" /> Add Short Content
+              </button>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">On Video Text</label>
-              <input
-                className={inputBase}
-                placeholder="Text overlay appearing on the video…"
-                value={onVideoText}
-                disabled={!active}
-                onChange={(e) => setOnVideoText(e.target.value)}
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Caption Text</label>
-              <textarea
-                rows={2}
-                className={`${inputBase} resize-y`}
-                placeholder="Short caption / social copy…"
-                value={captionText}
-                disabled={!active}
-                onChange={(e) => setCaptionText(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Publish Date & Time</label>
-              <input
-                type="datetime-local"
-                className={`${inputBase} [color-scheme:dark]`}
-                value={shortWhen}
-                disabled={!active}
-                onChange={(e) => setShortWhen(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">Published Link (optional)</label>
-              <input
-                className={inputBase}
-                placeholder="https://…"
-                value={shortUrl}
-                disabled={!active}
-                onChange={(e) => setShortUrl(e.target.value)}
-              />
-            </div>
-
-            <button
-              className={`${btnPrimary} sm:col-span-2 mt-1`}
-              disabled={!active || (!captionText.trim() && !onVideoText.trim())}
-              onClick={handleAddShort}
-            >
-              <Icon name="plus" /> Add Short Content
-            </button>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
@@ -806,103 +826,107 @@ function QcTab({ row, actor, patch }) {
   };
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-        <div className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-          Add a note {!active ? <LockIcon message="Inactive members cannot add notes" /> : null}
-        </div>
-        <div className="mb-3 flex flex-wrap gap-2">
-          {QC_KINDS.map((k) => (
-            <button
-              key={k.id}
-              type="button"
-              disabled={!active}
-              onClick={() => setKind(k.id)}
-              className={`rounded-full border px-3 py-1.5 text-[12px] transition disabled:cursor-not-allowed ${
-                kind === k.id ? 'border-sky-400/50 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:bg-white/[0.08]'
-              }`}
-            >
-              {k.label}
+    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:space-y-0">
+      <div className="space-y-6">
+        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+          <div className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+            Add a note {!active ? <LockIcon message="Inactive members cannot add notes" /> : null}
+          </div>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {QC_KINDS.map((k) => (
+              <button
+                key={k.id}
+                type="button"
+                disabled={!active}
+                onClick={() => setKind(k.id)}
+                className={`rounded-full border px-3 py-1.5 text-[12px] transition disabled:cursor-not-allowed ${
+                  kind === k.id ? 'border-sky-400/50 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:bg-white/[0.08]'
+                }`}
+              >
+                {k.label}
+              </button>
+            ))}
+          </div>
+          <textarea
+            rows={3}
+            disabled={!active}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={kind === 'revision' ? 'What needs to be changed?' : kind === 'qa' ? 'Quality check remark…' : 'Audit comment…'}
+            className={active ? inputBase : inputLocked}
+          />
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <span className="text-[11px] text-zinc-600">Recorded with your name, role and the exact time.</span>
+            <button className={btnPrimary} disabled={!active || !note.trim()} onClick={addNote}>
+              <Icon name="plus" /> Add {QC_KIND_LABEL[kind].toLowerCase()}
             </button>
-          ))}
-        </div>
-        <textarea
-          rows={3}
-          disabled={!active}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder={kind === 'revision' ? 'What needs to be changed?' : kind === 'qa' ? 'Quality check remark…' : 'Audit comment…'}
-          className={active ? inputBase : inputLocked}
-        />
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="text-[11px] text-zinc-600">Recorded with your name, role and the exact time.</span>
-          <button className={btnPrimary} disabled={!active || !note.trim()} onClick={addNote}>
-            <Icon name="plus" /> Add {QC_KIND_LABEL[kind].toLowerCase()}
-          </button>
-        </div>
-      </section>
-
-      {reasons.length ? (
-        <section className="space-y-2">
-          {reasons.map(([k, v]) => (
-            <div key={k} className="rounded-xl border border-yellow-500/20 bg-yellow-500/[0.06] px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-yellow-400">{k}</div>
-              <div className="mt-1 text-[13px] text-zinc-200">{v}</div>
-            </div>
-          ))}
+          </div>
         </section>
-      ) : null}
 
-      <section>
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Revision requests ({row.revisions.length})</div>
-        {row.revisions.length === 0 ? <p className="text-[13px] text-zinc-600">No revisions requested.</p> : null}
-        <div className="space-y-2">
-          {[...row.revisions].reverse().map((r, i) => (
-            <div key={i} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-              <div className="text-[13px] text-zinc-200">{r.note}</div>
-              <div className="mt-1 text-[11px] text-zinc-500">
-                {r.actor}
-                {r.role ? ` (${ROLE_LABEL[r.role] || r.role})` : ''} · {formatStamp(r.time)}
+        {reasons.length ? (
+          <section className="space-y-2">
+            {reasons.map(([k, v]) => (
+              <div key={k} className="rounded-xl border border-yellow-500/20 bg-yellow-500/[0.06] px-4 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-yellow-400">{k}</div>
+                <div className="mt-1 text-[13px] text-zinc-200">{v}</div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </section>
+        ) : null}
+      </div>
 
-      <section>
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Audit trail ({row.audit_log.length})</div>
-        {row.audit_log.length === 0 ? <p className="text-[13px] text-zinc-600">Nothing recorded yet.</p> : null}
-        <ol className="relative space-y-4 border-l border-white/[0.08] pl-5">
-          {[...row.audit_log].reverse().map((a, i) => {
-            const isNote = a.kind === 'revision' || a.kind === 'qa' || a.kind === 'audit';
-            const dot = isNote ? 'bg-violet-400' : a.kind === 'change' ? 'bg-amber-400' : 'bg-sky-400';
-            return (
-              <li key={i} className="relative">
-                <span className={`absolute -left-[25px] top-1.5 h-2 w-2 rounded-full ${dot}`} />
-                <div className="text-[13px] text-zinc-200">
-                  {isNote ? (
-                    <span className="font-medium text-white">{QC_KIND_LABEL[a.kind]}</span>
-                  ) : a.kind === 'change' ? (
-                    <>
-                      <span className="font-medium text-white">{a.field}</span>: <span className="text-zinc-400">{a.from || 'empty'}</span> → <span className="font-medium text-white">{a.to || 'empty'}</span>
-                    </>
-                  ) : (
-                    <>
-                      {a.from ? `${a.from} → ` : ''}
-                      <span className="font-medium text-white">{a.to}</span>
-                    </>
-                  )}
+      <div className="space-y-6">
+        <section>
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Revision requests ({row.revisions.length})</div>
+          {row.revisions.length === 0 ? <p className="text-[13px] text-zinc-600">No revisions requested.</p> : null}
+          <div className="space-y-2">
+            {[...row.revisions].reverse().map((r, i) => (
+              <div key={i} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+                <div className="text-[13px] text-zinc-200">{r.note}</div>
+                <div className="mt-1 text-[11px] text-zinc-500">
+                  {r.actor}
+                  {r.role ? ` (${ROLE_LABEL[r.role] || r.role})` : ''} · {formatStamp(r.time)}
                 </div>
-                <div className="text-[11px] text-zinc-500">
-                  {a.actor}
-                  {a.role ? ` (${ROLE_LABEL[a.role] || a.role})` : ''} · {formatStamp(a.time)}
-                </div>
-                {a.note ? <div className="mt-1 text-[12px] text-zinc-400">“{a.note}”</div> : null}
-              </li>
-            );
-          })}
-        </ol>
-      </section>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Audit trail ({row.audit_log.length})</div>
+          {row.audit_log.length === 0 ? <p className="text-[13px] text-zinc-600">Nothing recorded yet.</p> : null}
+          <ol className="relative space-y-4 border-l border-white/[0.08] pl-5">
+            {[...row.audit_log].reverse().map((a, i) => {
+              const isNote = a.kind === 'revision' || a.kind === 'qa' || a.kind === 'audit';
+              const dot = isNote ? 'bg-violet-400' : a.kind === 'change' ? 'bg-amber-400' : 'bg-sky-400';
+              return (
+                <li key={i} className="relative">
+                  <span className={`absolute -left-[25px] top-1.5 h-2 w-2 rounded-full ${dot}`} />
+                  <div className="text-[13px] text-zinc-200">
+                    {isNote ? (
+                      <span className="font-medium text-white">{QC_KIND_LABEL[a.kind]}</span>
+                    ) : a.kind === 'change' ? (
+                      <>
+                        <span className="font-medium text-white">{a.field}</span>: <span className="text-zinc-400">{a.from || 'empty'}</span> → <span className="font-medium text-white">{a.to || 'empty'}</span>
+                      </>
+                    ) : (
+                      <>
+                        {a.from ? `${a.from} → ` : ''}
+                        <span className="font-medium text-white">{a.to}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-zinc-500">
+                    {a.actor}
+                    {a.role ? ` (${ROLE_LABEL[a.role] || a.role})` : ''} · {formatStamp(a.time)}
+                  </div>
+                  {a.note ? <div className="mt-1 text-[12px] text-zinc-400">“{a.note}”</div> : null}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      </div>
     </div>
   );
 }
@@ -994,7 +1018,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[580px] flex-col border-l border-white/[0.08] bg-black/60 shadow-2xl shadow-black backdrop-blur-xl">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[580px] lg:w-[94vw] lg:max-w-[1600px] flex-col border-l border-white/[0.08] bg-black/60 shadow-2xl shadow-black backdrop-blur-xl">
         <header className="border-b border-white/[0.06] px-6 pb-0 pt-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">

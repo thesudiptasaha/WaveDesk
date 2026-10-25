@@ -23,6 +23,7 @@ export function Teleprompter({ text, onClose }) {
   const [fontSize, setFontSize] = useState(56);
   const [mirror, setMirror] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [fullWidth, setFullWidth] = useState(true);
 
   const containerRef = useRef(null);
   const contentRef = useRef(null);
@@ -31,6 +32,46 @@ export function Teleprompter({ text, onClose }) {
   const hideTimerRef = useRef(null);
   const wakeLockRef = useRef(null);
   const posRef = useRef(0);
+
+  const handleClose = useCallback(() => {
+    if (typeof document !== 'undefined' && (document.fullscreenElement || document.webkitFullscreenElement)) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+    onClose();
+  }, [onClose]);
+
+  // Listen to browser fullscreen changes (e.g. browser handles Esc in fullscreen)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFs = typeof document !== 'undefined' && !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFs) {
+        onClose();
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, [onClose]);
+
+  // Exit fullscreen on unmount if still active
+  useEffect(() => {
+    return () => {
+      if (typeof document !== 'undefined' && (document.fullscreenElement || document.webkitFullscreenElement)) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    };
+  }, []);
 
   // Load saved settings
   useEffect(() => {
@@ -165,7 +206,7 @@ export function Teleprompter({ text, onClose }) {
       pingControls();
       
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
         return;
       }
       if (e.key === ' ') { e.preventDefault(); togglePlay(); }
@@ -183,7 +224,7 @@ export function Teleprompter({ text, onClose }) {
     };
     window.addEventListener('keydown', handleKey, true);
     return () => window.removeEventListener('keydown', handleKey, true);
-  }, [onClose, pingControls]);
+  }, [handleClose, pingControls]);
 
   const btnClass = "rounded text-white/70 hover:text-white hover:bg-white/10 transition flex items-center justify-center min-w-[36px] min-h-[36px]";
 
@@ -209,11 +250,16 @@ export function Teleprompter({ text, onClose }) {
       {/* Scroller */}
       <div 
         ref={containerRef}
-        className="h-full w-full overflow-y-auto no-scrollbar"
+        className="h-full w-full overflow-y-auto no-scrollbar cursor-pointer select-none"
         style={{ transform: mirror ? 'scaleX(-1)' : '' }}
         onScroll={handleScroll}
+        onClick={() => setFullWidth(fw => !fw)}
+        title="Click to toggle full width / centered"
       >
-        <div className="mx-auto max-w-4xl px-8" style={{ paddingTop: '80vh', paddingBottom: '80vh' }}>
+        <div 
+          className={`mx-auto transition-all duration-150 ${fullWidth ? 'w-full px-6 sm:px-14' : 'max-w-4xl px-8'}`} 
+          style={{ paddingTop: '80vh', paddingBottom: '80vh' }}
+        >
           <div 
             ref={contentRef}
             className="whitespace-pre-wrap font-medium" 
@@ -226,6 +272,7 @@ export function Teleprompter({ text, onClose }) {
 
       {/* Controls */}
       <div 
+        onClick={(e) => e.stopPropagation()}
         className={`absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center flex-wrap justify-center max-w-[96vw] gap-1 px-3 py-2 sm:gap-3 sm:px-6 sm:py-3 rounded-full shadow-2xl backdrop-blur transition-all duration-300 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
         style={{ backgroundColor: 'rgba(24, 24, 27, 0.92)' }}
       >
@@ -252,7 +299,7 @@ export function Teleprompter({ text, onClose }) {
         <div className="h-6 w-px bg-white/20 mx-1" />
         <button onClick={() => setMirror(m => !m)} onMouseDown={preventFocus} className={`${btnClass} ${mirror ? '!text-sky-400' : ''}`} title="Mirror (M)">M</button>
         <div className="h-6 w-px bg-white/20 mx-1" />
-        <button onClick={onClose} onMouseDown={preventFocus} className={btnClass} title="Close (Esc)">
+        <button onClick={handleClose} onMouseDown={preventFocus} className={btnClass} title="Close (Esc)">
           <SvgIcon path={ICONS.close} />
         </button>
       </div>
