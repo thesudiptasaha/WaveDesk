@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { can, FIELD_PERM } from '../../lib/core';
+import { can, FIELD_PERM, presenterMembers } from '../../lib/core';
 import { PersonName } from './Shared';
 
 export function StaffAssignSelect({ value, names, placeholder, onChange, team }) {
@@ -35,7 +35,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
   const actorCan = actor && actor.active !== false;
 
   const writers = team.filter((t) => t.role_research_script_writer || t.role === 'owner' || t.role === 'manager').map((m) => m.full_name);
-  const presenters = team.filter((m) => m.active !== false).map((m) => m.full_name);
+  const presenters = presenterMembers(team).map((m) => m.full_name);
   const editors = team.filter((t) => t.role_video_editor || t.role === 'owner' || t.role === 'manager').map((m) => m.full_name);
 
   const renderLine = (field, label, names, colLabel = null, showEmpty = false) => {

@@ -8,7 +8,7 @@ import {
   DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, PLATFORMS, PERMISSIONS, ROLE_LIST, ACCESS_LIST, ROLE_LABEL,
   isManager, isOwner, can, toLocalInput, fromLocalInput, formatDay, formatTime, 
   SLUG_MAX, normalizeSlugInput, pad, formatStamp, startOfDay, addDays, sameDay, shortsInRange,
-  normalizeRow
+  normalizeRow, presenterMembers
 } from '../../lib/core';
 
 import { downloadUserReport } from '../../services/exportService';
@@ -19,7 +19,8 @@ import { fetchAllPages } from '../../utils/fetchAll';
 function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate }) {
   const conceptOptions = team.filter((m) => m.active !== false && (m.role_concept_creator || m.role === 'owner' || m.role === 'manager')).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }));
   const writerOptions = team.filter((m) => m.active !== false && (m.role_research_script_writer || m.role === 'owner' || m.role === 'manager')).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }));
-  const presenterOptions = team.filter((m) => m.active !== false).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }));
+  const presenterOptions = presenterMembers(team).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }));
+  const okPres = can(actor, 'can_assign_presenter');
   const initialTime = () => {
     const d = new Date(defaultDate);
     const now = new Date();
@@ -144,8 +145,8 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
                   <SelectBox value={f.writer} onChange={(v) => setF((p) => ({ ...p, writer: v, concept_creator: conceptTouched ? p.concept_creator : v }))} options={writerOptions} placeholder="Select research & script" />
                 </Field>
               </div>
-              <Field label="Presenter" hint="optional">
-                <SelectBox value={f.presenter_name} onChange={(v) => set('presenter_name', v)} options={presenterOptions} placeholder="Select presenter" />
+              <Field label="Presenter" hint="optional" locked={!okPres} lockMessage={'You need the "Assign Presenter" permission'}>
+                <SelectBox value={f.presenter_name} onChange={(v) => set('presenter_name', v)} options={presenterOptions} placeholder="Select presenter" disabled={!okPres} />
               </Field>
             </div>
           </div>
@@ -667,7 +668,7 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
   };
 
   const activeWriters = team.filter(t => t.active !== false && (t.role_research_script_writer || t.role === 'owner')).map(t => t.full_name);
-  const activePresenters = team.filter(t => t.active !== false && (t.role_presenter || t.role === 'owner' || t.role_camera_operator)).map(t => t.full_name); // App uses activeNames typically
+  const activePresenters = presenterMembers(team).map((m) => m.full_name);
   const activeEditors = team.filter(t => t.active !== false && (t.role_video_editor || t.role === 'owner')).map(t => t.full_name);
   
   // Actually, standard activeNames for everyone
@@ -736,7 +737,10 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
                   <td className="px-3 py-2">
                     <select className={inputBase} value={r.presenter_name} onChange={e => updateItem(r._id, 'presenter_name', e.target.value)}>
                       <option value="">- Unassigned -</option>
-                      {activeNames.map(n => <option key={n} value={n}>{n}</option>)}
+                      {r.presenter_name && !activePresenters.includes(r.presenter_name) ? (
+                        <option value={r.presenter_name}>{r.presenter_name}</option>
+                      ) : null}
+                      {activePresenters.map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </td>
                   <td className="px-3 py-2">

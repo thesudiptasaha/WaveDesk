@@ -18,7 +18,7 @@ import {
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, normalizeRow, normalizeMember,
-  FIELD_PERM, TRACKED_FIELDS
+  FIELD_PERM, TRACKED_FIELDS, presenterMembers
 } from '../../lib/core';
 
 
@@ -147,7 +147,7 @@ function StaffAssignment({ row, actor, team, patch }) {
                       <SelectBox
                         value={row.presenter_name}
                         disabled={!okPres}
-                        options={team.filter((m) => m.active !== false).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }))}
+                        options={presenterMembers(team).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }))}
                         onChange={(v) => patch({ presenter_name: v })}
                         placeholder="Unassigned"
                       />
