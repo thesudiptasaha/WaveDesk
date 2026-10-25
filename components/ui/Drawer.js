@@ -664,7 +664,7 @@ function PackagingTab({ row, actor, patch, platforms = PLATFORMS, onAddPlatform 
                           <Icon name="link" />
                         </a>
                       ) : null}
-                      <button disabled={!active} onClick={() => patch({ shorts: row.shorts.filter((x) => x !== s.id) })} className="text-zinc-500 hover:text-red-400 disabled:opacity-40" title="Delete short">
+                      <button disabled={!active} onClick={() => patch({ shorts: row.shorts.filter((x) => x.id !== s.id) })} className="text-zinc-500 hover:text-red-400 disabled:opacity-40" title="Delete short">
                         <Icon name="trash" />
                       </button>
                     </div>
