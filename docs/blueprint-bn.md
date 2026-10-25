@@ -109,12 +109,11 @@ Oct 4, 2026 · @EEA
 | KPI | বর্তমান রানডাউন সীমার KPI রিপোর্ট |
 | Excel | সীমার রানডাউন Excel ফাইলে ডাউনলোড |
 
-**Content drawer** (ডান দিক থেকে খোলে, ৫টা ট্যাব ও নিচে থামা ফুটার)
+**Content drawer** (ডান দিক থেকে খোলে, ৪টা ট্যাব ও নিচে থামা ফুটার। প্রতিটি ট্যাবে PC-তে বাঁয়ে স্থায়ী "Details" প্যানেল থাকে: Channel, প্রকাশের সময়, Slug, Title, Thumbnail text, Archive shelf ID, Target platforms; পারমিশন অপরিবর্তিত। ফোনে এটি ট্যাব কনটেন্টের উপরে টগলযোগ্য "Details" বার, Editorial-এ খোলা ও অন্য ট্যাবে বন্ধ থাকে)।
 
 | ট্যাব | ভেতরে কী |
 | --- | --- |
-| Editorial | Title, thumbnail text, channel, প্রকাশের সময়, archive shelf ID, target platform; পারমিশন না থাকলে ঘর লক |
-| Script | পড়ার ও লেখার অংশ, শব্দ গণনা, প্রচারের মিনিট (১৫০ শব্দ = ১ মিনিট), Copy Script, Lock/Unlock (Manager, Owner), PACKAGE-এর raw footage link |
+| Editorial | ডান পাশটি স্ক্রিপ্ট: পড়ার ও লেখার ভিউ ও এডিটর, শব্দ গণনা ও প্রচারের মিনিট, Copy Script, Lock/Unlock Script (Manager ও Owner), এবং টেলিপ্রম্পটার খোলার জন্য সবুজ গ্লোয়িং "Play Script" বাটন (স্ক্রিপ্ট খালি থাকলে নিষ্ক্রিয়)। |
 | Production | Staff assignment এখন Production ট্যাবে থাকে ("Files & links"-এর উপরে), রঙিন গ্রুপ কার্ড হিসেবে: Idea & Script (Concept Creator, Research & Script Writer, Presenter), Production Crew (Producer, Camera Operator, Teleprompter Operator, Light Designer, Sound Recordist, Voice Over Artist), Post-Production (Video Editor, Motion Graphics Designer, Graphic Designer, Colorist, Audio Mixer), Publishing (Publisher), এবং Live Crew (Live Video Switcher, Live Audio Mixer; শুধু LIVE কনটেন্টের জন্য)। এখন আর "See More Credits" বাটন নেই। খালি থাকলে PACKAGE-এ Camera Operator, Teleprompter Operator, Light Designer ও Sound Recordist লুকানো থাকে; LIVE-এ খালি থাকলে Video Editor লুকানো থাকে। নিচে "Files & links" (raw footage, project file, master export)। |
 | Packaging | Target platforms প্রকাশের লিংক, shorts-এর তালিকা (নিজস্ব ID, thumb text, platform, URL, আপলোডের সময়, Pending/Published); নতুন short যোগের ফর্ম |
 | QC & Audit | Revision note, QA remark, Audit comment; hold/drop/re-shoot-এর কারণ; পুরো audit trail (কে, রোল, কখন) |

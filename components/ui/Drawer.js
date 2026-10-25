@@ -174,78 +174,75 @@ function StaffAssignment({ row, actor, team, patch }) {
   );
 }
 
-function EditorialTab({ row, actor, team, channels, platforms = PLATFORMS, patch, actions, onRun, onAddPlatform }) {
+function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, patch, onAddPlatform }) {
   const lockMsg = (label) => `You need the “${label}” permission`;
   const okMeta = can(actor, 'can_edit_content_details');
   const okSched = can(actor, 'can_reschedule_content');
   const heldLock = row.status === 'On Hold' && !isManager(actor);
   const okChan = can(actor, 'can_change_channel');
-  const okEditor = can(actor, 'can_assign_video_editor');
 
   return (
-    <div className="space-y-6 lg:max-w-3xl">
-      <div className="space-y-6">
-        <section className="grid grid-cols-1 gap-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Channel" locked={!okChan} lockMessage={lockMsg('Change Channel')}>
-              <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
-            </Field>
-            <Field label="Scheduled publish" locked={!okSched || heldLock} lockMessage={heldLock ? 'Only Managers and the Owner can reschedule held content' : lockMsg('Reschedule Content')}>
-                <input
-                  type="datetime-local"
-                  disabled={!okSched || heldLock}
-                  value={toLocalInput(row.scheduled_publish_time)}
-                  onChange={(e) => e.target.value && patch({ scheduled_publish_time: fromLocalInput(e.target.value) })}
-                  className={`${(okSched && !heldLock) ? inputBase : inputLocked} [color-scheme:dark]`}
-                />
-              </Field>
-          </div>
-          <Field label="Slug name" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')} hint={`${(row.slug_name || '').length}/${SLUG_MAX}`}>
-            <BlurInput value={row.slug_name} disabled={!okMeta} maxLength={SLUG_MAX} onCommit={(v) => { const s = normalizeSlugInput(v); if (s) patch({ slug_name: s }); }} placeholder="Slug name" />
+    <div className="space-y-6">
+      <section className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Channel" locked={!okChan} lockMessage={lockMsg('Change Channel')}>
+            <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
           </Field>
-          <Field label="Title" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-            <BlurInput value={row.title} disabled={!okMeta} onCommit={(v) => patch({ title: v })} placeholder="Title" />
+          <Field label="Scheduled publish" locked={!okSched || heldLock} lockMessage={heldLock ? 'Only Managers and the Owner can reschedule held content' : lockMsg('Reschedule Content')}>
+            <input
+              type="datetime-local"
+              disabled={!okSched || heldLock}
+              value={toLocalInput(row.scheduled_publish_time)}
+              onChange={(e) => e.target.value && patch({ scheduled_publish_time: fromLocalInput(e.target.value) })}
+              className={`${(okSched && !heldLock) ? inputBase : inputLocked} [color-scheme:dark]`}
+            />
           </Field>
-          <Field label="Thumbnail text (Hook)" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-            <BlurInput value={row.thumbnail_text} disabled={!okMeta} onCommit={(v) => patch({ thumbnail_text: v })} placeholder="Hook on the thumbnail" />
-          </Field>
-        </section>
+        </div>
+        <Field label="Slug name" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')} hint={`${(row.slug_name || '').length}/${SLUG_MAX}`}>
+          <BlurInput value={row.slug_name} disabled={!okMeta} maxLength={SLUG_MAX} onCommit={(v) => { const s = normalizeSlugInput(v); if (s) patch({ slug_name: s }); }} placeholder="Slug name" />
+        </Field>
+        <Field label="Title" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+          <BlurInput value={row.title} disabled={!okMeta} onCommit={(v) => patch({ title: v })} placeholder="Title" />
+        </Field>
+        <Field label="Thumbnail text (Hook)" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+          <BlurInput value={row.thumbnail_text} disabled={!okMeta} onCommit={(v) => patch({ thumbnail_text: v })} placeholder="Hook on the thumbnail" />
+        </Field>
+      </section>
 
-        <section className="grid grid-cols-1 gap-4">
-          <Field label="Archive shelf ID" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-            <BlurInput value={row.archive_shelf_id} disabled={!okMeta} onCommit={(v) => patch({ archive_shelf_id: v })} placeholder="e.g. SHELF-A12" />
-          </Field>
-          <Field label="Target platforms" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-            <div className="flex flex-wrap items-center gap-2">
-              {(platforms || PLATFORMS).map((p) => {
-                const on = row.target_platforms.includes(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    disabled={!okMeta}
-                    onClick={() => patch({ target_platforms: on ? row.target_platforms.filter((x) => x !== p.id) : [...row.target_platforms, p.id] })}
-                    className={`rounded-full border px-3 py-1.5 text-[12px] transition disabled:cursor-not-allowed ${
-                      on ? 'border-sky-400/50 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] bg-white/[0.03] text-zinc-400'
-                    } ${okMeta && !on ? 'hover:bg-white/[0.08]' : ''}`}
-                  >
-                    {p.label || p.name}
-                  </button>
-                );
-              })}
-              {onAddPlatform && isManager(actor) ? (
+      <section className="grid grid-cols-1 gap-4">
+        <Field label="Archive shelf ID" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+          <BlurInput value={row.archive_shelf_id} disabled={!okMeta} onCommit={(v) => patch({ archive_shelf_id: v })} placeholder="e.g. SHELF-A12" />
+        </Field>
+        <Field label="Target platforms" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+          <div className="flex flex-wrap items-center gap-2">
+            {(platforms || PLATFORMS).map((p) => {
+              const on = row.target_platforms.includes(p.id);
+              return (
                 <button
-                  type="button"
-                  onClick={onAddPlatform}
-                  className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-[12px] font-medium text-sky-300 transition hover:bg-sky-500/20"
-                  title="Add a new publish platform"
+                  key={p.id}
+                  disabled={!okMeta}
+                  onClick={() => patch({ target_platforms: on ? row.target_platforms.filter((x) => x !== p.id) : [...row.target_platforms, p.id] })}
+                  className={`rounded-full border px-3 py-1.5 text-[12px] transition disabled:cursor-not-allowed ${
+                    on ? 'border-sky-400/50 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] bg-white/[0.03] text-zinc-400'
+                  } ${okMeta && !on ? 'hover:bg-white/[0.08]' : ''}`}
                 >
-                  + Add platform
+                  {p.label || p.name}
                 </button>
-              ) : null}
-            </div>
-          </Field>
-        </section>
-      </div>
+              );
+            })}
+            {onAddPlatform && isManager(actor) ? (
+              <button
+                type="button"
+                onClick={onAddPlatform}
+                className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-[12px] font-medium text-sky-300 transition hover:bg-sky-500/20"
+                title="Add a new publish platform"
+              >
+                + Add platform
+              </button>
+            ) : null}
+          </div>
+        </Field>
+      </section>
     </div>
   );
 }
@@ -357,6 +354,24 @@ function ScriptTab({ row, actor, patch }) {
           ) : null}
         </div>
         <div className="flex items-center gap-2">
+          {isFeatureEnabled('teleprompter') ? (
+            <button
+              type="button"
+              onClick={handleOpenPrompter}
+              disabled={!text.trim()}
+              title={text.trim() ? 'Play Script' : 'No script to play'}
+              className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition active:scale-[0.98] ${
+                text.trim()
+                  ? 'play-glow'
+                  : 'border border-white/[0.08] bg-white/[0.03] text-zinc-500 cursor-not-allowed opacity-40'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Play Script
+            </button>
+          ) : null}
           {mgr ? (
             <button
               onClick={() => patch({ is_script_locked: !locked })}
@@ -473,16 +488,6 @@ function ScriptTab({ row, actor, patch }) {
         </div>
       ) : text ? (
         <>
-          {isFeatureEnabled('teleprompter') && text.trim() ? (
-            <div className="mb-4">
-              <button 
-                onClick={handleOpenPrompter}
-                className="w-full rounded-xl bg-indigo-500/10 px-4 py-3 text-[14px] font-semibold text-indigo-300 transition hover:bg-indigo-500/20 border border-indigo-500/20 shadow-sm flex justify-center items-center gap-2"
-              >
-                Script Play
-              </button>
-            </div>
-          ) : null}
           {richEnabled ? (
             <article
               className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-6 text-[17px] leading-[1.9] text-zinc-200 [&_p]:mb-5 [&_p:last-child]:mb-0 [&_mark]:bg-yellow-400 [&_mark]:text-gray-900 [&_mark]:rounded-sm [&_mark]:px-1 [&_mark]:py-0.5 [&_u]:underline-offset-2"
@@ -1059,6 +1064,7 @@ export function DeleteModal({ row, onClose, onConfirm }) {
 function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform }) {
     const savedScriptStats = scriptStats(row.script);
     const [tab, setTab] = useState('editorial');
+  const [detailsOpen, setDetailsOpen] = useState(true);
   const [saveState, setSaveState] = useState({ status: 'idle', at: null });
   const pendingRef = useRef(0);
 
@@ -1074,6 +1080,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
 
   useEffect(() => {
     setTab('editorial');
+    setDetailsOpen(true);
     pendingRef.current = 0;
     setSaveState({ status: 'idle', at: null });
   }, [row.id]);
@@ -1096,7 +1103,6 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   const actions = getActions(row, actor);
   const tabs = [
     ['editorial', 'Editorial'],
-    ['script', 'Script'],
     ['production', 'Production'],
     ['packaging', 'Packaging'],
     ['qc', 'QC & Audit'],
@@ -1177,7 +1183,10 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             {tabs.map(([id, label]) => (
               <button
                 key={id}
-                onClick={() => setTab(id)}
+                onClick={() => {
+                  setTab(id);
+                  setDetailsOpen(id === 'editorial');
+                }}
                 className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition ${tab === id ? 'border-sky-400 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
               >
                 {label}
@@ -1185,12 +1194,34 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             ))}
           </nav>
         </header>
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          {tab === 'editorial' ? <EditorialTab row={row} actor={actor} team={team} channels={channels} platforms={platforms} patch={patch} actions={actions} onRun={(a) => onRun(row, a)} onAddPlatform={onAddPlatform} /> : null}
-          {tab === 'script' ? <ScriptTab row={row} actor={actor} patch={patch} /> : null}
-          {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
-          {tab === 'packaging' ? <PackagingTab row={row} actor={actor} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
-          {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+          <div className="border-b border-white/[0.06] lg:border-b-0 lg:w-[470px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-white/[0.06] lg:bg-white/[0.02] lg:px-6 lg:py-6">
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((prev) => !prev)}
+              className={`flex w-full items-center justify-between bg-white/[0.02] px-6 py-3 text-left text-[13px] font-semibold text-zinc-300 transition hover:bg-white/[0.04] lg:hidden ${detailsOpen ? 'border-b border-white/[0.06]' : ''}`}
+              aria-expanded={detailsOpen}
+            >
+              <span>Details</span>
+              <Icon name={detailsOpen ? 'chevronDown' : 'chevronRight'} className="h-4 w-4 text-zinc-400" />
+            </button>
+            <div className={`${detailsOpen ? 'block' : 'hidden'} lg:block px-6 py-6 lg:p-0`}>
+              <ContentDetailsFields
+                row={row}
+                actor={actor}
+                channels={channels}
+                platforms={platforms}
+                patch={patch}
+                onAddPlatform={onAddPlatform}
+              />
+            </div>
+          </div>
+          <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
+            {tab === 'editorial' ? <ScriptTab row={row} actor={actor} patch={patch} /> : null}
+            {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
+            {tab === 'packaging' ? <PackagingTab row={row} actor={actor} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
+            {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
+          </div>
         </div>
         <footer className="border-t border-white/[0.08] bg-black/70 px-6 py-4 backdrop-blur-xl">
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Next step</div>

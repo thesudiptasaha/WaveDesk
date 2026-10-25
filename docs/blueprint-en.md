@@ -167,12 +167,11 @@ The app is one page (`app/page.js`) with a sticky header, the rundown, a second 
 | KPI | Opens the KPI report for the current rundown range |
 | Excel | Downloads the rundown rows in range as an Excel file |
 
-**Content drawer** (opens from the right, five tabs and a fixed footer)
+**Content drawer** (opens from the right, four tabs and a fixed footer. Every tab shows a fixed "Details" panel on the left on PC with Channel, Scheduled publish, Slug, Title, Thumbnail text, Archive shelf ID, Target platforms; permissions unchanged. On phone it is a collapsible "Details" bar above the tab content, open on Editorial, closed on the other tabs).
 
 | Tab | Contents |
 | --- | --- |
-| Editorial | Title, thumbnail text, channel, scheduled publish time, archive shelf ID, target platforms. Each field locks when you lack the permission. |
-| Script | Reading view and editor in a serif font that supports Bengali, word count and minutes on air (150 words a minute), Copy Script, Lock or Unlock Script (Managers and Owner), raw footage link for PACKAGE |
+| Editorial | The right side is the script: reading view and editor, word count and minutes on air, Copy Script, Lock/Unlock Script (Managers and Owner), and a green glowing "Play Script" button that opens the teleprompter (disabled when the script is empty). |
 | Production | Staff assignment now lives in the Production tab (above "Files & links"), shown as colored group cards: Idea & Script (Concept Creator, Research & Script Writer, Presenter), Production Crew (Producer, Camera Operator, Teleprompter Operator, Light Designer, Sound Recordist, Voice Over Artist), Post-Production (Video Editor, Motion Graphics Designer, Graphic Designer, Colorist, Audio Mixer), Publishing (Publisher), and Live Crew (Live Video Switcher, Live Audio Mixer; only for LIVE content). There is no "See More Credits" button any more. PACKAGE hides Camera Operator, Teleprompter Operator, Light Designer and Sound Recordist when empty; LIVE hides Video Editor when empty. Below Staff assignment: Files & links (raw footage, project file, master export). |
 | Packaging | Target platforms published links, list of shorts and reels with their own ID, thumb text, platform, URL, upload time and a Pending or Published toggle. Form to add a short. |
 | QC & Audit | Add a Revision note, QA remark or Audit comment. Shows hold, drop and re-shoot reasons, the list of revision requests and the full audit trail with who, role and time. |

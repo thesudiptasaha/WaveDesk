@@ -57,6 +57,30 @@ const globalCss = `
   .row-in { animation: rowIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .toast-in { animation: toastIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .live-dot { animation: pulseDot 1.8s ease-in-out infinite; }
+  @keyframes playGlow {
+    0%, 100% {
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.4), 0 0 16px rgba(34, 197, 94, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.75), 0 0 28px rgba(34, 197, 94, 0.35);
+    }
+  }
+  .play-glow {
+    background-color: #22c55e;
+    color: #052e16;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    animation: playGlow 2s ease-in-out infinite;
+  }
+  .play-glow:hover {
+    background-color: #16a34a;
+    color: #ffffff;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .play-glow {
+      animation: none !important;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5) !important;
+    }
+  }
   input, textarea, select, button { font-family: inherit; letter-spacing: inherit; }
 `;
 const lightCss = `
@@ -242,6 +266,31 @@ const lightCss = `
   html.light .rd-card { box-shadow: 0 2px 8px rgba(60, 45, 25, 0.1); }
   .rd-alt { background: rgba(255, 255, 255, 0.03); }
   html.light .rd-alt { background: #f6f1e6; }
+
+  @keyframes playGlowLight {
+    0%, 100% {
+      box-shadow: 0 0 8px rgba(70, 90, 34, 0.3), 0 0 16px rgba(70, 90, 34, 0.15);
+    }
+    50% {
+      box-shadow: 0 0 14px rgba(70, 90, 34, 0.55), 0 0 24px rgba(70, 90, 34, 0.25);
+    }
+  }
+  html.light .play-glow {
+    background-color: #465a22;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(70, 90, 34, 0.35);
+    animation: playGlowLight 2s ease-in-out infinite;
+  }
+  html.light .play-glow:hover {
+    background-color: #384a1b;
+    color: #ffffff;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html.light .play-glow {
+      animation: none !important;
+      box-shadow: 0 0 10px rgba(70, 90, 34, 0.35) !important;
+    }
+  }
 `;
 export default function RootLayout({ children }) {
   return (
