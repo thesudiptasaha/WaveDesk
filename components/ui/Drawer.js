@@ -54,22 +54,6 @@ const STAFF_GROUPS = [
     fields: [
       { field: 'concept_creator', label: 'Concept Creator', skillKey: 'role_concept_creator' },
       { field: 'writer', label: 'Research & Script Writer', skillKey: 'role_research_script_writer' },
-      { field: 'presenter_name', label: 'Presenter', skillKey: 'role_presenter' },
-    ],
-  },
-  {
-    id: 'crew',
-    title: 'Production Crew',
-    hint: 'on the shoot',
-    stripe: 'bg-red-400',
-    chip: 'bg-red-400/15 text-red-200',
-    fields: [
-      { field: 'producer', label: 'Producer', skillKey: 'role_producer' },
-      { field: 'camera_operator', label: 'Camera Operator', skillKey: 'role_camera_operator' },
-      { field: 'teleprompter_operator', label: 'Teleprompter Operator', skillKey: 'role_teleprompter_operator' },
-      { field: 'light_designer', label: 'Light Designer', skillKey: 'role_light_designer' },
-      { field: 'sound_recordist', label: 'Sound Recordist', skillKey: 'role_sound_recordist' },
-      { field: 'voice_over_artist', label: 'Voice Over Artist', skillKey: 'role_voice_over_artist' },
     ],
   },
   {
@@ -84,6 +68,22 @@ const STAFF_GROUPS = [
       { field: 'graphic_designer', label: 'Graphic Designer', skillKey: 'role_graphic_designer' },
       { field: 'colorist', label: 'Colorist', skillKey: 'role_colorist' },
       { field: 'audio_mixer', label: 'Audio Mixer', skillKey: 'role_audio_mixer' },
+    ],
+  },
+  {
+    id: 'crew',
+    title: 'Production Crew',
+    hint: 'on the shoot',
+    stripe: 'bg-red-400',
+    chip: 'bg-red-400/15 text-red-200',
+    fields: [
+      { field: 'producer', label: 'Producer', skillKey: 'role_producer' },
+      { field: 'presenter_name', label: 'Presenter', skillKey: 'role_presenter' },
+      { field: 'camera_operator', label: 'Camera Operator', skillKey: 'role_camera_operator' },
+      { field: 'teleprompter_operator', label: 'Teleprompter Operator', skillKey: 'role_teleprompter_operator' },
+      { field: 'light_designer', label: 'Light Designer', skillKey: 'role_light_designer' },
+      { field: 'sound_recordist', label: 'Sound Recordist', skillKey: 'role_sound_recordist' },
+      { field: 'voice_over_artist', label: 'Voice Over Artist', skillKey: 'role_voice_over_artist' },
     ],
   },
   {
@@ -109,17 +109,114 @@ const STAFF_GROUPS = [
   },
 ];
 
-function StaffAssignment({ row, actor, team, patch }) {
+function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
   const active = !!actor && actor.active !== false;
+  const isPresenter = field === 'presenter_name';
   const okPres = can(actor, 'can_assign_presenter');
-  const lockMsg = (label) => `You need the “${label}” permission`;
+  const isLocked = isPresenter ? !okPres : !active;
+  const lockTitle = isPresenter
+    ? 'You need the “Assign Presenter” permission'
+    : 'You do not have permission to assign staff';
+
+  const assignedName = row[field];
+  const isAssigned = !!assignedName;
+  const member = isAssigned ? (team || []).find((m) => m.full_name === assignedName) : null;
+  const nickname = (member && member.nickname) || assignedName;
+
+  const tileTitle = isLocked
+    ? lockTitle
+    : isAssigned
+    ? (member && member.designation ? `${member.full_name} (${member.designation})` : (member ? member.full_name : assignedName))
+    : `Assign ${label}`;
+
+  const eligibleMembers = isPresenter
+    ? presenterMembers(team)
+    : (team || []).filter((t) => !skillKey || t[skillKey] || t.role === 'owner' || t.role === 'manager');
+
+  const options = eligibleMembers.map((m) => ({
+    value: m.full_name,
+    label: m.nickname || m.full_name,
+  }));
+
+  if (assignedName && !eligibleMembers.some((m) => m.full_name === assignedName)) {
+    const extra = (team || []).find((m) => m.full_name === assignedName);
+    options.unshift({
+      value: assignedName,
+      label: (extra && extra.nickname) || assignedName,
+    });
+  }
+
+  return (
+    <div
+      className={`group relative flex flex-col items-center justify-start p-2.5 text-center rounded-xl border border-white/[0.04] bg-white/[0.015] hover:border-white/[0.1] hover:bg-white/[0.04] transition focus-within:ring-2 focus-within:ring-sky-400 select-none ${
+        isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+      }`}
+      title={tileTitle}
+    >
+      <div className="relative mb-2">
+        {isAssigned ? (
+          <Avatar member={member} name={assignedName} size="h-10 w-10" text="text-[15px]" />
+        ) : (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-zinc-600 text-zinc-400 group-hover:border-zinc-400 group-hover:text-zinc-200 transition">
+            <span className="text-[18px] leading-none select-none font-light">+</span>
+          </div>
+        )}
+        {isLocked ? (
+          <span
+            className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#121215] border border-white/20 text-zinc-400 shadow-sm"
+            title={lockTitle}
+          >
+            <Icon name="lock" className="h-2.5 w-2.5" />
+          </span>
+        ) : null}
+      </div>
+
+      {isAssigned ? (
+        <span className="w-full truncate text-[12px] font-semibold text-white">
+          {nickname}
+        </span>
+      ) : (
+        <span className="w-full truncate text-[12px] font-semibold text-zinc-400 group-hover:text-zinc-200 transition">
+          Assign
+        </span>
+      )}
+      <span className="w-full truncate text-[10px] uppercase tracking-wider text-zinc-500 font-medium mt-0.5">
+        {label}
+      </span>
+
+      {!isLocked ? (
+        <select
+          value={assignedName || ''}
+          onChange={(e) => patch({ [field]: e.target.value })}
+          aria-label={`${label}: ${isAssigned ? nickname : 'Unassigned'}`}
+          title={tileTitle}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus:outline-none"
+        >
+          <option value="" className="bg-[#121215]">
+            — Unassigned —
+          </option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} className="bg-[#121215]">
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      ) : null}
+    </div>
+  );
+}
+
+function StaffAssignment({ row, actor, team, patch }) {
   const HIDE_BY_TYPE = { PACKAGE: ['camera_operator', 'teleprompter_operator', 'light_designer', 'sound_recordist'], LIVE: ['video_editor'] };
   const showCredit = (field) => !((HIDE_BY_TYPE[row.content_type] || []).includes(field) && !row[field]);
 
   return (
     <div>
-      <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Staff assignment</div>
-      <div className="space-y-4">
+      <div className="mb-3 flex items-baseline gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Staff assignment</span>
+        <span className="hidden text-[12px] font-normal normal-case text-zinc-500 sm:inline">· Click a photo to change · hover to see who</span>
+      </div>
+      <div className="lg:columns-2 gap-4">
         {STAFF_GROUPS.map((g) => {
           if (g.id === 'live' && !(row.content_type === 'LIVE' || row.live_video_switcher || row.live_audio_mixer)) {
             return null;
@@ -130,7 +227,7 @@ function StaffAssignment({ row, actor, team, patch }) {
           const visible = visibleFields.length;
 
           return (
-            <div key={g.id} className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
+            <div key={g.id} className="inline-block w-full break-inside-avoid mb-4 relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
               <div className={`absolute inset-y-0 left-0 w-1.5 ${g.stripe}`} />
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -139,31 +236,22 @@ function StaffAssignment({ row, actor, team, patch }) {
                 </div>
                 <span className="text-[12px] font-semibold text-zinc-400">{assigned} / {visible}</span>
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {visibleFields.map((f) =>
-                  f.field === 'presenter_name' ? (
-                    <Field key={f.field} label="Presenter" locked={!okPres} lockMessage={lockMsg('Assign Presenter')}>
-                      <SelectBox
-                        value={row.presenter_name}
-                        disabled={!okPres}
-                        options={presenterMembers(team).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }))}
-                        onChange={(v) => patch({ presenter_name: v })}
-                        placeholder="Unassigned"
-                      />
-                    </Field>
-                  ) : (
-                    <CreditSelect
-                      key={f.field}
-                      label={f.label}
-                      field={f.field}
-                      skillKey={f.skillKey}
-                      row={row}
-                      patch={patch}
-                      team={team}
-                      disabled={!active}
-                    />
-                  )
-                )}
+              <div
+                className="grid gap-2.5"
+                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))' }}
+              >
+                {visibleFields.map((f) => (
+                  <StaffTile
+                    key={f.field}
+                    field={f.field}
+                    label={f.label}
+                    skillKey={f.skillKey}
+                    row={row}
+                    patch={patch}
+                    team={team}
+                    actor={actor}
+                  />
+                ))}
               </div>
             </div>
           );
