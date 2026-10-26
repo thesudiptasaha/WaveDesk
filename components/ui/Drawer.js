@@ -269,9 +269,9 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
   const okChan = can(actor, 'can_change_channel');
 
   return (
-    <div className="space-y-6">
-      <section className="grid grid-cols-1 gap-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="space-y-6 lg:space-y-3 details-compact">
+      <section className="grid grid-cols-1 gap-4 lg:gap-2.5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-2.5">
           <Field label="Channel" locked={!okChan} lockMessage={lockMsg('Change Channel')}>
             <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
           </Field>
@@ -296,12 +296,12 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
         </Field>
       </section>
 
-      <section className="grid grid-cols-1 gap-4">
+      <section className="grid grid-cols-1 gap-4 lg:gap-2.5">
         <Field label="Archive shelf ID" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
           <BlurInput value={row.archive_shelf_id} disabled={!okMeta} onCommit={(v) => patch({ archive_shelf_id: v })} placeholder="e.g. SHELF-A12" />
         </Field>
         <Field label="Target platforms" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 lg:gap-1.5">
             {(platforms || PLATFORMS).map((p) => {
               const on = row.target_platforms.includes(p.id);
               return (
@@ -309,7 +309,7 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
                   key={p.id}
                   disabled={!okMeta}
                   onClick={() => patch({ target_platforms: on ? row.target_platforms.filter((x) => x !== p.id) : [...row.target_platforms, p.id] })}
-                  className={`rounded-full border px-3 py-1.5 text-[12px] transition disabled:cursor-not-allowed ${
+                  className={`rounded-full border px-3 py-1.5 text-[12px] lg:px-2.5 lg:py-1 lg:text-[11.5px] transition disabled:cursor-not-allowed ${
                     on ? 'border-sky-400/50 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] bg-white/[0.03] text-zinc-400'
                   } ${okMeta && !on ? 'hover:bg-white/[0.08]' : ''}`}
                 >
@@ -321,7 +321,7 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
               <button
                 type="button"
                 onClick={onAddPlatform}
-                className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-[12px] font-medium text-sky-300 transition hover:bg-sky-500/20"
+                className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-[12px] lg:px-2.5 lg:py-1 lg:text-[11.5px] font-medium text-sky-300 transition hover:bg-sky-500/20"
                 title="Add a new publish platform"
               >
                 + Add platform
@@ -1426,95 +1426,108 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
     ['packaging', 'Publish'],
     ['qc', 'QC & Audit'],
   ];
+  const publishedLinks = getPublishedLinks(row);
+  const validLinkEntries = Object.entries(publishedLinks).filter(([_, u]) => safeHttpUrl(u));
+  const hasPublishedLinks = validLinkEntries.length > 0 || safeHttpUrl(row.live_video_url);
+
+  const renderPublishedLinks = () => {
+    if (!hasPublishedLinks) return null;
+    if (validLinkEntries.length === 0 && safeHttpUrl(row.live_video_url)) {
+      return (
+        <a
+          href={safeHttpUrl(row.live_video_url)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[11.5px] font-medium text-white transition hover:bg-white/20"
+        >
+          <Icon name="link" className="h-3 w-3" />
+          View Published Content
+        </a>
+      );
+    }
+    return validLinkEntries.map(([pId, u]) => {
+      const pMeta = PLATFORMS.find((p) => p.id === pId);
+      return (
+        <a
+          key={pId}
+          href={safeHttpUrl(u)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[11.5px] font-medium text-white transition hover:bg-white/20"
+        >
+          <Icon name="link" className="h-3 w-3" />
+          {pMeta?.label || pId}
+        </a>
+      );
+    });
+  };
+
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-[580px] lg:w-[94vw] lg:max-w-[1600px] flex-col border-l border-white/[0.08] bg-black/60 shadow-2xl shadow-black backdrop-blur-xl">
-        <header className="border-b border-white/[0.06] px-6 pb-0 pt-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <TypeBadge type={row.content_type} />
-                <StatusBadge status={row.status} />
-                  {savedScriptStats.words > 0 && (
-                    <span className="script-duration-badge inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded border border-white/10 bg-zinc-800 text-zinc-200">
-                      Script {savedScriptStats.label}
-                    </span>
-                  )}
-                  <span className="font-mono text-[11px] text-zinc-600">{row.content_uid}</span>
-              </div>
-              <h2 className="truncate text-[24px] font-black tracking-tight text-white">{row.slug_name || row.title || 'Untitled'}</h2>
-              <p className="mt-0.5 text-[13px] text-zinc-500">
-                {row.channel || 'No channel'} · {formatDay(row.scheduled_publish_time)} {formatTime(row.scheduled_publish_time)}
-              </p>
-              {(() => {
-                const links = getPublishedLinks(row);
-                const validEntries = Object.entries(links).filter(([_, u]) => safeHttpUrl(u));
-                if (validEntries.length === 0) {
-                  if (safeHttpUrl(row.live_video_url)) {
-                    return (
-                      <div className="mt-3">
-                        <a
-                          href={safeHttpUrl(row.live_video_url)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[12px] font-medium text-white transition hover:bg-white/20"
-                        >
-                          <Icon name="link" className="h-3 w-3" />
-                          View Published Content
-                        </a>
-                      </div>
-                    );
-                  }
-                  return null;
-                }
-                return (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {validEntries.map(([pId, u]) => {
-                      const pMeta = PLATFORMS.find((p) => p.id === pId);
-                      return (
-                        <a
-                          key={pId}
-                          href={safeHttpUrl(u)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[12px] font-medium text-white transition hover:bg-white/20"
-                        >
-                          <Icon name="link" className="h-3 w-3" />
-                          {pMeta?.label || pId}
-                        </a>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+        <header className="border-b border-white/[0.06] px-4 sm:px-5 lg:px-6 pb-0 pt-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
+              <TypeBadge type={row.content_type} />
+              <StatusBadge status={row.status} />
+              {savedScriptStats.words > 0 && (
+                <span className="script-duration-badge inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded border border-white/10 bg-zinc-800 text-zinc-200">
+                  Script {savedScriptStats.label}
+                </span>
+              )}
+              <span className="font-mono text-[11px] text-zinc-600">{row.content_uid}</span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {saveState.status === 'saving' && <span aria-live="polite" className="text-[11px] text-zinc-500">Saving…</span>}
               {saveState.status === 'saved' && <span aria-live="polite" className="text-[11px] text-emerald-400">Saved ✓ {formatTime(saveState.at)}</span>}
               {saveState.status === 'error' && <span aria-live="polite" className="text-[11px] text-red-400">Not saved</span>}
-              <button onClick={onClose} className="rounded-full p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-white" aria-label="Close drawer">
-                <Icon name="x" className="h-5 w-5" />
+              <button
+                onClick={onClose}
+                className="drawer-close-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-300 ring-1 ring-red-400/30 transition hover:bg-red-500 hover:text-white"
+                aria-label="Close drawer"
+              >
+                <Icon name="x" className="h-4 w-4" />
               </button>
             </div>
           </div>
-          <nav className="-mb-px mt-4 flex gap-1 overflow-x-auto">
-            {tabs.map(([id, label]) => (
-              <button
-                key={id}
-                onClick={() => {
-                  setTab(id);
-                  setDetailsOpen(id === 'editorial');
-                }}
-                className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition ${tab === id ? 'border-sky-400 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 lg:flex-nowrap min-w-0">
+            <h2 className="truncate text-[20px] lg:text-[22px] font-black tracking-tight text-white shrink min-w-0">
+              {row.slug_name || row.title || 'Untitled'}
+            </h2>
+            <span className="shrink-0 text-[12px] lg:text-[13px] text-zinc-500 whitespace-nowrap">
+              {row.channel || 'No channel'} · {formatDay(row.scheduled_publish_time)} {formatTime(row.scheduled_publish_time)}
+            </span>
+          </div>
+          {hasPublishedLinks ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 lg:hidden">
+              {renderPublishedLinks()}
+            </div>
+          ) : null}
+          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <nav className="-mb-px flex gap-1 overflow-x-auto">
+              {tabs.map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => {
+                    setTab(id);
+                    setDetailsOpen(id === 'editorial');
+                  }}
+                  className={`whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition ${tab === id ? 'border-sky-400 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+            {hasPublishedLinks ? (
+              <div className="hidden lg:flex flex-wrap items-center gap-1.5 pb-1">
+                {renderPublishedLinks()}
+              </div>
+            ) : null}
+          </div>
         </header>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
-          <div className="border-b border-white/[0.06] lg:border-b-0 lg:w-[470px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-white/[0.06] lg:bg-white/[0.02] lg:px-6 lg:py-6">
+          <div className="border-b border-white/[0.06] lg:border-b-0 lg:w-[440px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-white/[0.06] lg:bg-white/[0.02] lg:px-5 lg:py-4">
             <button
               type="button"
               onClick={() => setDetailsOpen((prev) => !prev)}
@@ -1543,8 +1556,8 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
           </div>
         </div>
         <footer className="border-t border-white/[0.08] bg-black/70 backdrop-blur-xl flex flex-col lg:flex-row">
-          <div className="hidden lg:block lg:w-[470px] lg:shrink-0 border-r border-white/[0.06] bg-white/[0.02]" aria-hidden="true" />
-          <div className="min-w-0 flex-1 px-6 py-4">
+          <div className="hidden lg:block lg:w-[440px] lg:shrink-0 border-r border-white/[0.06] bg-white/[0.02]" aria-hidden="true" />
+          <div className="min-w-0 flex-1 px-6 py-4 lg:py-2 drawer-footer-compact">
             <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 shrink-0">Next step</span>
@@ -1566,7 +1579,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
               </div>
             </div>
             {actions.some((a) => a.allowed && a.blocked) ? (
-              <p className="mt-2 text-[12px] text-amber-400/80">{actions.find((a) => a.allowed && a.blocked).blocked}</p>
+              <p className="mt-1 text-[12px] text-amber-400/80">{actions.find((a) => a.allowed && a.blocked).blocked}</p>
             ) : null}
           </div>
         </footer>

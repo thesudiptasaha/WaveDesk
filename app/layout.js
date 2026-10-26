@@ -263,6 +263,27 @@ const globalCss = `
     border-radius: 2px;
     padding: 0 4px;
   }
+
+  @media (min-width: 1024px) {
+    .details-compact input,
+    .details-compact select,
+    .details-compact textarea {
+      padding-top: 0.375rem !important;
+      padding-bottom: 0.375rem !important;
+      font-size: 13px !important;
+      line-height: 20px !important;
+      min-height: 34px !important;
+    }
+    .details-compact label > span:first-child {
+      font-size: 10.5px !important;
+      margin-bottom: 4px !important;
+    }
+    .drawer-footer-compact button {
+      padding-top: 0.375rem !important;
+      padding-bottom: 0.375rem !important;
+      min-height: 34px !important;
+    }
+  }
 `;
 const lightCss = `
   html.light { color-scheme: light; }
@@ -493,6 +514,17 @@ const lightCss = `
       animation: none !important;
       box-shadow: 0 0 10px rgba(70, 90, 34, 0.35) !important;
     }
+  }
+
+  /* Drawer red close button in light theme */
+  html.light .drawer-close-btn {
+    background-color: rgba(128, 44, 44, 0.12) !important;
+    color: #822929 !important;
+    --tw-ring-color: rgba(128, 44, 44, 0.35) !important;
+  }
+  html.light .drawer-close-btn:hover {
+    background-color: #802c2c !important;
+    color: #ffffff !important;
   }
 `;
 export default function RootLayout({ children }) {
