@@ -246,7 +246,56 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
   );
 }
 
-function ScriptTab({ row, actor, patch }) {
+function formatScriptSavedAt(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    return new Intl.DateTimeFormat('bn-BD', {
+      timeZone: 'Asia/Dhaka',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(d).replace(',', '');
+  } catch {
+    return '—';
+  }
+}
+
+function ScriptPaperHeader({ row, team }) {
+  const channel = row.channel || '—';
+  const title = row.title || row.slug_name || 'Untitled';
+  const writerMember = (team || []).find((m) => m.full_name === row.writer);
+  const writerDisplay = (writerMember && writerMember.nickname) || row.writer || '—';
+  const savedDate = formatScriptSavedAt(row.script_saved_at);
+  const contentUid = row.content_uid || '—';
+
+  return (
+    <div className="script-paper-header">
+      <div className="script-paper-mast">
+        <span>WAVEDESK · SCRIPT</span>
+        <span>{channel}</span>
+      </div>
+      <h1 className="script-paper-title">{title}</h1>
+      <div className="script-paper-by">
+        <div className="script-paper-by-item">
+          <span className="script-paper-by-label">লেখক</span>
+          <span className="script-paper-by-val">{writerDisplay}</span>
+        </div>
+        <div className="script-paper-by-item">
+          <span className="script-paper-by-label">তারিখ</span>
+          <span className="script-paper-by-val">{savedDate}</span>
+        </div>
+        <div className="script-paper-by-item">
+          <span className="script-paper-by-label">আইডি</span>
+          <span className="script-paper-by-val">{contentUid}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScriptTab({ row, actor, patch, team }) {
   const locked = row.is_script_locked === true;
   const mgr = isManager(actor);
   const canEdit = can(actor, 'can_write_edit_scripts') && (!locked || mgr);
@@ -315,7 +364,7 @@ function ScriptTab({ row, actor, patch }) {
 
   const richEnabled = isFeatureEnabled('rich_editor');
   const text = scriptToPlainText(row.script || '');
-    const stats = scriptStats(editing ? draft : row.script);
+  const stats = scriptStats(editing ? draft : row.script);
 
   const doCopy = async () => {
     if (!text) return;
@@ -337,6 +386,38 @@ function ScriptTab({ row, actor, patch }) {
       }
     }
     setShowPrompter(true);
+  };
+
+  const handleCancel = () => {
+    setDraft(row.script || '');
+    setEditing(false);
+    if (draftsEnabled) {
+      clearDraft(window.localStorage, draftKey);
+      setStoredDraft(null);
+    }
+  };
+
+  const handleSave = async () => {
+    if (draft === (row.script || '')) {
+      setEditing(false);
+      if (draftsEnabled) {
+        clearDraft(window.localStorage, draftKey);
+        setStoredDraft(null);
+      }
+      return;
+    }
+    const ok = await patch({ script: draft });
+    setEditing(false);
+    if (draftsEnabled) {
+      if (ok) {
+        clearDraft(window.localStorage, draftKey);
+        setStoredDraft(null);
+      } else {
+        const record = { text: draft, savedAt: new Date().toISOString(), baseScript: baseScriptRef.current };
+        saveDraft(window.localStorage, draftKey, record);
+        setStoredDraft(record);
+      }
+    }
   };
 
   return (
@@ -392,7 +473,24 @@ function ScriptTab({ row, actor, patch }) {
               {copied ? 'Copied!' : 'Copy Script'}
             </button>
           </div>
-          {editing ? null : (
+          {editing ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={btnGhost}
+                onClick={handleCancel}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={btnPrimary}
+                onClick={handleSave}
+              >
+                Save script
+              </button>
+            </div>
+          ) : (
             <button
               onClick={() => setEditing(true)}
               disabled={!canEdit}
@@ -425,87 +523,69 @@ function ScriptTab({ row, actor, patch }) {
       ) : null}
       {editing ? (
         <div>
-          {richEnabled ? (
-              <ScriptEditor 
-                value={draft}
-                onChange={setDraft}
-                onBlur={() => {
-                  if (draftsEnabled) saveDraft(window.localStorage, draftKey, { text: draft, savedAt: new Date().toISOString(), baseScript: baseScriptRef.current });
-                }}
-                autoFocus 
-              />
-            ) : (
-              <textarea
-                onBlur={() => {
-                  if (draftsEnabled) saveDraft(window.localStorage, draftKey, { text: draft, savedAt: new Date().toISOString(), baseScript: baseScriptRef.current });
-                }}
-                autoFocus
-                value={scriptToPlainText(draft)}
-                onChange={(e) => setDraft(e.target.value)}
-                rows={18}
-                className={`${inputBase} resize-y text-[16px] leading-8`}
-                style={{ fontFamily: 'Georgia, "Noto Serif Bengali", "Times New Roman", serif' }}
-                placeholder="Write the script…"
-              />
-            )}
+          <div className="script-paper">
+            <ScriptPaperHeader row={row} team={team} />
+            <div className="script-paper-body">
+              {richEnabled ? (
+                <ScriptEditor 
+                  value={draft}
+                  onChange={setDraft}
+                  onBlur={() => {
+                    if (draftsEnabled) saveDraft(window.localStorage, draftKey, { text: draft, savedAt: new Date().toISOString(), baseScript: baseScriptRef.current });
+                  }}
+                  autoFocus 
+                />
+              ) : (
+                <textarea
+                  onBlur={() => {
+                    if (draftsEnabled) saveDraft(window.localStorage, draftKey, { text: draft, savedAt: new Date().toISOString(), baseScript: baseScriptRef.current });
+                  }}
+                  autoFocus
+                  value={scriptToPlainText(draft)}
+                  onChange={(e) => setDraft(e.target.value)}
+                  className="script-paper-textarea"
+                  placeholder="Write the script…"
+                />
+              )}
+            </div>
+          </div>
           <div className="mt-3 flex justify-end gap-2">
             <button
+              type="button"
               className={btnGhost}
-              onClick={() => {
-                  setDraft(row.script || '');
-                  setEditing(false);
-                  if (draftsEnabled) { clearDraft(window.localStorage, draftKey); setStoredDraft(null); }
-                }}
+              onClick={handleCancel}
             >
               Cancel
             </button>
             <button
+              type="button"
               className={btnPrimary}
-              onClick={async () => {
-                if (draft === (row.script || '')) {
-                  setEditing(false);
-                  if (draftsEnabled) { clearDraft(window.localStorage, draftKey); setStoredDraft(null); }
-                  return;
-                }
-                const ok = await patch({ script: draft });
-                setEditing(false);
-                if (draftsEnabled) {
-                  if (ok) {
-                    clearDraft(window.localStorage, draftKey);
-                    setStoredDraft(null);
-                  } else {
-                    const record = { text: draft, savedAt: new Date().toISOString(), baseScript: baseScriptRef.current };
-                    saveDraft(window.localStorage, draftKey, record);
-                    setStoredDraft(record);
-                  }
-                }
-              }}
+              onClick={handleSave}
             >
               Save script
             </button>
           </div>
         </div>
       ) : text ? (
-        <>
-          {richEnabled ? (
-            <article
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-6 text-[17px] leading-[1.9] text-zinc-200 [&_p]:mb-5 [&_p:last-child]:mb-0 [&_mark]:bg-yellow-400 [&_mark]:text-gray-900 [&_mark]:rounded-sm [&_mark]:px-1 [&_mark]:py-0.5 [&_u]:underline-offset-2"
-              style={{ fontFamily: 'Georgia, "Noto Serif Bengali", "Times New Roman", serif' }}
-              dangerouslySetInnerHTML={{ __html: sanitizeScriptHtml(scriptToHtml(row.script)) }}
-            />
-          ) : (
-            <article
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-6 text-[17px] leading-[1.9] text-zinc-200"
-              style={{ fontFamily: 'Georgia, "Noto Serif Bengali", "Times New Roman", serif' }}
-            >
-              {text.split(/\n{2,}/).map((para, i) => (
-                <p key={i} className="mb-5 whitespace-pre-wrap last:mb-0">
-                  {para}
-                </p>
-              ))}
-            </article>
-          )}
-        </>
+        <div className="script-paper">
+          <ScriptPaperHeader row={row} team={team} />
+          <div className="script-paper-body">
+            {richEnabled ? (
+              <article
+                className="outline-none"
+                dangerouslySetInnerHTML={{ __html: sanitizeScriptHtml(scriptToHtml(row.script)) }}
+              />
+            ) : (
+              <article className="outline-none">
+                {text.split(/\n{2,}/).map((para, i) => (
+                  <p key={i} className="whitespace-pre-wrap">
+                    {para}
+                  </p>
+                ))}
+              </article>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-white/[0.1] px-6 py-12 text-center text-[14px] text-zinc-500">
           No script yet.{canEdit ? ' Click Edit to write one.' : ''}
@@ -1368,7 +1448,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             </div>
           </div>
           <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
-            {tab === 'editorial' ? <ScriptTab row={row} actor={actor} patch={patch} /> : null}
+            {tab === 'editorial' ? <ScriptTab row={row} actor={actor} patch={patch} team={team} /> : null}
             {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
             {tab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
             {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}

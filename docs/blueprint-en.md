@@ -171,7 +171,7 @@ The app is one page (`app/page.js`) with a sticky header, the rundown, a second 
 
 | Tab | Contents |
 | --- | --- |
-| Editorial | The right side is the script: reading view and editor, word count and minutes on air, Copy Script, Lock/Unlock Script (Managers and Owner), and a green glowing "Play Script" button that opens the teleprompter (disabled when the script is empty). |
+| Editorial | The right side is the script on a "printed paper" block (class `script-paper`, styled in `app/layout.js`; stays light `#f6f1e4` in dark theme and `#fffefa` in light theme with dark ink `#1c1814` in both themes). Header: masthead "WAVEDESK · SCRIPT" with channel, large title, and byline with writer (nickname if available), date (`script_saved_at` formatted in Bengali, Asia/Dhaka time) and content id (`row.content_uid`). Controls above (and below during edit): word count and minutes on air, Play Script (teleprompter), Lock/Unlock Script (Managers and Owner), Copy Script, Edit, and Cancel / Save script buttons. Supports rich TipTap editor and plain text fallback. |
 | Production | Staff assignment now lives in the Production tab (above "Files & links"), shown as colored group cards: Idea & Script (Concept Creator, Research & Script Writer, Presenter), Production Crew (Producer, Camera Operator, Teleprompter Operator, Light Designer, Sound Recordist, Voice Over Artist), Post-Production (Video Editor, Motion Graphics Designer, Graphic Designer, Colorist, Audio Mixer), Publishing (Publisher), and Live Crew (Live Video Switcher, Live Audio Mixer; only for LIVE content). There is no "See More Credits" button any more. PACKAGE hides Camera Operator, Teleprompter Operator, Light Designer and Sound Recordist when empty; LIVE hides Video Editor when empty. Below Staff assignment: Files & links (raw footage, project file, master export). |
 | Publish | The right side (internal tab id is still "packaging"; the fixed Details panel stays on the left) stacks in one column: Publisher (same field as the Publishing card in the Production tab), Post caption (6 lines), SEO keywords/tags (6 lines), Hashtags (4 lines), each with a character/tag/hashtag count and a Copy button (shows "Copied" for one second; works even when the field is read-only), then Published Links per platform (two columns on wide screens), then the Short Content section (list of shorts and the add-short form, unchanged). |
 | QC & Audit | Add a Revision note, QA remark or Audit comment. Shows hold, drop and re-shoot reasons, the list of revision requests and the full audit trail with who, role and time. |
@@ -293,7 +293,7 @@ A schema `backup_20260930` holds a full copy of the data taken before the securi
 | Identity | `id` (uuid), `content_uid`, `organization_id`, `content_type`, `status`, `previous_status` |
 | Planning | `slug_name`, `title`, `thumbnail_text`, `channel`, `scheduled_publish_time` (nullable), `published_at`, `published_by`, `target_platforms` (JSON array, default youtube and facebook) |
 | People (names as text) | `writer`, `presenter_name`, `video_editor`, `camera_operator` |
-| Script | `script`, `is_script_locked` |
+| Script | `script`, `is_script_locked`, `script_saved_at` (timestamptz, set by trigger) |
 | Assets | `raw_footage_link`, `project_file_url`, `master_export_url`, `live_video_url`, `archive_shelf_id` |
 | Social copy | `post_caption`, `seo_keywords`, `hashtags` |
 | Shorts | `shorts` (JSON array), `short_days` (text array, filled by trigger) |
@@ -311,6 +311,7 @@ Indexes: `(organization_id, scheduled_publish_time)` and `content_uid` on conten
 | `contents_set_short_days` | contents, before insert or update | Fills `short_days` from the shorts' upload times |
 | `contents_guard_insert` | contents, before insert | New content must start as Draft with no `published_at` |
 | `contents_guard_update` | contents, before update | Field permissions, script lock, append-only history, workflow whitelist, immutable content ID (details in section 9) |
+| `trg_contents_script_saved_at` | contents, before insert or update | Sets `script_saved_at` when script text changes (null when empty) |
 | `contents_notify_insert` | contents, after insert | Notifies assigned writer, presenter and editor |
 | `contents_notify_update` | contents, after update | Notifies on status change (including the assigned Publisher at Ready to Publish) and on new assignment |
 | `team_members_guard` | team\_members | Blocks privilege escalation (section 9) |

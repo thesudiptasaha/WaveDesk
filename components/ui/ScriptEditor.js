@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -45,8 +45,8 @@ export default function ScriptEditor({ value, onChange, onBlur, autoFocus }) {
     },
     editorProps: {
       attributes: {
-        class: 'outline-none min-h-[400px] text-[16px] leading-8 font-medium w-full resize-y',
-        style: 'font-family: Georgia, "Noto Serif Bengali", "Times New Roman", serif;',
+        class: 'outline-none min-h-[320px] w-full text-[17.5px] leading-[2]',
+        style: 'font-family: "Noto Serif Bengali", Georgia, "Times New Roman", serif;',
       },
     },
   });
@@ -61,12 +61,18 @@ export default function ScriptEditor({ value, onChange, onBlur, autoFocus }) {
   if (!editor) return null;
 
   const preventFocus = (e) => e.preventDefault();
-  const btnClass = (isActive) => `flex min-w-[36px] min-h-[36px] items-center justify-center rounded text-[15px] font-semibold transition-colors border ${isActive ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'text-zinc-400 hover:bg-white/10 hover:text-zinc-200 border-transparent'}`;
+  const btnClass = (isActive) =>
+    `flex min-w-[34px] min-h-[34px] items-center justify-center rounded text-[14px] font-semibold transition-colors border ${
+      isActive
+        ? 'bg-[#1c1814] text-[#f6f1e4] border-[#1c1814]'
+        : 'text-[#5c5245] hover:bg-[#1c1814]/10 hover:text-[#1c1814] border-transparent'
+    }`;
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-black/40 overflow-hidden focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-colors">
-      <div className="flex flex-wrap items-center gap-1 border-b border-white/[0.06] bg-white/[0.02] p-2">
+    <div className="bg-transparent border-0 ring-0 outline-none p-0">
+      <div className="flex flex-wrap items-center gap-1 border-b border-[#b9ae98] pb-2 mb-3 bg-transparent">
         <button
+          type="button"
           onMouseDown={preventFocus}
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={btnClass(editor.isActive('bold'))}
@@ -75,6 +81,7 @@ export default function ScriptEditor({ value, onChange, onBlur, autoFocus }) {
           B
         </button>
         <button
+          type="button"
           onMouseDown={preventFocus}
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           className={btnClass(editor.isActive('underline'))}
@@ -83,28 +90,29 @@ export default function ScriptEditor({ value, onChange, onBlur, autoFocus }) {
           <span className="underline underline-offset-2">U</span>
         </button>
         <button
+          type="button"
           onMouseDown={preventFocus}
           onClick={() => editor.chain().focus().toggleHighlight().run()}
           className={btnClass(editor.isActive('highlight'))}
           title="Highlight (Ctrl+Shift+H)"
         >
-          <span className="bg-yellow-400 text-black px-1 rounded-sm text-[12px] font-bold">H</span>
+          <span className="bg-yellow-400 text-black px-1 rounded-sm text-[11px] font-bold">H</span>
         </button>
       </div>
       
       <div 
-        className="p-4 relative" 
-        style={{ fontFamily: 'Georgia, "Noto Serif Bengali", "Times New Roman", serif' }}
+        className="relative" 
+        style={{ fontFamily: '"Noto Serif Bengali", Georgia, "Times New Roman", serif' }}
       >
         {editor.isEmpty ? (
-          <div className="pointer-events-none absolute text-zinc-500 left-4 top-4 mt-2 mb-2 leading-8 text-[16px] font-medium opacity-70">
-            Write the script...
+          <div className="pointer-events-none absolute text-[#8a7f70] left-0 top-0 leading-[2] text-[17.5px] select-none">
+            Write the script…
           </div>
         ) : null}
         <style dangerouslySetInnerHTML={{__html: `
-          .tiptap p { margin-bottom: 1.25rem; }
+          .tiptap p { margin-bottom: 12px; }
           .tiptap p:last-child { margin-bottom: 0; }
-          .tiptap mark { background-color: #facc15; color: #111827; border-radius: 4px; padding: 0 2px; }
+          .tiptap mark { background-color: #facc15; color: #111827; border-radius: 2px; padding: 0 4px; }
         `}} />
         <EditorContent editor={editor} className="tiptap" />
       </div>

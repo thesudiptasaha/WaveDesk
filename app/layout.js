@@ -84,6 +84,185 @@ const globalCss = `
   input, textarea, select, button { font-family: inherit; letter-spacing: inherit; }
   select { color-scheme: dark; }
   select option, select optgroup { background-color: #121215; color: #f4f4f5; }
+
+  /* Script printed paper look (Drawer editorial tab) */
+  .script-paper {
+    background-color: #f6f1e4;
+    color: #1c1814;
+    border-radius: 2px;
+    border: 1px solid rgba(28, 24, 20, 0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 10px 28px rgba(0, 0, 0, 0.18);
+    padding: 26px 46px;
+    transition: background-color 0.2s ease;
+  }
+  @media (max-width: 640px) {
+    .script-paper {
+      padding: 18px 18px;
+    }
+  }
+
+  .script-paper-mast {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #5c5245;
+    border-bottom: 3px double #1c1814;
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+  }
+
+  .script-paper-title {
+    font-family: 'Noto Serif Bengali', Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #1c1814;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.01em;
+    word-break: break-word;
+  }
+  @media (max-width: 640px) {
+    .script-paper-title {
+      font-size: 22px;
+    }
+  }
+
+  .script-paper-by {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 28px;
+    padding: 8px 0;
+    border-top: 1px solid #1c1814;
+    border-bottom: 1px solid #b9ae98;
+    margin-bottom: 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+    color: #5c5245;
+  }
+  .script-paper-by-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .script-paper-by-label {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: #8a7f70;
+    text-transform: none;
+  }
+  .script-paper-by-val {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #1c1814;
+  }
+
+  .script-paper-body {
+    font-family: 'Noto Serif Bengali', Georgia, 'Times New Roman', serif;
+    font-size: 17.5px;
+    line-height: 2;
+    color: #1c1814;
+    text-align: justify;
+  }
+  @media (max-width: 640px) {
+    .script-paper-body {
+      text-align: left;
+    }
+  }
+  .script-paper-body p {
+    margin-bottom: 12px;
+  }
+  .script-paper-body p:last-child {
+    margin-bottom: 0;
+  }
+  .script-paper-body mark {
+    background-color: #facc15 !important;
+    color: #111827 !important;
+    border-radius: 2px;
+    padding: 0 4px;
+  }
+  .script-paper-body u {
+    text-underline-offset: 3px;
+  }
+
+  /* Paper content overrides to guarantee clean paper look in both themes */
+  .script-paper article {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    color: #1c1814 !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    text-align: inherit !important;
+  }
+  .script-paper textarea {
+    width: 100%;
+    min-height: 320px;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    color: #1c1814 !important;
+    caret-color: #1c1814 !important;
+    font-family: 'Noto Serif Bengali', Georgia, 'Times New Roman', serif !important;
+    font-size: 17.5px !important;
+    line-height: 2 !important;
+    text-align: justify;
+    resize: vertical;
+    padding: 0;
+  }
+  @media (max-width: 640px) {
+    .script-paper textarea {
+      text-align: left;
+    }
+  }
+  .script-paper textarea::placeholder {
+    color: #8a7f70 !important;
+  }
+  .script-paper .tiptap {
+    min-height: 320px;
+    outline: none !important;
+    border: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    color: #1c1814 !important;
+    caret-color: #1c1814 !important;
+    font-family: 'Noto Serif Bengali', Georgia, 'Times New Roman', serif !important;
+    font-size: 17.5px !important;
+    line-height: 2 !important;
+    text-align: justify;
+    width: 100%;
+    padding: 0;
+  }
+  @media (max-width: 640px) {
+    .script-paper .tiptap {
+      text-align: left;
+    }
+  }
+  .script-paper .tiptap p {
+    margin-bottom: 12px;
+  }
+  .script-paper .tiptap p:last-child {
+    margin-bottom: 0;
+  }
+  .script-paper .tiptap mark {
+    background-color: #facc15 !important;
+    color: #111827 !important;
+    border-radius: 2px;
+    padding: 0 4px;
+  }
 `;
 const lightCss = `
   html.light { color-scheme: light; }
@@ -94,6 +273,26 @@ const lightCss = `
   html.light ::-webkit-scrollbar-thumb { background: rgba(105, 85, 60, 0.22); background-clip: content-box; border: 2px solid transparent; }
   html.light ::-webkit-scrollbar-thumb:hover { background: rgba(105, 85, 60, 0.35); background-clip: content-box; border: 2px solid transparent; }
   html.light [class*="color-scheme:dark"] { color-scheme: light; }
+
+  /* Script paper in light theme: #fffefa background, with light theme overrides */
+  html.light .script-paper {
+    background-color: #fffefa;
+    color: #1c1814;
+    border-color: rgba(28, 24, 20, 0.10);
+    box-shadow: 0 1px 3px rgba(60, 45, 25, 0.06), 0 10px 28px rgba(60, 45, 25, 0.10);
+  }
+  html.light .script-paper textarea,
+  html.light .script-paper textarea:focus {
+    background: transparent !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+    color: #1c1814 !important;
+  }
+  html.light .script-paper article {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #1c1814 !important;
+  }
 
   /* surfaces: warm paper & linen */
   html.light .bg-black { background-color: #f7f4ed; }
