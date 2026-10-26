@@ -667,6 +667,7 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
     }
   };
 
+  const channelOptions = channels.map(c => ({ value: c.name, label: c.name }));
   const activeWriters = team.filter(t => t.active !== false && (t.role_research_script_writer || t.role === 'owner')).map(t => t.full_name);
   const activePresenters = presenterMembers(team).map((m) => m.full_name);
   const activeEditors = team.filter(t => t.active !== false && (t.role_video_editor || t.role === 'owner')).map(t => t.full_name);
@@ -714,14 +715,18 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
                     {r.error && !r.scheduled_publish_time && <div className="text-[10px] text-red-400 mt-1">Required</div>}
                   </td>
                   <td className="px-3 py-2">
-                    <select className={inputBase} value={r.channel} onChange={e => updateItem(r._id, 'channel', e.target.value)}>
-                      {channels.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                    </select>
+                    <SelectBox
+                      value={r.channel}
+                      onChange={(v) => updateItem(r._id, 'channel', v)}
+                      options={channelOptions}
+                    />
                   </td>
                   <td className="px-3 py-2">
-                    <select className={inputBase} value={r.content_type} onChange={e => updateItem(r._id, 'content_type', e.target.value)}>
-                      {['PACKAGE', 'SOT', 'LIVE', 'EXPLAINER', 'SHOW', 'STORY'].map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <SelectBox
+                      value={r.content_type}
+                      onChange={(v) => updateItem(r._id, 'content_type', v)}
+                      options={['PACKAGE', 'SOT', 'LIVE', 'EXPLAINER', 'SHOW', 'STORY']}
+                    />
                   </td>
                   <td className="px-3 py-2">
                     <input type="text" className={inputBase} value={r.slug_name} onChange={e => updateItem(r._id, 'slug_name', normalizeSlugInput(e.target.value))} placeholder="Slug..." maxLength={SLUG_MAX} />
@@ -729,25 +734,28 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
                     {r.error && !r.slug_name.trim() && <div className="text-[10px] text-red-400 mt-1">Required</div>}
                   </td>
                   <td className="px-3 py-2">
-                    <select className={inputBase} value={r.writer} onChange={e => updateItem(r._id, 'writer', e.target.value)}>
-                      <option value="">- Unassigned -</option>
-                      {activeNames.map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                    <SelectBox
+                      value={r.writer}
+                      onChange={(v) => updateItem(r._id, 'writer', v)}
+                      options={activeNames}
+                      placeholder="- Unassigned -"
+                    />
                   </td>
                   <td className="px-3 py-2">
-                    <select className={inputBase} value={r.presenter_name} onChange={e => updateItem(r._id, 'presenter_name', e.target.value)}>
-                      <option value="">- Unassigned -</option>
-                      {r.presenter_name && !activePresenters.includes(r.presenter_name) ? (
-                        <option value={r.presenter_name}>{r.presenter_name}</option>
-                      ) : null}
-                      {activePresenters.map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                    <SelectBox
+                      value={r.presenter_name}
+                      onChange={(v) => updateItem(r._id, 'presenter_name', v)}
+                      options={activePresenters}
+                      placeholder="- Unassigned -"
+                    />
                   </td>
                   <td className="px-3 py-2">
-                    <select className={inputBase} value={r.video_editor} onChange={e => updateItem(r._id, 'video_editor', e.target.value)}>
-                      <option value="">- Unassigned -</option>
-                      {activeNames.map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                    <SelectBox
+                      value={r.video_editor}
+                      onChange={(v) => updateItem(r._id, 'video_editor', v)}
+                      options={activeNames}
+                      placeholder="- Unassigned -"
+                    />
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex gap-2">

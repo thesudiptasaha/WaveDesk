@@ -82,9 +82,13 @@ const globalCss = `
     }
   }
   input, textarea, select, button { font-family: inherit; letter-spacing: inherit; }
+  select { color-scheme: dark; }
+  select option, select optgroup { background-color: #121215; color: #f4f4f5; }
 `;
 const lightCss = `
   html.light { color-scheme: light; }
+  html.light select { color-scheme: light; }
+  html.light select option, html.light select optgroup { background-color: #ffffff; color: #1c1917; }
   html.light, html.light body { background: #f7f4ed; color: #28231d; }
   html.light ::selection { background: rgba(70, 90, 34, 0.26); }
   html.light ::-webkit-scrollbar-thumb { background: rgba(105, 85, 60, 0.22); background-clip: content-box; border: 2px solid transparent; }

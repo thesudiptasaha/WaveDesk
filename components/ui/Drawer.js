@@ -23,24 +23,23 @@ import {
 
 
 function CreditSelect({ label, field, skillKey, row, patch, team, disabled }) {
-  const options = team.filter(t => !skillKey || t[skillKey] || t.role === 'owner' || t.role === 'manager');
-  const needsExtra = row[field] && !options.some(m => m.full_name === row[field]);
-  
+  const filtered = team.filter((t) => !skillKey || t[skillKey] || t.role === 'owner' || t.role === 'manager');
+  const options = filtered.map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }));
+  if (row[field] && !filtered.some((m) => m.full_name === row[field])) {
+    const extra = team.find((m) => m.full_name === row[field]);
+    options.unshift({ value: row[field], label: (extra && extra.nickname) || row[field] });
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">{label}</label>
-      <select
+      <SelectBox
         value={row[field] || ''}
         disabled={disabled}
-        onChange={(e) => patch({ [field]: e.target.value })}
-        className="w-full rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-[13px] text-white transition focus:border-white/[0.15] focus:bg-white/[0.04] focus:outline-none focus:ring-4 focus:ring-white/[0.04] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <option value="">— Unassigned —</option>
-        {needsExtra ? <option value={row[field]}>{(team.find((m) => m.full_name === row[field]) || {}).nickname || row[field]}</option> : null}
-        {options.map(m => (
-          <option key={m.id} value={m.full_name}>{m.nickname || m.full_name}</option>
-        ))}
-      </select>
+        onChange={(v) => patch({ [field]: v })}
+        options={options}
+        placeholder="— Unassigned —"
+      />
     </div>
   );
 }

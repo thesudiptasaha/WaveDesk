@@ -386,6 +386,12 @@ The browser holds the public Supabase key, so nothing in the browser can be trus
 | Delete | Managers and Owner only, from the drawer, behind a confirmation dialog. Permanent. |
 | Demo mode | If the two Supabase environment variables are missing, the app runs on built-in sample data with no login. |
 
+### Dropdowns
+
+- Native select popups are styled globally in `app/layout.js` (`globalCss` and `lightCss`): dark theme uses background `#121215` and text `#f4f4f5` with `color-scheme: dark`; light theme uses background `#ffffff` and text `#1c1917` with `color-scheme: light`. This fixes invisible option text in the dark theme.
+- All app dropdowns should use the `SelectBox` component from `components/ui/Shared.js`, so they look the same. Drawer `CreditSelect`, Bulk add (Channel, Content type, Writer, Presenter, Video Editor) and the Notice priority now use it. `StaffAssignSelect.js` and the three selects in `app/page.js` are unchanged.
+- `SelectBox` adds the current value as an extra option if it is no longer in the list, so removed members still show.
+
 **Environment variables** (set in Vercel and in a local `.env.local`)
 
 - `NEXT_PUBLIC_SUPABASE_URL`

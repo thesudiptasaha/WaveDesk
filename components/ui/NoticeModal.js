@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Icon } from './Icons';
-import { inputBase, btnPrimary, btnGhost, btnDanger, ModalShell, ConfirmDialog } from './Shared';
+import { inputBase, btnPrimary, btnGhost, btnDanger, ModalShell, ConfirmDialog, SelectBox } from './Shared';
 import { isManager, isOwner, formatStamp } from '../../lib/core';
 import { copyText } from '../../utils/helpers';
 
@@ -163,15 +163,16 @@ export function NoticeModal({ notices = [], actor, onClose, onPostNotice, onDele
                     maxLength={100}
                     autoFocus
                   />
-                  <select
-                    className={inputBase + ' text-[12px] sm:w-[130px]'}
+                  <SelectBox
+                    className="sm:w-[130px]"
                     value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                  >
-                    <option value="normal">Normal</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="info">Info</option>
-                  </select>
+                    onChange={(v) => setPriority(v)}
+                    options={[
+                      { value: 'normal', label: 'Normal' },
+                      { value: 'urgent', label: 'Urgent' },
+                      { value: 'info', label: 'Info' },
+                    ]}
+                  />
                 </div>
 
                 <textarea

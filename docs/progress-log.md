@@ -243,6 +243,8 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 ## ২৫ অক্টোবর ২০২৬ (N102)
 - **Presenter তালিকার নিয়ম ও New Content ফর্মে পারমিশন লক (২৫ অক্টোবর ২০২৬, N102):** প্রতিটি Presenter তালিকায় (ড্রয়ারের Production ট্যাব, রানডাউন লিস্ট ও কার্ডের ইনলাইন পিকার, New Content ফর্ম এবং Bulk add টেবিল) এখন কেবল সক্রিয় সদস্য যাদের "Presenter" পদ টিক দেওয়া (`role_presenter`) রয়েছে, এবং সক্রিয় Owner ও Manager-রা উপস্থিত থাকেন; পূর্বে অ্যাসাইন করা কোনো প্রেজেন্টার যদি পরবর্তীতে যোগ্যতা হারান তবে সংশ্লিষ্ট কনটেন্টে তার নাম দৃশ্যমান থাকে। এই একক নিয়মটি `lib/core.js`-এর `presenterMembers` হেলপারে বাস্তবায়ন করা হয়েছে। New Content ফর্মে "Assign Presenter" (`can_assign_presenter`) পারমিশন না থাকলে Presenter ফিল্ডটি লকড (তালা আইকন ও ডিসেবলড) থাকে এবং ফর্মে কোনো ডিফল্ট নাম বসে না (খালি থাকে)।
 
+## ২৬ অক্টোবর ২০২৬ (N104)
+- **ড্রপডাউন ও ডার্ক থিম সিলেক্ট টেক্সট ফিক্স (২৬ অক্টোবর ২০২৬, N104):** ডার্ক থিমে ড্রপডাউন অপশনের টেক্সট অদৃশ্য হওয়ার সমস্যা সমাধানে `app/layout.js`-এ গ্লোবাল সিএসএস যুক্ত (ডার্ক থিমে background `#121215`, text `#f4f4f5` ও `color-scheme: dark`; লাইট থিমে background `#ffffff`, text `#1c1917` ও `color-scheme: light`)। সমস্ত ড্রপডাউনে অভিন্ন লুক দিতে `components/ui/Shared.js`-এর `SelectBox` কম্পোনেন্ট ব্যবহার: ড্রয়ারের `CreditSelect`, Bulk add টেবিলের ৫টি ড্রপডাউন (Channel, Content type, Writer, Presenter, Video Editor) এবং Notice priority এখন `SelectBox` ব্যবহার করে। তালিকায় না থাকলেও বর্তমান মান অপশন হিসেবে বজায় থাকে যাতে অপসারিত সদস্যও দৃশ্যমান থাকে। `StaffAssignSelect.js` ও `app/page.js`-এর ৩টি সিলেক্ট অপরিবর্তিত।
 
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
