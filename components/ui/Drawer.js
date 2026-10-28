@@ -269,9 +269,9 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
   const okChan = can(actor, 'can_change_channel');
 
   return (
-    <div className="space-y-6 lg:space-y-3 details-compact">
-      <section className="grid grid-cols-1 gap-4 lg:gap-2.5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-2.5">
+    <div className="space-y-6 details-compact">
+      <section className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Channel" locked={!okChan} lockMessage={lockMsg('Change Channel')}>
             <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
           </Field>
@@ -296,12 +296,12 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
         </Field>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 lg:gap-2.5">
+      <section className="grid grid-cols-1 gap-4">
         <Field label="Archive shelf ID" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
           <BlurInput value={row.archive_shelf_id} disabled={!okMeta} onCommit={(v) => patch({ archive_shelf_id: v })} placeholder="e.g. SHELF-A12" />
         </Field>
         <Field label="Target platforms" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-          <div className="flex flex-wrap items-center gap-2 lg:gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             {(platforms || PLATFORMS).map((p) => {
               const on = row.target_platforms.includes(p.id);
               return (
@@ -309,7 +309,7 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
                   key={p.id}
                   disabled={!okMeta}
                   onClick={() => patch({ target_platforms: on ? row.target_platforms.filter((x) => x !== p.id) : [...row.target_platforms, p.id] })}
-                  className={`rounded-full border px-3 py-1.5 text-[12px] lg:px-2.5 lg:py-1 lg:text-[11.5px] transition disabled:cursor-not-allowed ${
+                  className={`rounded-full border px-3 py-1.5 text-[12px] transition disabled:cursor-not-allowed ${
                     on ? 'border-sky-400/50 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] bg-white/[0.03] text-zinc-400'
                   } ${okMeta && !on ? 'hover:bg-white/[0.08]' : ''}`}
                 >
@@ -321,7 +321,7 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
               <button
                 type="button"
                 onClick={onAddPlatform}
-                className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-[12px] lg:px-2.5 lg:py-1 lg:text-[11.5px] font-medium text-sky-300 transition hover:bg-sky-500/20"
+                className="rounded-full border border-dashed border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-[12px] font-medium text-sky-300 transition hover:bg-sky-500/20"
                 title="Add a new publish platform"
               >
                 + Add platform
@@ -1572,7 +1572,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
           </div>
         </header>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
-          <div className="border-b border-white/[0.06] lg:border-b-0 lg:w-[440px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-white/[0.06] lg:bg-white/[0.02] lg:px-5 lg:py-4">
+          <div className="border-b border-white/[0.06] lg:border-b-0 drawer-left-col lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-white/[0.06] lg:bg-white/[0.02]">
             <button
               type="button"
               onClick={() => setDetailsOpen((prev) => !prev)}
@@ -1601,7 +1601,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
           </div>
         </div>
         <footer className="border-t border-white/[0.08] bg-black/70 backdrop-blur-xl flex flex-col lg:flex-row">
-          <div className="hidden lg:block lg:w-[440px] lg:shrink-0 border-r border-white/[0.06] bg-white/[0.02]" aria-hidden="true" />
+          <div className="hidden lg:block drawer-left-spacer lg:shrink-0 border-r border-white/[0.06] bg-white/[0.02]" aria-hidden="true" />
           <div className="min-w-0 flex-1 px-6 py-4 lg:py-2 drawer-footer-compact">
             <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
               <div className="flex flex-wrap items-center gap-2.5">
