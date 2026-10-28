@@ -7,6 +7,7 @@ import { scriptStats } from '../../utils/scriptDuration';
 import { saveDraft, loadDraft, clearDraft } from '../../utils/scriptDraft';
 import { isFeatureEnabled } from '../../utils/features';
 import { Teleprompter } from './Teleprompter';
+import { ScriptPrintSheet, formatScriptSavedAt } from './ScriptPrint';
 import { scriptToPlainText, scriptToHtml, sanitizeScriptHtml } from '../../utils/scriptRich';
 import dynamic from 'next/dynamic';
 const ScriptEditor = dynamic(() => import('./ScriptEditor'), { ssr: false });
@@ -334,21 +335,6 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
   );
 }
 
-function formatScriptSavedAt(iso) {
-  if (!iso) return '—';
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '—';
-    return new Intl.DateTimeFormat('bn-BD', {
-      timeZone: 'Asia/Dhaka',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(d).replace(',', '');
-  } catch {
-    return '—';
-  }
-}
 
 function ScriptPaperHeader({ row, team }) {
   const channel = row.channel || '—';
@@ -383,13 +369,14 @@ function ScriptPaperHeader({ row, team }) {
   );
 }
 
-function ScriptTab({ row, actor, patch, team }) {
+function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
   const locked = row.is_script_locked === true;
   const mgr = isManager(actor);
   const canEdit = can(actor, 'can_write_edit_scripts') && (!locked || mgr);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(row.script || '');
   const [showPrompter, setShowPrompter] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [copied, setCopied] = useState(false);
   const draftKey = `wd-script-draft:${row.id}`;
   const draftsEnabled = isFeatureEnabled('script_drafts');
@@ -449,6 +436,10 @@ function ScriptTab({ row, actor, patch, team }) {
   useEffect(() => {
     if (!canEdit) setEditing(false);
   }, [canEdit]);
+
+  useEffect(() => {
+    setPrinting(false);
+  }, [row.id]);
 
   const richEnabled = isFeatureEnabled('rich_editor');
   const text = scriptToPlainText(row.script || '');
@@ -561,6 +552,15 @@ function ScriptTab({ row, actor, patch, team }) {
               {copied ? 'Copied!' : 'Copy Script'}
             </button>
           </div>
+          <button
+            type="button"
+            onClick={() => setPrinting(true)}
+            disabled={!text.trim() || editing}
+            title={!text.trim() ? 'No script to print' : editing ? 'Print saved script only' : 'Print'}
+            className={btnGhost}
+          >
+            Print
+          </button>
           {editing ? (
             <div className="flex items-center gap-2">
               <button
@@ -687,6 +687,13 @@ function ScriptTab({ row, actor, patch, team }) {
       {showPrompter && text.trim() ? (
           <Teleprompter text={text} onClose={() => setShowPrompter(false)} />
         ) : null}
+      <ScriptPrintSheet
+        row={row}
+        team={team}
+        platforms={platforms}
+        printing={printing}
+        onAfterPrint={() => setPrinting(false)}
+      />
       </div>
     );
   }
@@ -1594,7 +1601,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             </div>
           </div>
           <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
-            {tab === 'editorial' ? <ScriptTab row={row} actor={actor} patch={patch} team={team} /> : null}
+            {tab === 'editorial' ? <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} /> : null}
             {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
             {tab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
             {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}

@@ -563,6 +563,166 @@ const lightCss = `
     background-color: #802c2c !important;
     color: #ffffff !important;
   }
+
+  /* Script A4 Print Styles */
+  @media screen {
+    #script-print-root {
+      display: none !important;
+    }
+  }
+
+  @page {
+    size: A4;
+    margin: 18mm 16mm;
+  }
+
+  @media print {
+    body > *:not(#script-print-root) {
+      display: none !important;
+    }
+    #script-print-root {
+      display: block !important;
+      background: #ffffff !important;
+      color: #111111 !important;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 11.5pt;
+      line-height: 1.5;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #script-print-root * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    html, body {
+      background: #ffffff !important;
+      color: #111111 !important;
+    }
+    #script-print-root .script-print-mast {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12pt;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 8.5pt;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #555555 !important;
+      border-bottom: 3px double #111111 !important;
+      padding-bottom: 6pt;
+      margin-bottom: 14pt;
+    }
+    #script-print-root .script-print-title {
+      font-family: 'Noto Serif Bengali', Georgia, serif;
+      font-size: 22pt;
+      font-weight: 700;
+      line-height: 1.35;
+      color: #111111 !important;
+      margin: 0 0 12pt 0;
+      letter-spacing: -0.01em;
+      word-break: break-word;
+    }
+    #script-print-root .script-print-by {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6pt 24pt;
+      padding: 6pt 0;
+      border-top: 1px solid #111111 !important;
+      border-bottom: 1px solid #999999 !important;
+      margin-bottom: 18pt;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 9pt;
+      color: #555555 !important;
+    }
+    #script-print-root .script-print-by-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6pt;
+    }
+    #script-print-root .script-print-by-label {
+      font-weight: 500;
+      color: #555555 !important;
+    }
+    #script-print-root .script-print-by-val {
+      font-weight: 600;
+      color: #111111 !important;
+    }
+    #script-print-root .script-print-body {
+      font-family: 'Noto Serif Bengali', Georgia, serif;
+      font-size: 11.5pt;
+      line-height: 2;
+      color: #111111 !important;
+      text-align: justify;
+    }
+    #script-print-root .script-print-body p {
+      margin-bottom: 10pt;
+    }
+    #script-print-root .script-print-body p:last-child {
+      margin-bottom: 0;
+    }
+    #script-print-root .script-print-body mark {
+      background-color: #facc15 !important;
+      color: #111111 !important;
+      border-radius: 2px;
+      padding: 0 3px;
+    }
+    #script-print-root .script-print-body u {
+      text-underline-offset: 3px;
+    }
+    #script-print-root .script-print-page-2 {
+      break-before: page;
+      page-break-before: always;
+    }
+    #script-print-root .script-print-heading {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 9.5pt;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #111111 !important;
+      border-bottom: 1px solid #111111 !important;
+      padding-bottom: 3pt;
+      margin-top: 16pt;
+      margin-bottom: 6pt;
+    }
+    #script-print-root .script-print-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12pt;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    #script-print-root .script-print-table tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      border-bottom: 1px solid #999999 !important;
+    }
+    #script-print-root .script-print-table td {
+      padding: 4.5pt 0;
+      vertical-align: top;
+      font-size: 9.5pt;
+      color: #111111 !important;
+      line-height: 1.45;
+    }
+    #script-print-root .script-print-label-col {
+      width: 32%;
+      color: #555555 !important;
+      font-weight: 500;
+      padding-right: 8pt !important;
+      font-size: 9pt;
+    }
+    #script-print-root .script-print-val-col {
+      width: 68%;
+      color: #111111 !important;
+      font-weight: 500;
+    }
+    #script-print-root .script-print-log-table td {
+      font-size: 8.5pt;
+      line-height: 1.4;
+      padding: 3.5pt 0;
+    }
+  }
 `;
 export default function RootLayout({ children }) {
   return (
