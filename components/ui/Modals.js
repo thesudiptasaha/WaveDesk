@@ -309,19 +309,20 @@ function AddPlatformModal({ onClose, onAdd, existing = [] }) {
   );
 }
 
-function ReasonModal({ title, label, onClose, onConfirm }) {
+function ReasonModal({ title, subtitle, label, confirmLabel = 'Confirm', danger = false, onClose, onConfirm }) {
   const [reason, setReason] = useState('');
   return (
     <ModalShell
       title={title}
+      subtitle={subtitle}
       onClose={onClose}
       footer={
         <>
           <button className={btnGhost} onClick={onClose}>
             Cancel
           </button>
-          <button className={btnPrimary} disabled={!reason.trim()} onClick={() => onConfirm(reason.trim())}>
-            Confirm
+          <button className={danger ? btnDanger : btnPrimary} disabled={!reason.trim()} onClick={() => onConfirm(reason.trim())}>
+            {confirmLabel}
           </button>
         </>
       }

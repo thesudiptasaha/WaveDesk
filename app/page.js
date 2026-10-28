@@ -24,7 +24,7 @@ import {
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
-  makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isComplete, isBin, missingFields, normalizeRow, normalizeMember,
+  makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isComplete, isBin, isRemovedPublished, missingFields, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, wentLiveDefault
 } from '../lib/core';
 
@@ -1073,9 +1073,9 @@ function NewsroomApp({ authUser, onSignOut }) {
       if (current.id === 'reshoot') patch.reshoot_reason = reason;
       if (current.id === 'revise') patch.revisions = [...fresh.revisions, { note: reason, actor: actor.full_name, role: actor.role, time: now }];
       if (current.to === 'Published') {
-        patch.published_at = now;
-        patch.published_by = actor.full_name;
-        patch.went_live_at = (extra && extra.wentLiveAt) || now;
+        if (!fresh.published_at) patch.published_at = now;
+        if (!fresh.published_by) patch.published_by = actor.full_name;
+        if (!fresh.went_live_at) patch.went_live_at = (extra && extra.wentLiveAt) || now;
       }
       const ok = await patchRow(fresh.id, patch, true);
       if (ok) notify(`${fresh.slug_name || fresh.title || 'Content'} → ${current.to}`, 'success');
@@ -1786,7 +1786,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                         <td className="whitespace-nowrap w-[110px] px-3 py-1.5 border-r border-white/5 tabular-nums text-zinc-300 align-top">
                           <div className="font-medium text-white">{formatTime(rowTimeIn(r, range.start, addDays(range.end, 1)))}</div>
                           {!sameDay(range.start, range.end) ? <div className="text-[11px] text-zinc-500">{formatDay(rowTimeIn(r, range.start, addDays(range.end, 1)))}</div> : null}
-                          <div className="mt-1"><StatusBadge status={r.status} /></div>
+                          <div className="mt-1"><StatusBadge status={r.status} removed={isRemovedPublished(r)} /></div>
                         </td>
                         <td className="max-w-[280px] px-3 py-1.5 border-r border-white/5 relative align-top">
                           <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
@@ -2016,7 +2016,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                       <StaffCell r={r} team={team} actor={actor} patchRow={patchRow} notify={notify} />
                     </td>
                     <td className="px-4 py-2">
-                      <StatusBadge status={r.status} />
+                      <StatusBadge status={r.status} removed={isRemovedPublished(r)} />
                     </td>
                     <td className="px-4 py-2">
                       <ScheduleCell row={r} actor={actor} onSchedule={scheduleParked} />
@@ -2214,17 +2214,24 @@ function NewsroomApp({ authUser, onSignOut }) {
         <DeleteModal row={rows.find((r) => r.id === deleteFor)} onClose={() => setDeleteFor(null)} onConfirm={deleteContent} />
       ) : null}
         {reasonFor && reasonRow ? (
-        <ReasonModal
-          title={reasonFor.action.label}
-          label="Reason / note"
-          onClose={() => setReasonFor(null)}
-          onConfirm={(reason) => {
-            const { action } = reasonFor;
-            setReasonFor(null);
-            transition(reasonRow, action, reason);
-          }}
-        />
-      ) : null}
+          <ReasonModal
+            title={reasonFor.action.id === 'drop' && reasonRow.status === 'Published' ? 'Drop published content?' : reasonFor.action.label}
+            subtitle={
+              reasonFor.action.id === 'drop' && reasonRow.status === 'Published'
+                ? 'This was already published. It stays on the rundown, shown in grey as Published, later removed, and the reason you write is saved in the Activity log.'
+                : undefined
+            }
+            confirmLabel={reasonFor.action.id === 'drop' && reasonRow.status === 'Published' ? 'Drop it' : 'Confirm'}
+            danger={reasonFor.action.id === 'drop' && reasonRow.status === 'Published'}
+            label="Reason / note"
+            onClose={() => setReasonFor(null)}
+            onConfirm={(reason) => {
+              const { action } = reasonFor;
+              setReasonFor(null);
+              transition(reasonRow, action, reason);
+            }}
+          />
+        ) : null}
       {publishFor && publishRow ? (
         <PublishTimeModal
           row={publishRow}

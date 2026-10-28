@@ -17,7 +17,7 @@ import {
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
-  makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, normalizeRow, normalizeMember,
+  makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, presenterMembers
 } from '../../lib/core';
 
@@ -1214,7 +1214,7 @@ function QcTab({ row, actor, patch }) {
   const [note, setNote] = useState('');
   const reasons = [
     ['On hold', row.hold_reason],
-    ['Dropped', row.drop_reason],
+    [isRemovedPublished(row) ? 'Removed after publishing' : 'Dropped', row.drop_reason],
     ['Re-shoot', row.reshoot_reason],
   ].filter((r) => r[1]);
 
@@ -1493,7 +1493,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 min-w-0">
               <TypeBadge type={row.content_type} />
-              <StatusBadge status={row.status} />
+              <StatusBadge status={row.status} removed={isRemovedPublished(row)} />
               {savedScriptStats.words > 0 && (
                 <span className="script-duration-badge inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded border border-white/10 bg-zinc-800 text-zinc-200">
                   Script {savedScriptStats.label}

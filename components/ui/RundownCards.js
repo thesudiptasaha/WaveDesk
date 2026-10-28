@@ -4,6 +4,7 @@ import React from 'react';
 import {
   STATUS_META,
   getActions,
+  isRemovedPublished,
   rowTimeIn,
   addDays,
   sameDay,
@@ -98,7 +99,7 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.08] bg-white/[0.03] py-2 pl-[22px] pr-3">
-        <StatusBadge status={r.status} />
+        <StatusBadge status={r.status} removed={isRemovedPublished(r)} />
         <div className="flex flex-wrap items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           <ActionButtons compact actions={getActions(r, actor).slice(0, 2)} onRun={(a) => onRun && onRun(r, a)} />
         </div>
@@ -148,7 +149,7 @@ export function PhoneRow({ r, range, alt, onToggle }) {
         </div>
         <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
           <TypeBox type={r.content_type} small />
-          <StatusBadge status={r.status} />
+          <StatusBadge status={r.status} removed={isRemovedPublished(r)} />
           {n > 0 ? <span className="text-[10.5px] font-bold text-amber-500">{n} to assign</span> : null}
         </div>
         <ShortNote r={r} range={range} />
