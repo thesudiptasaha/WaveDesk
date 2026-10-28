@@ -1381,6 +1381,9 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   const [saveState, setSaveState] = useState({ status: 'idle', at: null });
   const pendingRef = useRef(0);
 
+  const [copiedId, setCopiedId] = useState(false);
+  const copyIdTimerRef = useRef(null);
+
   useEffect(() => {
     const fn = (e) => {
       if (e.key !== 'Escape') return;
@@ -1392,11 +1395,31 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (copyIdTimerRef.current) clearTimeout(copyIdTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     setTab('editorial');
     setDetailsOpen(true);
     pendingRef.current = 0;
     setSaveState({ status: 'idle', at: null });
-  }, [row.id]);
+    if (copyIdTimerRef.current) clearTimeout(copyIdTimerRef.current);
+    setCopiedId(false);
+  }, [row.id, row.content_uid]);
+
+  const handleCopyId = async () => {
+    if (!row.content_uid) return;
+    const ok = await copyText(row.content_uid);
+    if (ok) {
+      setCopiedId(true);
+      if (copyIdTimerRef.current) clearTimeout(copyIdTimerRef.current);
+      copyIdTimerRef.current = setTimeout(() => {
+        setCopiedId(false);
+      }, 1800);
+    }
+  };
 
   const patch = async (p) => {
     pendingRef.current += 1;
@@ -1476,7 +1499,6 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
                   Script {savedScriptStats.label}
                 </span>
               )}
-              <span className="font-mono text-[11px] text-zinc-600">{row.content_uid}</span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {saveState.status === 'saving' && <span aria-live="polite" className="text-[11px] text-zinc-500">Saving…</span>}
@@ -1498,6 +1520,29 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             <span className="shrink-0 text-[12px] lg:text-[13px] text-zinc-500 whitespace-nowrap">
               {row.channel || 'No channel'} · {formatDay(row.scheduled_publish_time)} {formatTime(row.scheduled_publish_time)}
             </span>
+            {row.content_uid ? (
+              <>
+                <div className="hidden lg:block lg:flex-grow" />
+                <div className="flex items-center gap-2 w-full lg:w-auto lg:ml-6 shrink-0 mt-0.5 lg:mt-0">
+                  <span className="font-mono font-extrabold text-[14px] sm:text-[15px] lg:text-[19px] text-zinc-200 shrink-0 whitespace-nowrap">
+                    {row.content_uid}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyId}
+                    aria-label="Copy content ID"
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition active:scale-[0.98] ${
+                      copiedId
+                        ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
+                        : 'border-white/10 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.09] hover:text-white'
+                    }`}
+                  >
+                    <Icon name={copiedId ? 'check' : 'copy'} className="h-3 w-3" />
+                    <span>{copiedId ? 'Copied!' : 'Copy ID'}</span>
+                  </button>
+                </div>
+              </>
+            ) : null}
           </div>
           {hasPublishedLinks ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 lg:hidden">
