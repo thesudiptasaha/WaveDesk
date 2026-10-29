@@ -19,7 +19,7 @@ import {
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
-  FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup
+  FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup, ROLE_LIST
 } from '../../lib/core';
 
 
@@ -185,56 +185,96 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
   );
 }
 
-function StaffAssignment({ row, actor, team, patch }) {
-  const HIDE_BY_TYPE = { PACKAGE: ['camera_operator', 'teleprompter_operator', 'light_designer', 'sound_recordist', 'set_designer', 'makeup_artist', 'data_wrangler', 'production_manager'], LIVE: ['video_editor'] };
+const HIDE_BY_TYPE = {
+  PACKAGE: [
+    'camera_operator',
+    'teleprompter_operator',
+    'light_designer',
+    'sound_recordist',
+    'set_designer',
+    'makeup_artist',
+    'data_wrangler',
+    'production_manager',
+  ],
+  LIVE: ['video_editor'],
+};
+
+function visibleFieldsFor(group, row) {
+  if (!group || !row) return [];
+  if (group.id === 'live' && !(row.content_type === 'LIVE' || row.live_video_switcher || row.live_audio_mixer)) {
+    return [];
+  }
   const showCredit = (field) => !((HIDE_BY_TYPE[row.content_type] || []).includes(field) && !row[field]);
+  return (group.fields || []).filter((f) => showCredit(f.field));
+}
+
+function StaffGroupCard({ group, row, actor, team, patch, className = '' }) {
+  const g = typeof group === 'string' ? STAFF_GROUPS.find((item) => item.id === group) : group;
+  if (!g) return null;
+  const visibleFields = visibleFieldsFor(g, row);
+  if (visibleFields.length === 0) return null;
+  const assigned = visibleFields.filter((f) => !!row[f.field]).length;
+  const visible = visibleFields.length;
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5 ${className}`}>
+      <div className={`absolute inset-y-0 left-0 w-1.5 ${g.stripe}`} />
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${g.chip}`}>{g.title}</span>
+          <span className="hidden text-[12px] text-zinc-500 sm:inline">{g.hint}</span>
+        </div>
+        <span className="text-[12px] font-semibold text-zinc-400">{assigned} / {visible}</span>
+      </div>
+      <div
+        className="grid gap-2.5"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))' }}
+      >
+        {visibleFields.map((f) => (
+          <StaffTile
+            key={f.field}
+            field={f.field}
+            label={f.label}
+            skillKey={f.skillKey}
+            row={row}
+            patch={patch}
+            team={team}
+            actor={actor}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StaffAssignment({ row, actor, team, patch, groups, title }) {
+  const groupIds = Array.isArray(groups) ? groups : STAFF_GROUPS.map((g) => g.id);
+  const targetGroups = groupIds
+    .map((id) => (typeof id === 'string' ? STAFF_GROUPS.find((g) => g.id === id) : id))
+    .filter(Boolean);
 
   return (
     <div>
       <div className="mb-3 flex items-baseline gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Staff assignment</span>
-        <span className="hidden text-[12px] font-normal normal-case text-zinc-500 sm:inline">· Click a photo to change · hover to see who</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          {title || 'Staff assignment'}
+        </span>
+        <span className="hidden text-[12px] font-normal normal-case text-zinc-500 sm:inline">
+          · Click a photo to change · hover to see who
+        </span>
       </div>
       <div className="lg:columns-2 gap-4">
-        {STAFF_GROUPS.map((g) => {
-          if (g.id === 'live' && !(row.content_type === 'LIVE' || row.live_video_switcher || row.live_audio_mixer)) {
-            return null;
-          }
-          const visibleFields = g.fields.filter((f) => showCredit(f.field));
-          if (visibleFields.length === 0) return null;
-          const assigned = visibleFields.filter((f) => !!row[f.field]).length;
-          const visible = visibleFields.length;
-
-          return (
-            <div key={g.id} className="inline-block w-full break-inside-avoid mb-4 relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
-              <div className={`absolute inset-y-0 left-0 w-1.5 ${g.stripe}`} />
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${g.chip}`}>{g.title}</span>
-                  <span className="hidden text-[12px] text-zinc-500 sm:inline">{g.hint}</span>
-                </div>
-                <span className="text-[12px] font-semibold text-zinc-400">{assigned} / {visible}</span>
-              </div>
-              <div
-                className="grid gap-2.5"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))' }}
-              >
-                {visibleFields.map((f) => (
-                  <StaffTile
-                    key={f.field}
-                    field={f.field}
-                    label={f.label}
-                    skillKey={f.skillKey}
-                    row={row}
-                    patch={patch}
-                    team={team}
-                    actor={actor}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+        {targetGroups.map((g) => (
+          <StaffGroupCard
+            key={g.id}
+            group={g}
+            row={row}
+            actor={actor}
+            team={team}
+            patch={patch}
+            className="inline-block w-full break-inside-avoid mb-4"
+          />
+        ))}
       </div>
     </div>
   );
@@ -798,16 +838,9 @@ function getPublishedLinks(row) {
 }
 
 function ProductionTab({ row, actor, team, patch }) {
-  const active = !!actor && actor.active !== false;
   return (
     <div className="space-y-8">
-      <StaffAssignment row={row} actor={actor} team={team} patch={patch} />
-      <section className="space-y-4">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Files & links</div>
-        <LinkRow label="Raw footage" value={row.raw_footage_link} disabled={!active} onCommit={(v) => patch({ raw_footage_link: v })} />
-        <LinkRow label="Project file" value={row.project_file_url} disabled={!active} onCommit={(v) => patch({ project_file_url: v })} />
-        <LinkRow label="Master export" value={row.master_export_url} disabled={!active} onCommit={(v) => patch({ master_export_url: v })} />
-      </section>
+      <StaffAssignment groups={['crew']} row={row} actor={actor} team={team} patch={patch} />
     </div>
   );
 }
@@ -892,6 +925,15 @@ function PackagingTab({ row, actor, team = [], patch, platforms = PLATFORMS, onA
           disabled={!active}
         />
       </div>
+
+      {/* File links */}
+      <section className="space-y-4">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">File links</div>
+        <LinkRow label="Raw footage" value={row.raw_footage_link} disabled={!active} onCommit={(v) => patch({ raw_footage_link: v })} />
+        <LinkRow label="Project file" value={row.project_file_url} disabled={!active} onCommit={(v) => patch({ project_file_url: v })} />
+        <LinkRow label="Master export" value={row.master_export_url} disabled={!active} onCommit={(v) => patch({ master_export_url: v })} />
+        <p className="text-[12px] text-zinc-500">The folder on the drive is named exactly like the content ID.</p>
+      </section>
 
       {/* b, c, d: Post Caption, SEO keywords & Hashtags */}
       <section className="space-y-4">
@@ -1320,6 +1362,90 @@ function QcTab({ row, actor, patch }) {
   );
 }
 
+function CreditsTab({ row, actor, team, patch }) {
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
+  const creditedRoles = ROLE_LIST.filter((r) => !!(row[r.field] && String(row[r.field]).trim()));
+  const hasCredits = creditedRoles.length > 0;
+  const creditLineText = hasCredits
+    ? creditedRoles.map((r) => `${r.label}: ${String(row[r.field]).trim()}`).join(' · ')
+    : '';
+
+  const handleCopyCredits = async () => {
+    if (!hasCredits) return;
+    const ok = await copyText(creditLineText);
+    if (ok) {
+      setCopied(true);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => {
+        setCopied(false);
+      }, 1800);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Top: StaffGroupCard for crew at full width */}
+      <StaffGroupCard group="crew" row={row} actor={actor} team={team} patch={patch} />
+
+      {/* Below: two columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        {/* Left column: idea, publish, live */}
+        <div className="space-y-4">
+          <StaffGroupCard group="idea" row={row} actor={actor} team={team} patch={patch} />
+          <StaffGroupCard group="publish" row={row} actor={actor} team={team} patch={patch} />
+          <StaffGroupCard group="live" row={row} actor={actor} team={team} patch={patch} />
+        </div>
+
+        {/* Right column: post, Credit line card */}
+        <div className="space-y-4">
+          <StaffGroupCard group="post" row={row} actor={actor} team={team} patch={patch} />
+
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Credit line</span>
+              <button
+                type="button"
+                disabled={!hasCredits}
+                onClick={handleCopyCredits}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
+                  copied
+                    ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
+                    : 'border-white/10 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.09] hover:text-white'
+                }`}
+              >
+                <Icon name={copied ? 'check' : 'copy'} className="h-3 w-3" />
+                <span>{copied ? 'Copied!' : 'Copy credits'}</span>
+              </button>
+            </div>
+            <textarea
+              readOnly
+              rows={4}
+              value={hasCredits ? creditLineText : 'No one is credited yet.'}
+              onFocus={(e) => e.target.select()}
+              className={`w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5 text-[13px] leading-relaxed outline-none resize-none transition focus:border-sky-400/60 focus:bg-white/[0.06] select-all ${
+                hasCredits ? 'text-zinc-200' : 'text-zinc-500 italic'
+              }`}
+            />
+            <p className="mt-2 text-[12px] text-zinc-500">Everyone who worked on this content, in one place.</p>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-[12px] text-zinc-500 pt-2">
+        Every role of every stage is here. The Production tab shows the Production Crew again and the Publish tab shows the Publisher again. The same rules apply everywhere.
+      </p>
+    </div>
+  );
+}
+
 export function DeleteModal({ row, onClose, onConfirm }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1433,6 +1559,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
     ['production', 'Production'],
     ['packaging', 'Publish'],
     ['qc', 'QC & Audit'],
+    ['credits', 'Credits'],
   ];
   const publishedLinks = getPublishedLinks(row);
   const validLinkEntries = Object.entries(publishedLinks).filter(([_, u]) => safeHttpUrl(u));
@@ -1586,6 +1713,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
             {tab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
             {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
+            {tab === 'credits' ? <CreditsTab row={row} actor={actor} team={team} patch={patch} /> : null}
           </div>
         </div>
         <footer className="border-t border-white/[0.08] bg-black/70 backdrop-blur-xl flex flex-col lg:flex-row">
