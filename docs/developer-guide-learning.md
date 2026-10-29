@@ -109,7 +109,7 @@ Traditional websites require users to refresh the page (F5) to see changes made 
 2. Postgres writes the change to its Write-Ahead Log (WAL).
 3. Supabase Realtime detects the change and pushes a lightweight WebSocket packet to all connected browsers in the newsroom.
 4. User B's screen in the Control Room immediately updates without a page reload.
-5. In addition, `utils/notifySound.js` synthesizes a soft three-note chime (`playChime`) using the browser's native **Web Audio API**, notifying the assigned reporter instantly!
+5. In addition, `utils/notifySound.js` synthesizes a clear two-note chime (`playChime`) using the browser's native **Web Audio API** (with local on/off preference and auto-resuming audio context), notifying the credited teammates instantly!
 
 ---
 

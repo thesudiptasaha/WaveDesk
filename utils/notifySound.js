@@ -1,15 +1,34 @@
 let audioCtx = null;
-let unlocked = false;
+let listenersAttached = false;
+let lastPlayedAt = 0;
+
+export function isSoundEnabled() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return true;
+    return window.localStorage.getItem('wd-sound-enabled') !== '0';
+  } catch {
+    return true;
+  }
+}
+
+export function setSoundEnabled(on) {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    window.localStorage.setItem('wd-sound-enabled', on ? '1' : '0');
+  } catch {
+    // ignore
+  }
+}
 
 function getContext() {
   if (typeof window === 'undefined') return null;
   if (!audioCtx) {
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        audioCtx = new AudioContext();
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtxClass) {
+        audioCtx = new AudioCtxClass();
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
@@ -17,76 +36,122 @@ function getContext() {
 }
 
 export function unlockAudio() {
-  if (typeof window === 'undefined') return;
-  if (unlocked) return;
-  unlocked = true; // prevent attaching multiple listeners
-  const unlock = () => {
-    try {
-      const ctx = getContext();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
-      }
-      unlocked = true;
-    } catch (e) {
-      // ignore
-    } finally {
-      document.removeEventListener('click', unlock, true);
-      document.removeEventListener('touchstart', unlock, true);
-    }
-  };
-  document.addEventListener('click', unlock, true);
-  document.addEventListener('touchstart', unlock, true);
-}
+  if (typeof window === 'undefined' || listenersAttached) return;
+  listenersAttached = true;
 
-let lastPlayedAt = 0;
-
-export function playChime() {
   try {
-    const ctx = getContext();
-    if (!ctx) return;
-    if (ctx.state === 'suspended') return; // Do not play if not unlocked yet (browsers block it)
-    
-    if (Date.now() - lastPlayedAt < 2000) return;
-    lastPlayedAt = Date.now();
-    
-    const now = ctx.currentTime;
-    
-    // Create master gain
-    const masterGain = ctx.createGain();
-    masterGain.connect(ctx.destination);
-    masterGain.gain.setValueAtTime(0, now);
-    
-    // Smooth attack to peak 0.12 and then exponential decay
-    masterGain.gain.linearRampToValueAtTime(0.12, now + 0.05);
-    masterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-    
-    // frequencies for a gentle Dmaj arpeggio (D5, A5, F#5)
-    // 587.33, 880.00, 739.99
-    const notes = [
-      { f: 587.33, d: 0 },
-      { f: 880.00, d: 0.15 },
-      { f: 739.99, d: 0.3 }
-    ];
-    
-    notes.forEach(note => {
-      const osc = ctx.createOscillator();
-      const oscGain = ctx.createGain();
-      
-      osc.type = 'sine';
-      osc.frequency.value = note.f;
-      
-      oscGain.gain.setValueAtTime(0, now + note.d);
-      oscGain.gain.linearRampToValueAtTime(1, now + note.d + 0.02);
-      oscGain.gain.exponentialRampToValueAtTime(0.01, now + note.d + 0.4);
-      
-      osc.connect(oscGain);
-      oscGain.connect(masterGain);
-      
-      osc.start(now + note.d);
-      osc.stop(now + note.d + 0.5);
+    const opts = { capture: true, passive: true };
+    const resumeOnInteraction = () => {
+      try {
+        const ctx = getContext();
+        if (ctx && ctx.state !== 'running') {
+          ctx.resume().catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    document.addEventListener('click', resumeOnInteraction, opts);
+    document.addEventListener('touchstart', resumeOnInteraction, opts);
+    document.addEventListener('keydown', resumeOnInteraction, opts);
+
+    window.addEventListener('focus', () => {
+      try {
+        if (audioCtx && audioCtx.state !== 'running') {
+          audioCtx.resume().catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
     });
-    
-  } catch (e) {
+
+    document.addEventListener('visibilitychange', () => {
+      try {
+        if (document.visibilityState === 'visible' && audioCtx && audioCtx.state !== 'running') {
+          audioCtx.resume().catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
+    });
+  } catch {
     // ignore
   }
+}
+
+export async function playChime(options = {}) {
+  try {
+    if (!options?.force && !isSoundEnabled()) return false;
+
+    const ctx = getContext();
+    if (!ctx) return false;
+
+    if (ctx.state === 'suspended') {
+      try {
+        await ctx.resume();
+      } catch {
+        // ignore
+      }
+    }
+
+    if (ctx.state !== 'running') return false;
+
+    if (!options?.force) {
+      if (Date.now() - lastPlayedAt < 2000) return false;
+    }
+    lastPlayedAt = Date.now();
+
+    const now = ctx.currentTime;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.35, now);
+    masterGain.connect(ctx.destination);
+
+    const notes = [
+      { f: 880, delay: 0 },
+      { f: 660, delay: 0.18 },
+    ];
+
+    notes.forEach((note) => {
+      const startTime = now + note.delay;
+
+      const noteGain = ctx.createGain();
+      noteGain.gain.setValueAtTime(0.0001, startTime);
+      noteGain.gain.linearRampToValueAtTime(1, startTime + 0.02);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.02 + 0.9);
+      noteGain.connect(masterGain);
+
+      // Sine primary
+      const oscSine = ctx.createOscillator();
+      oscSine.type = 'sine';
+      oscSine.frequency.setValueAtTime(note.f, startTime);
+      const sineGain = ctx.createGain();
+      sineGain.gain.setValueAtTime(0.7, startTime);
+      oscSine.connect(sineGain);
+      sineGain.connect(noteGain);
+
+      // Triangle quieter
+      const oscTri = ctx.createOscillator();
+      oscTri.type = 'triangle';
+      oscTri.frequency.setValueAtTime(note.f, startTime);
+      const triGain = ctx.createGain();
+      triGain.gain.setValueAtTime(0.3, startTime);
+      oscTri.connect(triGain);
+      triGain.connect(noteGain);
+
+      oscSine.start(startTime);
+      oscSine.stop(startTime + 0.95);
+      oscTri.start(startTime);
+      oscTri.stop(startTime + 0.95);
+    });
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function testChime() {
+  return playChime({ force: true });
 }

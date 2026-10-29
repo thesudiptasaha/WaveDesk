@@ -2,7 +2,7 @@
 import { purgeOldDrafts } from '../utils/scriptDraft';
 import { scriptToPlainText } from '../utils/scriptRich';
 import { isFeatureEnabled } from '../utils/features';
-import { playChime, unlockAudio } from '../utils/notifySound';
+import { playChime, unlockAudio, isSoundEnabled, setSoundEnabled, testChime } from '../utils/notifySound';
 import { APP_NAME, APP_CREDIT, APP_COPYRIGHT, APP_CONTACT_EMAIL } from '../utils/constants';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -2306,7 +2306,24 @@ function NotificationBell({ memberId, onOpenContent }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
   
+  const [soundOn, setSoundOn] = useState(true);
   const soundEnabledRef = useRef(true);
+  const [testBlocked, setTestBlocked] = useState(false);
+  const blockedTimerRef = useRef(null);
+
+  useEffect(() => {
+    setSoundOn(isSoundEnabled());
+  }, []);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundOn;
+  }, [soundOn]);
+
+  useEffect(() => {
+    return () => {
+      if (blockedTimerRef.current) clearTimeout(blockedTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (isFeatureEnabled('notif_sound')) unlockAudio();
@@ -2358,13 +2375,43 @@ function NotificationBell({ memberId, onOpenContent }) {
     await supabase.from('notifications').update({ read: true }).eq('member_id', memberId).eq('read', false);
   };
 
+  const handleToggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    soundEnabledRef.current = next;
+    setSoundEnabled(next);
+  };
+
+  const handleTestSound = async () => {
+    const ok = await testChime();
+    if (!ok) {
+      setTestBlocked(true);
+      if (blockedTimerRef.current) clearTimeout(blockedTimerRef.current);
+      blockedTimerRef.current = setTimeout(() => {
+        setTestBlocked(false);
+      }, 4000);
+    } else {
+      setTestBlocked(false);
+      if (blockedTimerRef.current) clearTimeout(blockedTimerRef.current);
+    }
+  };
+
   if (!memberId) return null;
   return (
     <div ref={wrapRef} className="flex items-center gap-1 sm:relative">
       <button onClick={() => setOpen((o) => !o)} className={`${btnGhost} relative !px-3`} aria-label="Notifications">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
-          <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 7H4c0-1 2-2 2-7zM10 20a2 2 0 0 0 4 0" />
-        </svg>
+        <span className="relative inline-flex items-center justify-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+            <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 7H4c0-1 2-2 2-7zM10 20a2 2 0 0 0 4 0" />
+          </svg>
+          {!soundOn ? (
+            <span className="absolute -bottom-1 -right-1.5 flex items-center justify-center text-zinc-400" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[10px] w-[10px]">
+                <path d="M11 5L6 9H2v6h4l5 4V5zM22 2L2 22" />
+              </svg>
+            </span>
+          ) : null}
+        </span>
         {unread > 0 ? (
           <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">{unread > 9 ? '9+' : unread}</span>
         ) : null}
@@ -2373,9 +2420,42 @@ function NotificationBell({ memberId, onOpenContent }) {
         <div className="absolute inset-x-3 top-full z-50 mt-1 overflow-hidden sm:inset-x-auto sm:right-0 sm:mt-2 sm:w-[380px] rounded-2xl border border-white/[0.1] bg-[#121215]/95 shadow-2xl shadow-black/70 backdrop-blur-2xl">
           <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2">
             <span className="text-[14px] font-semibold text-white">Notifications</span>
-            <button disabled={unread === 0} onClick={markAll} className="text-[12px] text-sky-400 hover:text-sky-300 disabled:text-zinc-600">
-              Mark all read
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleToggleSound}
+                aria-label="Turn notification sound off/on"
+                title="Turn notification sound off/on"
+                className="inline-flex items-center justify-center rounded p-1 text-zinc-400 hover:text-zinc-200 transition"
+              >
+                {soundOn ? (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+                    <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+                    <path d="M11 5L6 9H2v6h4l5 4V5zM22 2L2 22" />
+                  </svg>
+                )}
+              </button>
+              <button disabled={unread === 0} onClick={markAll} className="text-[12px] text-sky-400 hover:text-sky-300 disabled:text-zinc-600">
+                Mark all read
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-1.5 min-h-[30px]">
+            <button
+              type="button"
+              onClick={handleTestSound}
+              className="text-[12px] text-sky-400 hover:text-sky-300"
+            >
+              Test sound
             </button>
+            {testBlocked ? (
+              <span className="ml-2 text-[11px] text-zinc-400 text-right leading-tight">
+                Your browser blocked the sound. Click anywhere on the page and try again.
+              </span>
+            ) : null}
           </div>
           <div className="max-h-[420px] overflow-y-auto">
             {items.length === 0 ? <p className="px-4 py-10 text-center text-[13px] text-zinc-600">You are all caught up.</p> : null}
