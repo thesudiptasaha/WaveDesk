@@ -220,7 +220,7 @@ Drawer-এর ফুটার এখন এক সারির (ONE row)। PC-�
 | `contents` | প্রতিটা ভিডিও একটা সারি, অ্যাপের মূল টেবিল | নিচে |
 | `channels` | অ্যাপ থেকে যোগ করা চ্যানেল (৭টা ডিফল্ট কোডে) | id, organization\_id, name |
 | `notifications` | ঘণ্টার নোটিফিকেশন | id, organization\_id, member\_id, content\_id, message, read, created\_at |
-| `content_uid_counters` | `CON-YYYYMMDD_NNN`-এর দৈনিক কাউন্টার | (লাইভ স্কিমা থেকে নিশ্চিত করতে হবে) |
+| `content_uid_counters` | `WAVECON-YYYYMMDD_XXXX`-এর দৈনিক কাউন্টার (`org_key, day, last_n`) | প্রতিদিন 0001 থেকে শুরু, Asia/Dhaka দিন |
 | `content_counters` | আগের ID পদ্ধতির কাউন্টার, রাখা আছে |  |
 | `team_members_legacy` | প্রথম সংস্করণের টিম টেবিল, ব্যবহার হয় না |  |
 
@@ -244,7 +244,7 @@ Drawer-এর ফুটার এখন এক সারির (ONE row)। PC-�
 
 | Trigger | কী করে |
 | --- | --- |
-| `contents_assign_uid` | `CON-YYYYMMDD_NNN` ID বসায় (Asia/Dhaka তারিখ) |
+| `contents_assign_uid` | `WAVECON-YYYYMMDD_XXXX` ID বসায় (তৈরির দিন, Asia/Dhaka) |
 | `contents_set_short_days` | শর্টের আপলোড-তারিখ থেকে `short_days` ভরে |
 | `contents_guard_insert` | নতুন কনটেন্ট শুধু Draft হিসেবে শুরু হবে |
 | `contents_guard_update` | ফিল্ডের পারমিশন, স্ক্রিপ্ট লক, ইতিহাস শুধু বাড়বে, ওয়ার্কফ্লোর অনুমোদিত ধাপ, ID বদল নিষেধ |
@@ -261,7 +261,7 @@ Drawer-এর ফুটার এখন এক সারির (ONE row)। PC-�
 - [ ] লাইভ স্কিমা এক্সপোর্ট করে রিপোজিটরিতে রাখা (`supabase db dump`); বেশ কিছু SQL শুধু Supabase এডিটরে চালানো হয়েছে।
 - [ ] `content_type` check constraint-এ SHOW আছে কি না যাচাই।
 - [ ] `select * from pg_policies where schemaname = 'public'` চালিয়ে আসল policy পড়া।
-- [ ] `contents_assign_uid` ID-তে কোন তারিখ (প্রকাশ না তৈরি) ব্যবহার করে তা নিশ্চিত করা।
+- [x] `contents_assign_uid` ID-তে তৈরির দিন (Asia/Dhaka) ব্যবহার করে; ফরম্যাট `WAVECON-YYYYMMDD_XXXX`, প্রতিদিন 0001 থেকে শুরু, কাউন্টার টেবিল `content_uid_counters` (`org_key, day, last_n`), ID কখনো পুনর্ব্যবহার হয় না এবং একবার বসলে বদলানো যায় না (`guard_contents_update` checks `WAVECON-` prefix); শর্টসের নাম `<content ID>-short_0001` ইত্যাদি; স্টোরেজ ফোল্ডার ঠিক content ID-র নামে (কোনো slug ছাড়া), এবং শর্টসের ফোল্ডার মূল কনটেন্ট ফোল্ডারের সাবফোল্ডার; পুরনো সব `CON-` ID ২৯ অক্টোবর ২০২৬ তারিখে `sql/2026-10-29_wavecon_content_id.sql` দিয়ে একবারে রূপান্তরিত।
 
 **আপনার বদল/মন্তব্য:** এখানে লিখুন বা কমেন্ট করুন।
 

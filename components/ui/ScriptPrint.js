@@ -200,7 +200,23 @@ export function ScriptPrintSheet({ row, team, platforms = PLATFORMS, printing, o
           </div>
           <div className="script-print-by-item">
             <span className="script-print-by-label">আইডি</span>
-            <span className="script-print-by-val">{row.content_uid || '—'}</span>
+            <span className="script-print-by-val" style={{ display: 'inline-flex', alignItems: 'center', gap: '3pt' }}>
+              {row.content_uid ? (
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ width: '8.5pt', height: '8.5pt', flexShrink: 0 }}
+                  aria-hidden="true"
+                >
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+              ) : null}
+              <span>{row.content_uid || '—'}</span>
+            </span>
           </div>
         </div>
         <div className="script-print-body">

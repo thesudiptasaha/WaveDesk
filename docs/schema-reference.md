@@ -64,7 +64,7 @@ Channels managed by the newsroom.
 Central table holding all daily video rundown items.
 * `id` (`bigint`, PRIMARY KEY, generated always as identity)
 * `organization_id` (`uuid`, FK to `organizations.id`)
-* `content_uid` (`text`) — Human-readable identifier (e.g., `CON-20261010_001`).
+* `content_uid` (`text`) — Human-readable identifier (e.g., `WAVECON-20261029_0002`). Formatted as `WAVECON-YYYYMMDD_XXXX`, assigned on insert based on content creation day in Asia/Dhaka. Daily counter restarts at 0001 (`content_uid_counters: org_key, day, last_n`). IDs are never reused and immutable once set (`guard_contents_update` checks `WAVECON-` prefix). Shorts are identified as `<content ID>-short_0001` and so on, numbered inside their main content. The folder on the storage drive is named exactly the content ID (no slug), with shorts as subfolders. Converted from legacy `CON-` format on 29 Oct 2026 via `sql/2026-10-29_wavecon_content_id.sql`.
 * `slug_name` (`text`) — Unique slug title (max 24 characters, normalized).
 * `title` (`text`) — Full story title/headline.
 * `content_type` (`text`) — One of: `'EXPLAINER'`, `'LIVE'`, `'RECORDED LIVE'`, `'SOT'`, `'PACKAGE'`, `'SHOW'`, `'STORY'`.

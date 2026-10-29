@@ -16,7 +16,7 @@ NewsroomOps (brand name NewsWave) is a web app that runs the daily content rundo
 
 - Daily rundown table with date range, channel, status and text search
 - A 12-status pipeline with role and permission checks, enforced in the database
-- Content IDs such as `CON-20260930_001`, and per-short IDs such as `CON-20260930_001-SHORT01`
+- Content IDs such as `WAVECON-20261029_0002`, and per-short IDs such as `WAVECON-20261029_0002-short_0001`
 - A separate "On hold & unscheduled" table for parked items, with resume and schedule actions
 - Team management with roles, 8 permissions, photos, and login by email and password
 - Drawer per content with script, metadata, assets, revisions and history
@@ -241,11 +241,11 @@ The top two rows are the full pipeline. The cards underneath list the moves that
 
 ## 7. Content IDs, shorts, scheduling and parked items
 
-**Content ID.** Every content gets a readable ID of the form `CON-YYYYMMDD_NNN`, for example `CON-20260930_001`. A database trigger (`contents_assign_uid`) assigns it on insert, using the Asia/Dhaka calendar date and a per-day counter table (`content_uid_counters`), so two people creating at the same moment never get the same number. Once an ID starts with `CON-` the update guard refuses to change it. The ID is shown in the drawer header beside the slug (with a Copy ID button). Open item: confirm in the trigger source which date feeds the ID (publish date or creation date).
+**Content ID.** Every content gets a readable ID of the form `WAVECON-YYYYMMDD_XXXX`, for example `WAVECON-20261029_0002`. A database trigger (`contents_assign_uid`) assigns it on insert, using the Asia/Dhaka calendar date of the day the content was created and a per-day counter table (`content_uid_counters: org_key, day, last_n`), restarting at 0001 each day, so two people creating at the same moment never get the same number. IDs are never reused. Once an ID starts with `WAVECON-`, the update guard (`guard_contents_update`) refuses to change it; the ID cannot change once set. The ID is shown in the drawer header beside the slug (with a folder icon indicating the storage folder name and a Copy ID button). The folder on the storage drive is named exactly the content ID (no slug). Old `CON-` IDs were all converted once on 29 Oct 2026 by `sql/2026-10-29_wavecon_content_id.sql`.
 
 **Shorts and reels.** One content can have many shorts. They live in the `contents.shorts` JSON array, one object each: `id`, `n` (sequence), `title`, `thumb_text`, `platform` (youtube, facebook, instagram, tiktok, web), `url`, `publish_at` and `published`.
 
-- Each short gets its own ID: the content ID plus `-SHORTnn`, for example `CON-20260930_001-SHORT01`, shown in the Assets & Shorts tab.
+- Each short gets its own ID: `<content ID>-short_0001` and so on, numbered inside their main content (for example `WAVECON-20261029_0002-short_0001`), shown in the Packaging tab. A shorts' folder on the storage drive is a subfolder of the main content's folder.
 - Each short has its own optional upload date and time, separate from the main video.
 - The trigger `contents_set_short_days` copies the Dhaka dates of all shorts into a `short_days` text array on the row. This lets the rundown find contents whose short is due on a day even when the main video is on another day.
 - In the rundown, the Short column shows a chip "Short · time" for each short due in the selected range, amber while pending and green when marked Published.
@@ -282,7 +282,7 @@ The database is Supabase Postgres, schema `public`. People are stored on content
 | `contents` | One row per video, the heart of the app | see below |
 | `channels` | Channels added from the app (the 7 defaults live in code) | `id`, `organization_id`, `name` (unique per organization, case-insensitive) |
 | `notifications` | In-app bell | `id`, `organization_id`, `member_id`, `content_id`, `message`, `read`, `created_at` |
-| `content_uid_counters` | Per-day counter behind `CON-YYYYMMDD_NNN` | last number used per day |
+| `content_uid_counters` | Per-day counter behind `WAVECON-YYYYMMDD_XXXX` (`org_key, day, last_n`) | restarts at 0001 each day, Asia/Dhaka |
 | `content_counters` | Counter from an earlier ID scheme, kept |  |
 | `team_members_legacy` | The first version's team table, renamed and kept, not used |  |
 |  |  |  |
@@ -310,7 +310,7 @@ Indexes: `(organization_id, scheduled_publish_time)` and `content_uid` on conten
 
 | Trigger | On | What it does |
 | --- | --- | --- |
-| `contents_assign_uid` | contents, before insert or update | Assigns `CON-YYYYMMDD_NNN` |
+| `contents_assign_uid` | contents, before insert or update | Assigns `WAVECON-YYYYMMDD_XXXX` (creation day in Asia/Dhaka) |
 | `contents_set_short_days` | contents, before insert or update | Fills `short_days` from the shorts' upload times |
 | `contents_guard_insert` | contents, before insert | New content must start as Draft with no `published_at` |
 | `contents_guard_update` | contents, before update | Field permissions, script lock, append-only history, workflow whitelist, immutable content ID (details in section 9) |
@@ -349,7 +349,7 @@ The browser holds the public Supabase key, so nothing in the browser can be trus
 **What the update guard checks, in order**
 
 1. The caller must be an active member of the same organization as the row.
-2. A content cannot move to another organization, and a `CON-` content ID cannot change.
+2. A content cannot move to another organization, and a `WAVECON-` content ID cannot change.
 3. Script edits need Write & Edit Scripts, and a locked script can be edited only by Managers and the Owner. Lock and unlock are manager-only.
 4. Metadata, channel, publish time, presenter and video editor each need their own permission.
 5. `audit_log` and `revisions` may only grow: the old array must be contained in the new one.
@@ -429,7 +429,7 @@ The product was built step by step with Claude as the coder and the owner as the
 | Migration 1 | Organizations, roles, permission columns, content columns, channels, realtime |
 | Migration 2 | Designation, avatar, script lock, caption, SEO keywords, hashtags |
 | Migration 3 | Login linking (`auth_user_id`), notifications table and triggers |
-| Part 4 | Content ID `CON-YYYYMMDD_NNN` assigned by a database trigger |
+| Part 4 | Content ID assigned by a database trigger (converted to `WAVECON-YYYYMMDD_XXXX` on 29 Oct 2026 by `sql/2026-10-29_wavecon_content_id.sql`) |
 | Part 5 | Shorts with their own IDs and upload times, `short_days`, the Short column in the rundown |
 | Part 6 | Light theme with a toggle, then fixes for modals, drawer and KPI colors |
 | Security steps A, B, C | Full backup first; guards and row-level security; then permissions and workflow enforced in the database (23 test scenarios on a local Postgres, then tested live) |

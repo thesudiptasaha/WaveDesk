@@ -849,7 +849,7 @@ function PackagingTab({ row, actor, team = [], patch, platforms = PLATFORMS, onA
   const [shortUrl, setShortUrl] = useState('');
 
   const nextShortN = row.shorts.reduce((m, s, i) => Math.max(m, s.n || i + 1), 0) + 1;
-  const shortUid = (s, i) => `${row.content_uid || 'CON'}-SHORT${pad(s.n || i + 1)}`;
+  const shortUid = (s, i) => `${row.content_uid || 'WAVECON'}-short_${String(s.n || i + 1).padStart(4, '0')}`;
   const updateShort = (id, p) => patch({ shorts: row.shorts.map((s) => (s.id === id ? { ...s, ...p } : s)) });
 
   // Published links per platform
@@ -1531,8 +1531,11 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
               <>
                 <div className="hidden lg:block lg:flex-grow" />
                 <div className="flex items-center gap-2 w-full lg:w-auto lg:ml-6 shrink-0 mt-0.5 lg:mt-0">
-                  <span className="font-mono font-extrabold text-[14px] sm:text-[15px] lg:text-[19px] text-zinc-200 shrink-0 whitespace-nowrap">
-                    {row.content_uid}
+                  <span className="inline-flex items-center gap-1.5 font-mono font-extrabold text-[14px] sm:text-[15px] lg:text-[19px] text-zinc-200 shrink-0 whitespace-nowrap">
+                    <span title="Folder name on the storage drive" className="inline-flex items-center text-zinc-400">
+                      <Icon name="folder" className="h-4 w-4" strokeWidth={2} />
+                    </span>
+                    <span>{row.content_uid}</span>
                   </span>
                   <button
                     type="button"
