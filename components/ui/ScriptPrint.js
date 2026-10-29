@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { isFeatureEnabled } from '../../utils/features';
 import { scriptToPlainText, scriptToHtml, sanitizeScriptHtml } from '../../utils/scriptRich';
 import { scriptStats } from '../../utils/scriptDuration';
-import { isRemovedPublished, formatDay, formatTime, formatStamp, ROLE_LABEL, PLATFORMS } from '../../lib/core';
+import { isRemovedPublished, formatDay, formatTime, formatStamp, ROLE_LABEL, PLATFORMS, ROLE_LIST } from '../../lib/core';
 
 export function formatScriptSavedAt(iso) {
   if (!iso) return '—';
@@ -30,25 +30,14 @@ const QC_KIND_LABEL = {
   change: 'Change',
 };
 
-const STAFF_FIELDS = [
-  { key: 'concept_creator', label: 'Concept Creator' },
-  { key: 'writer', label: 'Research & Script Writer' },
-  { key: 'presenter_name', label: 'Presenter' },
-  { key: 'producer', label: 'Producer' },
-  { key: 'camera_operator', label: 'Camera Operator' },
-  { key: 'teleprompter_operator', label: 'Teleprompter Operator' },
-  { key: 'light_designer', label: 'Light Designer' },
-  { key: 'sound_recordist', label: 'Sound Recordist' },
-  { key: 'voice_over_artist', label: 'Voice Over Artist' },
-  { key: 'video_editor', label: 'Video Editor' },
-  { key: 'motion_graphics_designer', label: 'Motion Graphics Designer' },
-  { key: 'graphic_designer', label: 'Graphic Designer' },
-  { key: 'colorist', label: 'Colorist' },
-  { key: 'audio_mixer', label: 'Audio Mixer' },
-  { key: 'publisher', label: 'Publisher' },
-  { key: 'live_video_switcher', label: 'Live Video Switcher', liveOnly: true },
-  { key: 'live_audio_mixer', label: 'Live Audio Mixer', liveOnly: true },
-];
+const DRAWER_ORDER = ['idea', 'crew', 'post', 'publish', 'live'];
+const STAFF_FIELDS = DRAWER_ORDER.flatMap((g) =>
+  ROLE_LIST.filter((r) => r.drawerGroup === g).map((r) => ({
+    key: r.field,
+    label: r.label,
+    liveOnly: g === 'live',
+  }))
+);
 
 function getPersonDisplay(name, team) {
   if (!name) return '';

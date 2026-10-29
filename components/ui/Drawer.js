@@ -19,7 +19,7 @@ import {
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
-  FIELD_PERM, TRACKED_FIELDS, presenterMembers
+  FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup
 } from '../../lib/core';
 
 
@@ -52,10 +52,7 @@ const STAFF_GROUPS = [
     hint: 'who thought of it and wrote it',
     stripe: 'bg-sky-400',
     chip: 'bg-sky-400/15 text-sky-200',
-    fields: [
-      { field: 'concept_creator', label: 'Concept Creator', skillKey: 'role_concept_creator' },
-      { field: 'writer', label: 'Research & Script Writer', skillKey: 'role_research_script_writer' },
-    ],
+    fields: rolesInDrawerGroup('idea').map((r) => ({ field: r.field, label: r.label, skillKey: r.key })),
   },
   {
     id: 'post',
@@ -63,13 +60,7 @@ const STAFF_GROUPS = [
     hint: 'after the shoot',
     stripe: 'bg-amber-400',
     chip: 'bg-amber-400/15 text-amber-300',
-    fields: [
-      { field: 'video_editor', label: 'Video Editor', skillKey: 'role_video_editor' },
-      { field: 'motion_graphics_designer', label: 'Motion Graphics Designer', skillKey: 'role_motion_graphics_designer' },
-      { field: 'graphic_designer', label: 'Graphic Designer', skillKey: 'role_graphic_designer' },
-      { field: 'colorist', label: 'Colorist', skillKey: 'role_colorist' },
-      { field: 'audio_mixer', label: 'Audio Mixer', skillKey: 'role_audio_mixer' },
-    ],
+    fields: rolesInDrawerGroup('post').map((r) => ({ field: r.field, label: r.label, skillKey: r.key })),
   },
   {
     id: 'crew',
@@ -77,15 +68,7 @@ const STAFF_GROUPS = [
     hint: 'on the shoot',
     stripe: 'bg-red-400',
     chip: 'bg-red-400/15 text-red-200',
-    fields: [
-      { field: 'producer', label: 'Producer', skillKey: 'role_producer' },
-      { field: 'presenter_name', label: 'Presenter', skillKey: 'role_presenter' },
-      { field: 'camera_operator', label: 'Camera Operator', skillKey: 'role_camera_operator' },
-      { field: 'teleprompter_operator', label: 'Teleprompter Operator', skillKey: 'role_teleprompter_operator' },
-      { field: 'light_designer', label: 'Light Designer', skillKey: 'role_light_designer' },
-      { field: 'sound_recordist', label: 'Sound Recordist', skillKey: 'role_sound_recordist' },
-      { field: 'voice_over_artist', label: 'Voice Over Artist', skillKey: 'role_voice_over_artist' },
-    ],
+    fields: rolesInDrawerGroup('crew').map((r) => ({ field: r.field, label: r.label, skillKey: r.key })),
   },
   {
     id: 'publish',
@@ -93,9 +76,7 @@ const STAFF_GROUPS = [
     hint: 'who puts it live',
     stripe: 'bg-emerald-400',
     chip: 'bg-emerald-400/15 text-emerald-200',
-    fields: [
-      { field: 'publisher', label: 'Publisher', skillKey: 'role_publisher' },
-    ],
+    fields: rolesInDrawerGroup('publish').map((r) => ({ field: r.field, label: r.label, skillKey: r.key })),
   },
   {
     id: 'live',
@@ -103,10 +84,7 @@ const STAFF_GROUPS = [
     hint: 'shown only for LIVE content',
     stripe: 'bg-violet-400',
     chip: 'bg-violet-400/15 text-violet-300',
-    fields: [
-      { field: 'live_video_switcher', label: 'Live Video Switcher', skillKey: 'role_live_video_switcher' },
-      { field: 'live_audio_mixer', label: 'Live Audio Mixer', skillKey: 'role_live_audio_mixer' },
-    ],
+    fields: rolesInDrawerGroup('live').map((r) => ({ field: r.field, label: r.label, skillKey: r.key })),
   },
 ];
 
@@ -208,7 +186,7 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
 }
 
 function StaffAssignment({ row, actor, team, patch }) {
-  const HIDE_BY_TYPE = { PACKAGE: ['camera_operator', 'teleprompter_operator', 'light_designer', 'sound_recordist'], LIVE: ['video_editor'] };
+  const HIDE_BY_TYPE = { PACKAGE: ['camera_operator', 'teleprompter_operator', 'light_designer', 'sound_recordist', 'set_designer', 'makeup_artist', 'data_wrangler', 'production_manager'], LIVE: ['video_editor'] };
   const showCredit = (field) => !((HIDE_BY_TYPE[row.content_type] || []).includes(field) && !row[field]);
 
   return (

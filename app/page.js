@@ -20,7 +20,7 @@ import { PhoneCard, PhoneRow, ShortNote } from '../components/ui/RundownCards';
 import { fetchNotices, createNotice, deleteNotice } from '../services/noticeService';
 
 import {
-  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, CONTENT_TYPE_COLORS, PLATFORMS, PERMISSIONS, ROLE_LABEL,
+  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, CONTENT_TYPE_COLORS, PLATFORMS, PERMISSIONS, ROLE_LIST, ROLE_LABEL,
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
@@ -39,7 +39,7 @@ function buildDemo() {
   const orgId = 'demo-org';
   const mk = (full_name, email, role, perms, gender = 'male') => {
     const nick = full_name.split(' ')[0];
-    return normalizeMember({ id: uid(), user_id: uid(), custom_uid: generateUserUID(), organization_id: orgId, full_name, nickname: nick, gender, email, role, active: true, role_research_script_writer: true, role_video_editor: true, role_producer: true, role_camera_operator: true, role_presenter: true, role_concept_creator: true, role_publisher: true, ...perms });
+    return normalizeMember({ id: uid(), user_id: uid(), custom_uid: generateUserUID(), organization_id: orgId, full_name, nickname: nick, gender, email, role, active: true, ...ROLE_LIST.reduce((acc, r) => ({ ...acc, [r.key]: true }), {}), ...perms });
   };
   const team = [
     mk('Rahim Uddin', 'owner@demo.com', 'owner', { designation: 'Editor-in-Chief' }),
@@ -1322,7 +1322,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       .filter((r) => statusFilter === 'all' || r.status === statusFilter)
       .filter((r) => {
         if (!q) return true;
-        return [r.slug_name, r.title, r.presenter_name, r.writer, r.video_editor, r.content_uid, r.channel, r.thumbnail_text].some((v) => String(v || '').toLowerCase().includes(q));
+        return [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text].some((v) => String(v || '').toLowerCase().includes(q));
       })
       .sort((a, b) => {
         if (channelFilter === 'all') {
@@ -1343,7 +1343,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       .filter(isParked)
       .filter((r) => channelFilter === 'all' || r.channel === channelFilter)
       .filter((r) => statusFilter === 'all' || r.status === statusFilter)
-      .filter((r) => !q || [r.slug_name, r.title, r.presenter_name, r.writer, r.video_editor, r.content_uid, r.channel, r.thumbnail_text].some((v) => String(v || '').toLowerCase().includes(q)))
+      .filter((r) => !q || [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text].some((v) => String(v || '').toLowerCase().includes(q)))
       .sort((a, b) => {
         if (a.scheduled_publish_time && b.scheduled_publish_time) return new Date(a.scheduled_publish_time) - new Date(b.scheduled_publish_time);
         if (a.scheduled_publish_time) return -1;
@@ -1422,26 +1422,28 @@ function NewsroomApp({ authUser, onSignOut }) {
   const exportXlsx = async () => {
     try {
       const XLSX = await import('xlsx-js-style');
-      const data = visible.map((r) => ({
-        Date: r.scheduled_publish_time ? new Date(r.scheduled_publish_time).toLocaleDateString() : '',
-        Time: formatTime(r.scheduled_publish_time),
-        'Content ID': r.content_uid || '',
-        Type: r.content_type,
-        Channel: r.channel || '',
-        Slug: r.slug_name || '',
-        Title: r.title || '',
-        'Thumbnail Text': r.thumbnail_text || '',
-        'Research & Script Writer': r.writer || '',
-        Presenter: r.presenter_name || '',
-        'Video Editor': r.video_editor || '',
-        'Camera Operator': r.camera_operator || '',
-        Status: r.status,
-        'Published By': r.published_by || '',
-        'Published At': (r.went_live_at || r.published_at) ? new Date(r.went_live_at || r.published_at).toLocaleString() : '',
-        'Marked Published At': r.published_at ? new Date(r.published_at).toLocaleString() : '',
-        'Shelf ID': r.archive_shelf_id || '',
-        Shorts: r.shorts.length,
-      }));
+      const data = visible.map((r) => {
+        const item = {
+          Date: r.scheduled_publish_time ? new Date(r.scheduled_publish_time).toLocaleDateString() : '',
+          Time: formatTime(r.scheduled_publish_time),
+          'Content ID': r.content_uid || '',
+          Type: r.content_type,
+          Channel: r.channel || '',
+          Slug: r.slug_name || '',
+          Title: r.title || '',
+          'Thumbnail Text': r.thumbnail_text || '',
+        };
+        ROLE_LIST.forEach((rl) => {
+          item[rl.label] = r[rl.field] || '';
+        });
+        item['Status'] = r.status;
+        item['Published By'] = r.published_by || '';
+        item['Published At'] = (r.went_live_at || r.published_at) ? new Date(r.went_live_at || r.published_at).toLocaleString() : '';
+        item['Marked Published At'] = r.published_at ? new Date(r.published_at).toLocaleString() : '';
+        item['Shelf ID'] = r.archive_shelf_id || '';
+        item['Shorts'] = r.shorts.length;
+        return item;
+      });
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Rundown');
@@ -1487,7 +1489,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       }
       if (full_name !== oldName) {
         /* Assignments are stored by name, so keep them pointing at this person. */
-        for (const col of ['writer', 'presenter_name', 'video_editor', 'camera_operator']) {
+        for (const col of ROLE_LIST.map((rl) => rl.field)) {
           await supabase.from('contents').update({ [col]: full_name }).eq(col, oldName);
         }
       }

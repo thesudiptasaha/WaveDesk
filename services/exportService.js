@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { ROLE_LIST } from '../lib/core';
 
 export function downloadUserReport(member, rows, startDate, endDate) {
   const doc = new jsPDF('landscape');
@@ -7,7 +8,7 @@ export function downloadUserReport(member, rows, startDate, endDate) {
   // Filter rows where this member was involved (Writer, Editor, Presenter, etc.)
   // and falls within the date range (mocked date check here for simplicity if date objects are complex)
   const activities = rows.filter(r => {
-    const isMatched = r.writer === member.full_name || r.video_editor === member.full_name || r.presenter_name === member.full_name || r.camera_operator === member.full_name;
+    const isMatched = ROLE_LIST.some((role) => r[role.field] === member.full_name);
     // Add strict date check in production
     return isMatched;
   });
