@@ -55,7 +55,7 @@ function buildDemo() {
   const rows = [
     base({ content_type: 'EXPLAINER', channel: 'The Wave Money', slug_name: 'BUDGET BREAKDOWN FISCAL YEAR', title: 'Budget Breakdown: What Changes This Fiscal Year', thumbnail_text: 'WHAT CHANGES?', concept_creator: 'Rahim Uddin', writer: 'Tanvir Ahmed', producer: 'Nusrat Jahan', presenter_name: 'Nusrat Jahan', video_editor: 'Imran Hossain', scheduled_publish_time: at(10, 0), status: 'Script Submitted', script_saved_at: at(9, 30), script: 'Opening line.\n\nThis year’s budget reshapes how households plan spending.\n\nThree things matter: taxes, subsidies, and interest rates.' }),
     base({ content_type: 'PACKAGE', channel: 'The Wave 24', slug_name: 'CITY FLOOD RELIEF', title: 'City Flood Relief Operations', thumbnail_text: 'RELIEF ON THE GROUND', concept_creator: 'Tanvir Ahmed', writer: 'Tanvir Ahmed', presenter_name: 'Rahim Uddin', camera_operator: 'Karim', scheduled_publish_time: at(13, 30), status: 'Ready for Shoot', script_saved_at: at(11, 45), script: 'Relief teams are moving through the worst-hit districts.' }),
-    base({ content_type: 'SOT', channel: 'The Wave Sports', slug_name: 'CAPTAIN POST MATCH', title: 'Captain’s Post-Match Reaction', thumbnail_text: 'HE SAID WHAT?', writer: 'Sadia Islam', presenter_name: 'Imran Hossain', scheduled_publish_time: at(16, 0), status: 'Shooting', script: '' }),
+    base({ content_type: 'SOT', channel: 'The Wave Sports', slug_name: 'CAPTAIN POST MATCH', title: 'Captain’s Post-Match Reaction', thumbnail_text: 'HE SAID WHAT?', writer: 'Sadia Islam', presenter_name: 'Imran Hossain', scheduled_publish_time: at(16, 0), status: 'Shooting', shoot_started_at: at(15, 30), script: '' }),
     base({ content_type: 'PACKAGE', channel: 'The Wave Life', slug_name: 'STREET FOOD TOUR', title: 'Old Dhaka Street Food Tour', thumbnail_text: 'MUST TRY', concept_creator: 'Sadia Islam', writer: 'Sadia Islam', presenter_name: 'Sadia Islam', video_editor: 'Imran Hossain', publisher: 'Rahim Uddin', scheduled_publish_time: at(18, 0), status: 'Editing', script_saved_at: at(14, 20), script: 'Welcome to the lanes of Old Dhaka.', master_export_url: '' }),
     base({ content_type: 'LIVE', channel: 'The Wave Faith', slug_name: 'FRIDAY SERMON LIVE', title: 'Friday Sermon — Live', thumbnail_text: 'LIVE NOW', writer: 'Tanvir Ahmed', presenter_name: 'Rahim Uddin', live_video_switcher: 'Imran Hossain', scheduled_publish_time: at(12, 30), status: 'Published', published_at: at(12, 40), script: '' }),
   ];
@@ -484,7 +484,7 @@ const clip = (v, n = 80) => {
 };
 
 function describeValue(field, v) {
-  if (field === 'scheduled_publish_time') return v ? formatStamp(v) : '';
+  if (field === 'scheduled_publish_time' || field === 'shoot_started_at' || field === 'shoot_finished_at') return v ? formatStamp(v) : '';
   if (field === 'is_script_locked') return v ? 'Locked' : 'Unlocked';
   if (field === 'target_platforms') return asArray(v).join(', ');
   if (field === 'script') return v ? `${scriptToPlainText(v).split(/\s+/).filter(Boolean).length} words` : 'empty';
@@ -1039,11 +1039,20 @@ function NewsroomApp({ authUser, onSignOut }) {
       }
       setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
       if (!supabase) return true;
-      const { error } = await supabase.from('contents').update(patch).eq('id', id);
+      const { data: updated, error } = await supabase
+        .from('contents')
+        .update(patch)
+        .eq('id', id)
+        .select()
+        .single();
       if (error) {
         setRows((rs) => rs.map((r) => (r.id === id ? prev : r)));
         notify(`Save failed: ${errText(error)}`, 'error');
         return false;
+      }
+      if (updated) {
+        const norm = normalizeRow(updated);
+        setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...norm } : r)));
       }
       return true;
     },
@@ -1063,6 +1072,16 @@ function NewsroomApp({ authUser, onSignOut }) {
         status: current.to,
         audit_log: [...fresh.audit_log, { kind: 'status', actor: actor.full_name, role: actor.role, from: fresh.status, to: current.to, time: now, note: extra && extra.wentLiveAt ? `Went live at ${formatStamp(extra.wentLiveAt)}` : reason }],
       };
+      if (current.id === 'start_shoot') {
+        patch.shoot_started_at = now;
+        patch.shoot_finished_at = null;
+        if (actor.role_camera_operator === true && fresh.camera_operator !== actor.full_name) {
+          patch.camera_operator = actor.full_name;
+        }
+      }
+      if (current.id === 'finish_shoot') {
+        patch.shoot_finished_at = now;
+      }
       if (current.id === 'hold') {
         patch.previous_status = fresh.status;
         patch.hold_reason = reason;
@@ -1437,6 +1456,11 @@ function NewsroomApp({ authUser, onSignOut }) {
           item[rl.label] = r[rl.field] || '';
         });
         item['Status'] = r.status;
+        item['Shoot Started'] = r.shoot_started_at ? new Date(r.shoot_started_at).toLocaleString() : '';
+        item['Shoot Finished'] = r.shoot_finished_at ? new Date(r.shoot_finished_at).toLocaleString() : '';
+        item['Production Notes'] = r.production_notes || '';
+        item['Files Delivered At'] = r.files_delivered_at ? new Date(r.files_delivered_at).toLocaleString() : '';
+        item['Files Delivered By'] = r.files_delivered_by || '';
         item['Published By'] = r.published_by || '';
         item['Published At'] = (r.went_live_at || r.published_at) ? new Date(r.went_live_at || r.published_at).toLocaleString() : '';
         item['Marked Published At'] = r.published_at ? new Date(r.published_at).toLocaleString() : '';

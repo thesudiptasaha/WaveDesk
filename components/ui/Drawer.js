@@ -19,7 +19,8 @@ import {
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
-  FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup, ROLE_LIST
+  FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
+  PRODUCTION_CREW_FIELDS, canAssignProductionCrew, canEditShootTimes
 } from '../../lib/core';
 
 
@@ -91,14 +92,31 @@ const STAFF_GROUPS = [
 function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
   const active = !!actor && actor.active !== false;
   const isPresenter = field === 'presenter_name';
-  const okPres = can(actor, 'can_assign_presenter');
-  const isLocked = isPresenter ? !okPres : !active;
-  const lockTitle = isPresenter
-    ? 'You need the “Assign Presenter” permission'
-    : 'You do not have permission to assign staff';
-
+  const isCrew = PRODUCTION_CREW_FIELDS.includes(field);
+  const isCrewAdmin = isCrew && canAssignProductionCrew(actor);
   const assignedName = row[field];
   const isAssigned = !!assignedName;
+  const isSelf = assignedName === actor?.full_name;
+
+  let isLocked = false;
+  let lockTitle = '';
+
+  if (isPresenter) {
+    const okPres = can(actor, 'can_assign_presenter');
+    isLocked = !active || !okPres;
+    lockTitle = isPresenter
+      ? 'You need the “Assign Presenter” permission'
+      : 'You do not have permission to assign staff';
+  } else if (isCrew) {
+    const canSelfAdd = !!actor && actor[skillKey] === true && !isAssigned;
+    const canSelfRemove = isSelf;
+    isLocked = !active || (!isCrewAdmin && !canSelfAdd && !canSelfRemove);
+    lockTitle = 'Only the Producer, Production Manager or a Manager can change the crew. You can put yourself into an empty slot of your own role.';
+  } else {
+    isLocked = !active;
+    lockTitle = 'You do not have permission to assign staff';
+  }
+
   const member = isAssigned ? (team || []).find((m) => m.full_name === assignedName) : null;
   const nickname = (member && member.nickname) || assignedName;
 
@@ -108,21 +126,29 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
     ? (member && member.designation ? `${member.full_name} (${member.designation})` : (member ? member.full_name : assignedName))
     : `Assign ${label}`;
 
-  const eligibleMembers = isPresenter
-    ? presenterMembers(team)
-    : (team || []).filter((t) => !skillKey || t[skillKey] || t.role === 'owner' || t.role === 'manager');
+  let options = [];
+  let showUnassigned = true;
 
-  const options = eligibleMembers.map((m) => ({
-    value: m.full_name,
-    label: m.nickname || m.full_name,
-  }));
+  if (isCrew && !isCrewAdmin) {
+    showUnassigned = isSelf;
+    options = actor ? [{ value: actor.full_name, label: actor.nickname || actor.full_name }] : [];
+  } else {
+    const eligibleMembers = isPresenter
+      ? presenterMembers(team)
+      : (team || []).filter((t) => !skillKey || t[skillKey] || t.role === 'owner' || t.role === 'manager');
 
-  if (assignedName && !eligibleMembers.some((m) => m.full_name === assignedName)) {
-    const extra = (team || []).find((m) => m.full_name === assignedName);
-    options.unshift({
-      value: assignedName,
-      label: (extra && extra.nickname) || assignedName,
-    });
+    options = eligibleMembers.map((m) => ({
+      value: m.full_name,
+      label: m.nickname || m.full_name,
+    }));
+
+    if (assignedName && !eligibleMembers.some((m) => m.full_name === assignedName)) {
+      const extra = (team || []).find((m) => m.full_name === assignedName);
+      options.unshift({
+        value: assignedName,
+        label: (extra && extra.nickname) || assignedName,
+      });
+    }
   }
 
   return (
@@ -171,9 +197,15 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
           title={tileTitle}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus:outline-none"
         >
-          <option value="" className="bg-[#121215]">
-            — Unassigned —
-          </option>
+          {showUnassigned ? (
+            <option value="" className="bg-[#121215]">
+              — Unassigned —
+            </option>
+          ) : (
+            <option value="" disabled hidden>
+              — Unassigned —
+            </option>
+          )}
           {options.map((opt) => (
             <option key={opt.value} value={opt.value} className="bg-[#121215]">
               {opt.label}
@@ -837,10 +869,125 @@ function getPublishedLinks(row) {
   return {};
 }
 
+function formatShootDuration(startIso, endIso) {
+  if (!startIso || !endIso) return null;
+  const start = new Date(startIso).getTime();
+  const end = new Date(endIso).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+  const totalMins = Math.round((end - start) / 60000);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  if (h > 0) {
+    return `${h} h ${m} min`;
+  }
+  return `${m} min`;
+}
+
+function ShootDateTimeInput({ label, value, disabled, lockMessage, onCommit }) {
+  const [localVal, setLocalVal] = useState(toLocalInput(value));
+
+  useEffect(() => {
+    setLocalVal(toLocalInput(value));
+  }, [value]);
+
+  const handleBlur = () => {
+    const nextIso = fromLocalInput(localVal);
+    const currIso = value || null;
+    if (nextIso !== currIso) {
+      onCommit(nextIso);
+    }
+  };
+
+  const handleChange = (e) => {
+    const v = e.target.value;
+    setLocalVal(v);
+    if (!v) {
+      if (value) onCommit(null);
+    } else {
+      const nextIso = fromLocalInput(v);
+      if (nextIso && nextIso !== value) {
+        onCommit(nextIso);
+      }
+    }
+  };
+
+  return (
+    <Field label={label} locked={disabled} lockMessage={lockMessage}>
+      <input
+        type="datetime-local"
+        disabled={disabled}
+        value={localVal}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className={`${!disabled ? inputBase : inputLocked} [color-scheme:dark]`}
+      />
+    </Field>
+  );
+}
+
+function ShootCard({ row, actor, patch }) {
+  const canEdit = canEditShootTimes(actor);
+  const lockMsg = 'Only the Camera Operator, Producer, Production Manager or a Manager can change shoot times';
+  const durationText = formatShootDuration(row.shoot_started_at, row.shoot_finished_at);
+  const showDuration = !row.shoot_started_at || !!durationText;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
+      <div className="absolute inset-y-0 left-0 w-1.5 bg-sky-400" />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-sky-400/15 text-sky-200">
+            Shoot
+          </span>
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ShootDateTimeInput
+            label="Started"
+            value={row.shoot_started_at}
+            disabled={!canEdit}
+            lockMessage={lockMsg}
+            onCommit={(v) => patch({ shoot_started_at: v })}
+          />
+          <ShootDateTimeInput
+            label="Finished"
+            value={row.shoot_finished_at}
+            disabled={!canEdit}
+            lockMessage={lockMsg}
+            onCommit={(v) => patch({ shoot_finished_at: v })}
+          />
+        </div>
+
+        {showDuration ? (
+          <div className="flex items-center justify-between text-[12px] pt-1 border-t border-white/[0.06]">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Duration</span>
+            {!row.shoot_started_at ? (
+              <span className="text-zinc-500">Not started yet</span>
+            ) : (
+              <span className="font-medium text-white">{durationText}</span>
+            )}
+          </div>
+        ) : null}
+
+        <p className="text-[12px] leading-relaxed text-zinc-500">
+          Filled automatically when Start Shoot / Finish Shoot is pressed. If another Camera Operator presses Start Shoot, their name replaces the earlier one (the old name stays in the log). Producer, Production Manager, Camera Operator and Managers can correct the times.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ProductionTab({ row, actor, team, patch }) {
   return (
-    <div className="space-y-8">
-      <StaffAssignment groups={['crew']} row={row} actor={actor} team={team} patch={patch} />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <div>
+        <StaffAssignment groups={['crew']} row={row} actor={actor} team={team} patch={patch} />
+      </div>
+      <div className="space-y-4">
+        <div className="hidden lg:block h-[27px]" aria-hidden="true" />
+        <ShootCard row={row} actor={actor} patch={patch} />
+      </div>
     </div>
   );
 }

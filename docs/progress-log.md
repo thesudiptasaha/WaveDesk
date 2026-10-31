@@ -322,6 +322,22 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
   - **নতুন Credits ট্যাব (`CreditsTab`):** উপরে সম্পূর্ণ প্রস্থে Production Crew গ্রুপ কার্ড; নিচে দুই কলামের গ্রিড (`grid grid-cols-1 lg:grid-cols-2 gap-4 items-start`): বাঁ কলামে Idea & Script, Publishing, Live Crew (নিয়ম অনুযায়ী শুধু লাইভ কনটেন্টে); ডান কলামে Post-Production এবং নতুন "Credit line" কার্ড।
   - **Credit line কার্ড:** ছোট শিরোনাম "Credit line", "Copy credits" বোতাম (`copyText` হেলপার, ১৮০০ms চেকমার্কসহ 'Copied!', কেউ ক্রেডিটেড না থাকলে বোতাম নিষ্ক্রিয়); রিড-অনলি টেক্সট এরিয়া (`readOnly`, `rows={4}`, `select-all`), যাতে `ROLE_LIST` ক্রমানুসারে অ্যাসাইন করা রোলের নাম "Label: Full name" ফরম্যাটে " · " (U+00B7) দিয়ে যুক্ত থাকে (কেউ না থাকলে ধূসর ইটালেকে "No one is credited yet."); নিচে হিন্ট "Everyone who worked on this content, in one place." এবং ট্যাবের নিচে ফুটনোট। কোনো ডাটাবেস পরিবর্তন নেই।
 
+## ২৯ অক্টোবর ২০২৬ (N123)
+- **প্রোডাকশন ক্রু রুলস, Start/Finish Shoot রুলস ও Shoot কার্ড (২৯ অক্টোবর ২০২৬, N123):**
+  - **ডাটাবেস মাইগ্রেশন (`sql/2026-10-29_production_rules.sql`):** contents টেবিলে ৫টি নতুন কলাম যোগ: `shoot_started_at` (timestamptz), `shoot_finished_at` (timestamptz), `production_notes` (text), `files_delivered_at` (timestamptz), `files_delivered_by` (text)।
+  - **ডাটাবেস ট্রিগার (`contents_guard_update_production`, `contents_production_rules` ফাংশন):**
+    - Start Shoot / Finish Shoot শুধু Manager/Owner, Producer, Production Manager, Camera Operator বা নির্ধারিত ক্যামেরা অপারেটর করতে পারেন।
+    - Start Shoot চাপলে `shoot_started_at = now()`, `shoot_finished_at = null` বসে; এবং ক্যামেরা অপারেটর টিকধারী সদস্য চাপলে স্বয়ংক্রিয়ভাবে `camera_operator` হিসেবে বসে যায় (আগেরজন নোটিফিকেশন পান এবং অডিট লগে "Auto-assigned on Start Shoot" যুক্ত হয়)। Finish Shoot চাপলে `shoot_finished_at = now()` বসে।
+    - প্রোডাকশন ক্রুর ১০টি পদ (`production_manager`, `producer`, `set_designer`, `camera_operator`, `teleprompter_operator`, `light_designer`, `sound_recordist`, `data_wrangler`, `makeup_artist`, `voice_over_artist`) শুধু Manager/Owner/Producer/Production Manager বদলাতে পারেন; অন্যরা কেবল নিজের পদে ফাঁকা ঘরে নিজেকে বসাতে বা সরাতে পারেন।
+    - হাতে শুটের সময় বদলানো শুধু Manager/Owner/Producer/Production Manager/Camera Operator পারেন।
+    - Files delivered একবারই টিক দেওয়া যায় (ক্যামেরা অপারেটর, ডেটা র্যাংলার, প্রযোজক, প্রোডাকশন ম্যানেজার বা ম্যানেজার দিতে পারেন; এডিটরকে নোটিফিকেশন যায়) এবং শুধু ম্যানেজার আনডু করতে পারেন (এর স্ক্রিন ও Production notes পরবর্তী ধাপে আসবে)।
+    - `guard_contents_update` থেকে `camera_operator` সরানো হয়েছে; `notify_content_update`-এ `nw.bypass_guard` থাকলে নোটিফিকেশন বাদ যায় (সদস্য রিনেমে নোটিফিকেশন হয় না)।
+  - **অ্যাপ ও ড্রয়ার আপডেট:**
+    - `lib/core.js`: `PRODUCTION_CREW_FIELDS`, `canAssignProductionCrew`, `canRunShoot`, `canEditShootTimes` এক্সপোর্ট; `getActions`-এ Start/Finish Shoot-এর অনুমতি ও ব্লকড টেক্সট আপডেট; `FIELD_PERM` থেকে `camera_operator` বাদ; `normalizeRow`-এ ৫টি নতুন কলামের ডিফল্ট যুক্ত; `TRACKED_FIELDS`-এ Shoot started ও Shoot finished যোগ।
+    - `app/page.js`: `patchRow` প্রতিটি সেভের পর `.select().single()` থেকে আসা রো `normalizeRow` দিয়ে লোকাল স্টেটে মার্জ করে (ডাটাবেসের স্বয়ংক্রিয় পরিবর্তন তাৎক্ষণিক দেখা যায়); `transition`-এ Start/Finish Shoot-এর সময় ও ক্যামেরা অপারেটর হ্যান্ডলিং; Excel এক্সপোর্টে ৫টি নতুন কলাম যুক্ত; `describeValue`-এ পঠনযোগ্য তারিখ ফরম্যাট।
+    - `Drawer.js`: `StaffTile`-এ ক্রু রুলস ও সেলফ-অ্যাসাইন/রিমুভ অপশন; Production ট্যাবে ডেসকটপে দুই কলামের লেআউট: বাঁয়ে `StaffAssignment groups={['crew']}` এবং ডানে নতুন `ShootCard` (Started ও Finished ডেট-টাইম ইনপুট, হিসাবকৃত Duration, হিন্ট টেক্সট)।
+  - **পরবর্তী কাজ (খোলা):** Files delivered বাটন এবং Production notes স্ক্রিন পরবর্তী টাস্কে আসবে।
+
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
 - **Employee Report (ও অন্য রিপোর্ট) পপ-আপ হিসেবে খোলা (মালিকের পর্যবেক্ষণ):** কোন কোন রিপোর্ট ও কীভাবে তা মালিক জানাবেন; লঞ্চের পরে।

@@ -88,7 +88,12 @@ Central table holding all daily video rundown items.
 * `went_live_at` (`timestamptz`, nullable) — Real time the content went live (reports and Rundown Export use this; falls back to `published_at` for old rows).
 * `writer` (`text`) — Assigned Research & Script author.
 * `presenter_name` (`text`) — Assigned on-camera presenter.
-* `camera_operator` (`text`) - Assigned Camera Operator (was `camera_person`).
+* `camera_operator` (`text`) - Assigned Camera Operator (was `camera_person`). Governed by contents_production_rules (sql/2026-10-29_production_rules.sql).
+* `shoot_started_at` (`timestamptz`, nullable) - Timestamp when the shoot started. Populated automatically on Start Shoot. Editable manually only by Manager/Owner, Producer, Production Manager, or Camera Operator.
+* `shoot_finished_at` (`timestamptz`, nullable) - Timestamp when the shoot finished. Populated automatically on Finish Shoot, cleared on Start Shoot. Editable manually only by Manager/Owner, Producer, Production Manager, or Camera Operator.
+* `production_notes` (`text`, nullable) - On-set and shoot production notes.
+* `files_delivered_at` (`timestamptz`, nullable) - Timestamp when raw footage and project files were delivered. Can be ticked once by Camera Operator, Data Wrangler, Producer, Production Manager, or Manager; notifies the assigned video editor. Undone only by Managers.
+* `files_delivered_by` (`text`, nullable) - Full name of the team member who ticked Files delivered.
 * `video_editor` (`text`) — Assigned video editor.
 * `producer` (`text`) — Assigned producer.
 * `concept_creator` (`text`) - Concept Creator, the story idea originator (was `idea_by`).
