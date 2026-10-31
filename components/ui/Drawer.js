@@ -20,31 +20,10 @@ import {
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
-  PRODUCTION_CREW_FIELDS, canAssignProductionCrew, canEditShootTimes
+  GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes
 } from '../../lib/core';
 
 
-function CreditSelect({ label, field, skillKey, row, patch, team, disabled }) {
-  const filtered = team.filter((t) => !skillKey || t[skillKey] || t.role === 'owner' || t.role === 'manager');
-  const options = filtered.map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }));
-  if (row[field] && !filtered.some((m) => m.full_name === row[field])) {
-    const extra = team.find((m) => m.full_name === row[field]);
-    options.unshift({ value: row[field], label: (extra && extra.nickname) || row[field] });
-  }
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">{label}</label>
-      <SelectBox
-        value={row[field] || ''}
-        disabled={disabled}
-        onChange={(v) => patch({ [field]: v })}
-        options={options}
-        placeholder="— Unassigned —"
-      />
-    </div>
-  );
-}
 
 const STAFF_GROUPS = [
   {
@@ -92,7 +71,7 @@ const STAFF_GROUPS = [
 function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
   const active = !!actor && actor.active !== false;
   const isPresenter = field === 'presenter_name';
-  const isCrew = PRODUCTION_CREW_FIELDS.includes(field);
+  const isCrew = GUARDED_ASSIGN_FIELDS.includes(field);
   const isCrewAdmin = isCrew && canAssignProductionCrew(actor);
   const assignedName = row[field];
   const isAssigned = !!assignedName;
@@ -111,7 +90,9 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
     const canSelfAdd = !!actor && actor[skillKey] === true && !isAssigned;
     const canSelfRemove = isSelf;
     isLocked = !active || (!isCrewAdmin && !canSelfAdd && !canSelfRemove);
-    lockTitle = 'Only the Producer, Production Manager or a Manager can change the crew. You can put yourself into an empty slot of your own role.';
+    lockTitle = field === 'publisher'
+      ? 'Only the Producer, Production Manager or a Manager can change the Publisher. If you hold the Publisher role you can put yourself into an empty slot.'
+      : 'Only the Producer, Production Manager or a Manager can change the crew. You can put yourself into an empty slot of your own role.';
   } else {
     isLocked = !active;
     lockTitle = 'You do not have permission to assign staff';
@@ -1062,15 +1043,7 @@ function PackagingTab({ row, actor, team = [], patch, platforms = PLATFORMS, onA
     <div className="space-y-6">
       {/* a) Publisher */}
       <div className="w-full lg:w-1/2">
-        <CreditSelect
-          label="Publisher"
-          field="publisher"
-          skillKey="role_publisher"
-          row={row}
-          patch={patch}
-          team={team}
-          disabled={!active}
-        />
+        <StaffGroupCard group="publish" row={row} actor={actor} team={team} patch={patch} />
       </div>
 
       {/* File links */}

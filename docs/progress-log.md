@@ -338,6 +338,15 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
     - `Drawer.js`: `StaffTile`-এ ক্রু রুলস ও সেলফ-অ্যাসাইন/রিমুভ অপশন; Production ট্যাবে ডেসকটপে দুই কলামের লেআউট: বাঁয়ে `StaffAssignment groups={['crew']}` এবং ডানে নতুন `ShootCard` (Started ও Finished ডেট-টাইম ইনপুট, হিসাবকৃত Duration, হিন্ট টেক্সট)।
   - **পরবর্তী কাজ (খোলা):** Files delivered বাটন এবং Production notes স্ক্রিন পরবর্তী টাস্কে আসবে।
 
+## ৩১ অক্টোবর ২০২৬ (N124)
+- **Publisher পাহারা ও শেয়ার্ড Publisher টাইল (৩১ অক্টোবর ২০২৬, N124):**
+  - **ডাটাবেস মাইগ্রেশন (`sql/2026-10-31_publisher_rule.sql`):** `contents_production_rules` ট্রিগার ফাংশনে `contents.publisher` যুক্ত করা হয়েছে; ফলে ১০টি প্রোডাকশন ক্রু ফিল্ডের মতো Publisher-ও এখন ডাটাবেসে সুরক্ষিত: Manager/Owner/Producer/Production Manager এটি বদলাতে পারেন; `role_publisher` টিকধারী সদস্য কেবল খালি ঘরে নিজেকে বসাতে পারেন বা নিজের নাম সরাতে পারেন; বাকিদের ক্ষেত্রে পরিবর্তন ডাটাবেসে প্রত্যাখ্যাত হয়। পূর্বে যেকোনো সক্রিয় সদস্য নিজেকে Publisher হিসেবে সেট করে Schedule বা Publish করতে পারতেন।
+  - **অ্যাপ আপডেট (`lib/core.js`):** `GUARDED_ASSIGN_FIELDS = [...PRODUCTION_CREW_FIELDS, 'publisher']` তৈরি ও এক্সপোর্ট।
+  - **ড্রয়ার আপডেট (`components/ui/Drawer.js`):**
+    - `StaffTile`-এ `isCrew` গার্ড চেকের জন্য `GUARDED_ASSIGN_FIELDS` ব্যবহার; Publisher-এর জন্য আলাদা লক টুলটিপ: "Only the Producer, Production Manager or a Manager can change the Publisher. If you hold the Publisher role you can put yourself into an empty slot." (ক্রুর ক্ষেত্রে বিদ্যমান টুলটিপ অপরিবর্তিত)।
+    - Publish ট্যাবে (`PackagingTab`) শীর্ষের `CreditSelect` ব্লকটি সরিয়ে `w-full lg:w-1/2` র‍্যাপারের ভেতর `<StaffGroupCard group="publish" row={row} actor={actor} team={team} patch={patch} />` যুক্ত করা হয়েছে, যা Credits ট্যাবের একই শেয়ার্ড Publishing কার্ড প্রদর্শন করে (এক জায়গায় বদলালে সবখানে কার্যকর হয়)।
+    - অব্যবহৃত `CreditSelect` কম্পোনেন্ট ড্রয়ার থেকে পুরোপুরি মুছে ফেলা হয়েছে।
+
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
 - **Employee Report (ও অন্য রিপোর্ট) পপ-আপ হিসেবে খোলা (মালিকের পর্যবেক্ষণ):** কোন কোন রিপোর্ট ও কীভাবে তা মালিক জানাবেন; লঞ্চের পরে।
