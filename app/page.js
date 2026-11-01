@@ -1814,13 +1814,11 @@ function NewsroomApp({ authUser, onSignOut }) {
                           {!sameDay(range.start, range.end) ? <div className="text-[11px] text-zinc-500">{formatDay(rowTimeIn(r, range.start, addDays(range.end, 1)))}</div> : null}
                           <div className="mt-1"><StatusBadge status={r.status} removed={isRemovedPublished(r)} /></div>
                         </td>
-                        <td className="max-w-[280px] px-3 py-1.5 border-r border-white/5 relative align-top">
+                        <td className="max-w-[360px] px-3 py-1.5 border-r border-white/5 relative align-top">
                           <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
                           <div className="pl-3 flex flex-col gap-0.5">
-                            <div>
+                            <div className="flex flex-wrap items-center gap-2">
                               <TypeBox type={r.content_type} />
-                            </div>
-                            <div>
                               <IdBox uid={r.content_uid} />
                             </div>
                             <div className="flex items-center gap-1.5">
@@ -2035,12 +2033,10 @@ function NewsroomApp({ authUser, onSignOut }) {
                     </td>
                     <td className="px-3 py-2 border-r border-white/5 relative">
                       <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
-                      <TypeBadge type={r.content_type} />
-                      {r.content_uid ? (
-                        <div className="mt-1">
-                          <IdBox uid={r.content_uid} small />
-                        </div>
-                      ) : null}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <TypeBadge type={r.content_type} />
+                        <IdBox uid={r.content_uid} small />
+                      </div>
                     </td>
                     <td className="max-w-[300px] px-4 py-2">
                       <span className="block truncate font-mono text-[12px] font-semibold tracking-wide text-white">{r.slug_name || '—'}</span>
@@ -2090,12 +2086,10 @@ function NewsroomApp({ authUser, onSignOut }) {
                                       <div className="text-[10px] text-zinc-500">Missing: {missingFields(r).join(', ')}</div>
                                     </>
                                   )}
-                                <div className="scale-90 origin-left"><TypeBadge type={r.content_type} /></div>
-                                {r.content_uid ? (
-                                  <div>
-                                    <IdBox uid={r.content_uid} small />
-                                  </div>
-                                ) : null}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="scale-90 origin-left"><TypeBadge type={r.content_type} /></div>
+                                  <IdBox uid={r.content_uid} small />
+                                </div>
                              </div>
                           </td>
                           <td className="px-3 py-3 align-top w-[60%] relative">

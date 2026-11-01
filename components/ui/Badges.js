@@ -86,17 +86,21 @@ export function IdBox({ uid, small = false }) {
       onKeyDown={handleKeyDown}
       aria-label={`Copy content ID ${uid}`}
       title="Click to copy the content ID"
-      className="type-box cursor-pointer select-none inline-flex items-center gap-1 font-mono"
+      className="type-box cursor-pointer select-none inline-flex items-center gap-1.5 font-mono whitespace-nowrap"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         fontVariantNumeric: 'tabular-nums',
-        letterSpacing: '0.02em',
+        letterSpacing: '0.03em',
+        fontWeight: 700,
+        lineHeight: 1.35,
         userSelect: 'none',
-        ...(small ? { fontSize: '8.5px', padding: '1px 5px' } : {}),
+        whiteSpace: 'nowrap',
+        fontSize: small ? '11px' : '13px',
+        padding: small ? '2px 7px' : '3px 9px',
       }}
     >
-      <Icon name="folder" strokeWidth={2.2} className={`shrink-0 text-amber-500 ${small ? 'h-2.5 w-2.5' : 'h-3 w-3'}`} />
+      <Icon name="folder" strokeWidth={2.2} className={`shrink-0 text-amber-500 ${small ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
       <span>{copied ? 'Copied' : uid}</span>
     </span>
   );
