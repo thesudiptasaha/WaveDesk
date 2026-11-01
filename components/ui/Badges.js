@@ -124,3 +124,26 @@ export function DesignationPill({ designation }) {
     </span>
   );
 }
+
+export function AdBadge({ ads, small = false }) {
+  if (!ads || ads.length === 0) return null;
+  const first = ads[0];
+  const firstName = (first && (first.advertiser_name || first.name)) || 'Unknown';
+  const truncated = firstName.length > 16 ? firstName.slice(0, 16) + '…' : firstName;
+  const label = ads.length > 1 ? `${truncated} +${ads.length - 1}` : truncated;
+  const uniqueNames = Array.from(
+    new Set(ads.map((a) => (a && (a.advertiser_name || a.name)) || '').filter(Boolean))
+  ).join(', ');
+
+  return (
+    <span
+      title={uniqueNames || 'Sponsors'}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-semibold ring-1 ring-inset text-violet-300 bg-violet-500/15 ring-violet-400/25 max-w-full truncate ${
+        small ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-0.5 text-[11px]'
+      }`}
+    >
+      <Icon name="megaphone" className={`shrink-0 ${small ? 'h-3 w-3' : 'h-3.5 w-3.5'}`} />
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}

@@ -13,7 +13,7 @@ import {
   shortClipNotes
 } from '../../lib/core';
 import { LockIcon } from './Icons';
-import { StatusBadge, TypeBox, IdBox } from './Badges';
+import { StatusBadge, TypeBox, IdBox, AdBadge } from './Badges';
 import { StaffCell } from './StaffAssignSelect';
 import { ActionButtons } from './Shared';
 
@@ -34,7 +34,7 @@ export function ShortNote({ r, range }) {
   );
 }
 
-export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel }) {
+export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel, ads }) {
   const endEx = addDays(range.end, 1);
   const tIso = rowTimeIn(r, range.start, endEx);
   const t = formatTime(tIso);
@@ -92,6 +92,8 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
           ) : null}
         </div>
 
+        <div><AdBadge ads={ads} /></div>
+
         <ShortNote r={r} range={range} />
 
         <div className="mt-1 border-t border-dashed border-white/[0.14] pt-2.5" onClick={(e) => e.stopPropagation()}>
@@ -109,7 +111,7 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
   );
 }
 
-export function PhoneRow({ r, range, alt, onToggle }) {
+export function PhoneRow({ r, range, alt, onToggle, ads }) {
   const endEx = addDays(range.end, 1);
   const tIso = rowTimeIn(r, range.start, endEx);
   const t = formatTime(tIso);
@@ -151,6 +153,7 @@ export function PhoneRow({ r, range, alt, onToggle }) {
         <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
           <TypeBox type={r.content_type} small />
           <IdBox uid={r.content_uid} small />
+          <AdBadge ads={ads} small />
           <StatusBadge status={r.status} removed={isRemovedPublished(r)} />
           {n > 0 ? <span className="text-[10.5px] font-bold text-amber-500">{n} to assign</span> : null}
         </div>

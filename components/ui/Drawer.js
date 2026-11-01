@@ -12,7 +12,7 @@ import { scriptToPlainText, scriptToHtml, sanitizeScriptHtml } from '../../utils
 import dynamic from 'next/dynamic';
 const ScriptEditor = dynamic(() => import('./ScriptEditor'), { ssr: false });
 import { StatusBadge, TypeBadge, RoleBadge, DesignationPill } from './Badges';
-import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, FullScreenCard, Toggle, ActionButtons } from './Shared';
+import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, FullScreenCard, Toggle, ActionButtons, ConfirmDialog } from './Shared';
 import {
   DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, PLATFORMS, PERMISSIONS, ROLE_LABEL,
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
@@ -21,7 +21,8 @@ import {
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
   GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes,
-  canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES
+  canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES,
+  AD_TYPES, AD_STATUSES, canEditAds
 } from '../../lib/core';
 
 
@@ -1816,7 +1817,390 @@ export function DeleteModal({ row, onClose, onConfirm }) {
 }
 
 
-function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform }) {
+
+function SponsorsSection({ row, actor, advertisers = [], ads = [], onAdd, onUpdate, onDelete }) {
+  const canEdit = canEditAds(actor);
+  const activeAdvertisers = useMemo(() => advertisers.filter((a) => a.active !== false), [advertisers]);
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addAdvId, setAddAdvId] = useState('');
+  const [addType, setAddType] = useState('spoken');
+  const [addStatus, setAddStatus] = useState('agreed');
+  const [addInstruction, setAddInstruction] = useState('');
+  const [addFileNote, setAddFileNote] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const [editingId, setEditingId] = useState(null);
+  const [editAdvId, setEditAdvId] = useState('');
+  const [editType, setEditType] = useState('spoken');
+  const [editStatus, setEditStatus] = useState('agreed');
+  const [editInstruction, setEditInstruction] = useState('');
+  const [editFileNote, setEditFileNote] = useState('');
+  const [updating, setUpdating] = useState(false);
+
+  const [confirmDeleteAd, setConfirmDeleteAd] = useState(null);
+
+  const resetAddForm = () => {
+    setAddAdvId('');
+    setAddType('spoken');
+    setAddStatus('agreed');
+    setAddInstruction('');
+    setAddFileNote('');
+  };
+
+  const handleAdd = async (e) => {
+    if (e) e.preventDefault();
+    if (!addAdvId || !addType || !onAdd) return;
+    setAdding(true);
+    try {
+      const ok = await onAdd({
+        advertiser_id: addAdvId,
+        ad_type: addType,
+        status: addStatus,
+        instruction: addInstruction,
+        file_note: addFileNote,
+      });
+      if (ok) {
+        resetAddForm();
+        setShowAddForm(false);
+      }
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleUpdate = async (id) => {
+    if (!id || !editAdvId || !editType || !onUpdate) return;
+    setUpdating(true);
+    try {
+      const ok = await onUpdate(id, {
+        advertiser_id: editAdvId,
+        ad_type: editType,
+        status: editStatus,
+        instruction: editInstruction,
+        file_note: editFileNote,
+      });
+      if (ok) {
+        setEditingId(null);
+      }
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <div className="mt-6 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+          Sponsors
+        </div>
+        {canEdit ? (
+          <button
+            type="button"
+            className={`${btnGhost} min-h-[44px] text-[13px]`}
+            disabled={activeAdvertisers.length === 0}
+            title={activeAdvertisers.length === 0 ? 'No active advertisers' : undefined}
+            onClick={() => {
+              if (showAddForm) {
+                setShowAddForm(false);
+                resetAddForm();
+              } else {
+                setShowAddForm(true);
+              }
+            }}
+          >
+            {!showAddForm ? <Icon name="plus" className="h-4 w-4" /> : null}
+            {showAddForm ? 'Cancel' : 'Add ad'}
+          </button>
+        ) : null}
+      </div>
+
+      {!canEdit ? (
+        <p className="flex items-center gap-1.5 text-[12px] text-zinc-500">
+          <LockIcon className="h-3.5 w-3.5 shrink-0" />
+          <span>Only the Owner, Managers and Producers can change ads</span>
+        </p>
+      ) : null}
+
+      {canEdit && activeAdvertisers.length === 0 ? (
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-[13px] text-zinc-400">
+          No advertisers yet. A Manager can add them from the Manage menu.
+        </div>
+      ) : null}
+
+      {canEdit && showAddForm && activeAdvertisers.length > 0 ? (
+        <div className="rounded-2xl border border-white/[0.1] bg-white/[0.03] p-4 flex flex-col gap-3">
+          <div className="text-[13px] font-semibold text-white">Add sponsor ad</div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                Advertiser
+              </label>
+              <SelectBox
+                value={addAdvId}
+                onChange={setAddAdvId}
+                options={activeAdvertisers.map((a) => ({ value: a.id, label: a.name }))}
+                placeholder="Select advertiser..."
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                Ad Type
+              </label>
+              <SelectBox
+                value={addType}
+                onChange={setAddType}
+                options={AD_TYPES}
+                placeholder="Select ad type..."
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                Status
+              </label>
+              <SelectBox
+                value={addStatus}
+                onChange={setAddStatus}
+                options={AD_STATUSES}
+                placeholder="Select status..."
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                File Note (optional)
+              </label>
+              <input
+                type="text"
+                className={inputBase}
+                placeholder="Drive link, filename..."
+                value={addFileNote}
+                onChange={(e) => setAddFileNote(e.target.value)}
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                Instruction (optional)
+              </label>
+              <textarea
+                rows={2}
+                className={`${inputBase} resize-y text-[13px]`}
+                placeholder="Instructions for presenter, editor, or crew..."
+                value={addInstruction}
+                onChange={(e) => setAddInstruction(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <button
+              type="button"
+              className={`${btnGhost} min-h-[44px]`}
+              onClick={() => {
+                setShowAddForm(false);
+                resetAddForm();
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={`${btnPrimary} min-h-[44px]`}
+              disabled={!addAdvId || !addType || adding}
+              onClick={handleAdd}
+            >
+              {adding ? 'Adding...' : 'Add ad'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {ads.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-white/[0.1] px-6 py-8 text-center text-[13px] text-zinc-500">
+          No ads on this content.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {ads.map((ad) => {
+            const isEditing = editingId === ad.id;
+            if (isEditing) {
+              const editAdvOptions = advertisers
+                .filter((a) => a.active !== false || a.id === ad.advertiser_id)
+                .map((a) => ({ value: a.id, label: a.name }));
+              return (
+                <div key={ad.id} className="rounded-2xl border border-white/[0.12] bg-white/[0.04] p-4 flex flex-col gap-3">
+                  <div className="text-[13px] font-semibold text-white">Edit sponsor ad</div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                        Advertiser
+                      </label>
+                      <SelectBox
+                        value={editAdvId}
+                        onChange={setEditAdvId}
+                        options={editAdvOptions}
+                        placeholder="Select advertiser..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                        Ad Type
+                      </label>
+                      <SelectBox
+                        value={editType}
+                        onChange={setEditType}
+                        options={AD_TYPES}
+                        placeholder="Select ad type..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                        Status
+                      </label>
+                      <SelectBox
+                        value={editStatus}
+                        onChange={setEditStatus}
+                        options={AD_STATUSES}
+                        placeholder="Select status..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                        File Note (optional)
+                      </label>
+                      <input
+                        type="text"
+                        className={inputBase}
+                        placeholder="Drive link, filename..."
+                        value={editFileNote}
+                        onChange={(e) => setEditFileNote(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                        Instruction (optional)
+                      </label>
+                      <textarea
+                        rows={2}
+                        className={`${inputBase} resize-y text-[13px]`}
+                        placeholder="Instructions for presenter, editor, or crew..."
+                        value={editInstruction}
+                        onChange={(e) => setEditInstruction(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      className={`${btnGhost} min-h-[44px]`}
+                      onClick={() => setEditingId(null)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className={`${btnPrimary} min-h-[44px]`}
+                      disabled={!editAdvId || !editType || updating}
+                      onClick={() => handleUpdate(ad.id)}
+                    >
+                      {updating ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            const typeLabel = (AD_TYPES.find((t) => t.value === ad.ad_type) || {}).label || ad.ad_type;
+            const statusLabel = (AD_STATUSES.find((s) => s.value === ad.status) || {}).label || ad.status;
+            const statusTone =
+              ad.status === 'aired'
+                ? 'text-emerald-300 bg-emerald-500/15 ring-emerald-400/25'
+                : ad.status === 'added'
+                ? 'text-amber-300 bg-amber-500/15 ring-amber-400/25'
+                : 'text-zinc-300 bg-zinc-500/15 ring-zinc-400/25';
+
+            return (
+              <div key={ad.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col gap-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold text-white text-[14px]">{ad.advertiser_name}</span>
+                    <span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide bg-white/[0.06] text-zinc-300 ring-1 ring-inset ring-white/10">
+                      {typeLabel}
+                    </span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ring-1 ring-inset ${statusTone}`}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                  {canEdit ? (
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      <button
+                        type="button"
+                        className={`${btnGhost} min-h-[44px] min-w-[44px] text-[12px] px-3`}
+                        onClick={() => {
+                          setEditingId(ad.id);
+                          setEditAdvId(ad.advertiser_id);
+                          setEditType(ad.ad_type || 'spoken');
+                          setEditStatus(ad.status || 'agreed');
+                          setEditInstruction(ad.instruction || '');
+                          setEditFileNote(ad.file_note || '');
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className={`${btnDanger} min-h-[44px] min-w-[44px] text-[12px] px-3`}
+                        onClick={() => setConfirmDeleteAd(ad)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+
+                {ad.instruction ? (
+                  <div className="text-[13px] text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                    {ad.instruction}
+                  </div>
+                ) : null}
+
+                {ad.file_note ? (
+                  <div className="text-[12px] text-zinc-500">
+                    File: <span className="text-zinc-400">{ad.file_note}</span>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {confirmDeleteAd ? (
+        <ConfirmDialog
+          title="Remove ad"
+          message={`Are you sure you want to remove the ad for "${confirmDeleteAd.advertiser_name || 'this advertiser'}"?`}
+          confirmLabel="Remove"
+          danger
+          onConfirm={async () => {
+            if (onDelete) await onDelete(confirmDeleteAd.id);
+            setConfirmDeleteAd(null);
+          }}
+          onCancel={() => setConfirmDeleteAd(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd }) {
     const savedScriptStats = scriptStats(row.script);
     const [tab, setTab] = useState('editorial');
   const [detailsOpen, setDetailsOpen] = useState(true);
@@ -2040,7 +2424,20 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             </div>
           </div>
           <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
-            {tab === 'editorial' ? <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} /> : null}
+            {tab === 'editorial' ? (
+              <>
+                <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} />
+                <SponsorsSection
+                  row={row}
+                  actor={actor}
+                  advertisers={advertisers}
+                  ads={ads}
+                  onAdd={onAddAd}
+                  onUpdate={onUpdateAd}
+                  onDelete={onDeleteAd}
+                />
+              </>
+            ) : null}
             {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
             {tab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
             {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}

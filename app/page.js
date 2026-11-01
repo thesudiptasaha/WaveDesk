@@ -7,7 +7,7 @@ import { APP_NAME, APP_CREDIT, APP_COPYRIGHT, APP_CONTACT_EMAIL } from '../utils
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon, LockIcon } from '../components/ui/Icons';
-import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox } from '../components/ui/Badges';
+import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox, AdBadge } from '../components/ui/Badges';
 import { supabase } from '../services/supabase';
 import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, ConfirmDialog, FullScreenCard, Toggle, ActionButtons } from '../components/ui/Shared';
 import { fetchAllPages } from '../utils/fetchAll';
@@ -25,7 +25,8 @@ import {
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isComplete, isBin, isRemovedPublished, missingFields, normalizeRow, normalizeMember,
-  FIELD_PERM, TRACKED_FIELDS, wentLiveDefault
+  FIELD_PERM, TRACKED_FIELDS, wentLiveDefault,
+  canEditAds
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -623,6 +624,7 @@ function NewsroomApp({ authUser, onSignOut }) {
   const [channels, setChannels] = useState(DEFAULT_CHANNELS);
   const [platforms, setPlatforms] = useState(PLATFORMS);
   const [advertisers, setAdvertisers] = useState([]);
+  const [contentAds, setContentAds] = useState([]);
   const [rows, setRows] = useState([]);
   const [actorId, setActorId] = useState(null);
   const [range, setRange] = useState({ start: today, end: today });
@@ -774,6 +776,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       setChannels(d.channels);
       setPlatforms(PLATFORMS);
       setAdvertisers([]);
+      setContentAds([]);
       setRows(d.rows);
       setActorId(d.team[0].id);
       setBoot({ phase: 'ready', message: '' });
@@ -793,11 +796,12 @@ function NewsroomApp({ authUser, onSignOut }) {
       return;
     }
     const o = orgs[0];
-    const [t, c, p, adv] = await Promise.all([
+    const [t, c, p, adv, adsRes] = await Promise.all([
       supabase.from('team_members').select('*').eq('organization_id', o.id).order('created_at', { ascending: true }),
       supabase.from('channels').select('name').or(`organization_id.eq.${o.id},organization_id.is.null`),
       supabase.from('platforms').select('*').or(`organization_id.eq.${o.id},organization_id.is.null`),
       supabase.from('advertisers').select('*').eq('organization_id', o.id).order('name', { ascending: true }),
+      fetchAllPages(() => supabase.from('content_ads').select('*').eq('organization_id', o.id).order('created_at', { ascending: true })),
     ]);
     if (t.error) {
       setBoot({ phase: 'error', message: `${errText(t.error)} — did you run the SQL migration in Supabase?` });
@@ -809,6 +813,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     setChannels(mergeChannels(c.error ? [] : (c.data || []).map((x) => x.name)));
     setPlatforms(mergePlatforms(p?.error ? [] : p?.data));
     setAdvertisers(adv?.error ? [] : (adv?.data || []));
+    setContentAds(adsRes?.error ? [] : (adsRes?.data || []));
         const owner = members.find((m) => m.role === 'owner') || members[0];
     const auth = authRef.current;
     if (auth.id) {
@@ -898,6 +903,14 @@ function NewsroomApp({ authUser, onSignOut }) {
     setRows(merged.map(normalizeRow));
   }, [org, range, notify]);
 
+  const reloadAds = useCallback(async () => {
+    if (!supabase || !org) return;
+    const { data, error } = await fetchAllPages(() =>
+      supabase.from('content_ads').select('*').eq('organization_id', org.id).order('created_at', { ascending: true })
+    );
+    if (!error && data) setContentAds(data);
+  }, [org]);
+
   const reloadTeam = useCallback(async () => {
     if (!supabase || !org) return;
     const { data, error } = await supabase.from('team_members').select('*').eq('organization_id', org.id).order('created_at', { ascending: true });
@@ -930,6 +943,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       .channel(`newsroom-${org.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'contents' }, () => fetchRows())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, () => reloadTeam())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'content_ads' }, () => reloadAds())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notices', filter: `organization_id=eq.${org.id}` }, (payload) => {
         if (payload.eventType === 'INSERT' && isFeatureEnabled('notif_sound') && payload.new?.author_id !== actorIdRef.current) {
           playChime();
@@ -941,7 +955,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [boot.phase, org, fetchRows, reloadTeam, loadNotices, notify]);
+  }, [boot.phase, org, fetchRows, reloadTeam, reloadAds, loadNotices, notify]);
 
   const handlePostNotice = async ({ title, body, priority }) => {
     if (!org?.id || !actor) return false;
@@ -1314,6 +1328,102 @@ function NewsroomApp({ authUser, onSignOut }) {
     } else {
       setAdvertisers((list) => list.map((a) => (a.id === id ? { ...a, ...cleaned } : a)).sort((a, b) => a.name.localeCompare(b.name)));
     }
+    return true;
+  };
+
+  const adsByContent = useMemo(() => {
+    const advMap = new Map((advertisers || []).map((a) => [a.id, a.name]));
+    const map = {};
+    (contentAds || []).forEach((ad) => {
+      const cid = String(ad.content_id);
+      if (!map[cid]) map[cid] = [];
+      map[cid].push({
+        ...ad,
+        advertiser_name: advMap.get(ad.advertiser_id) || 'Unknown',
+      });
+    });
+    return map;
+  }, [contentAds, advertisers]);
+
+  const addContentAd = async (contentId, { advertiser_id, ad_type, instruction, file_note, status }) => {
+    if (!canEditAds(actor)) {
+      notify('Only the Owner, Managers and Producers can change ads', 'error');
+      return false;
+    }
+    if (!advertiser_id) {
+      notify('Please select an advertiser', 'error');
+      return false;
+    }
+    if (!ad_type) {
+      notify('Please select an ad type', 'error');
+      return false;
+    }
+    const payload = {
+      organization_id: org.id,
+      content_id: contentId,
+      advertiser_id,
+      ad_type,
+      instruction: (instruction || '').trim() || null,
+      file_note: (file_note || '').trim() || null,
+      status: status || 'agreed',
+      created_by: (actor && (actor.full_name || actor.email)) || 'Unknown',
+    };
+    if (supabase) {
+      const { data, error } = await supabase.from('content_ads').insert(payload).select().single();
+      if (error) {
+        notify(`Could not add ad: ${errText(error)}`, 'error');
+        return false;
+      }
+      setContentAds((list) => [...list, data]);
+    } else {
+      const mock = { id: `demo-ad-${Date.now()}`, ...payload, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      setContentAds((list) => [...list, mock]);
+    }
+    notify('Ad added', 'success');
+    return true;
+  };
+
+  const updateContentAd = async (id, patch) => {
+    if (!canEditAds(actor)) {
+      notify('Only the Owner, Managers and Producers can change ads', 'error');
+      return false;
+    }
+    const cleaned = {};
+    if ('advertiser_id' in patch) cleaned.advertiser_id = patch.advertiser_id;
+    if ('ad_type' in patch) cleaned.ad_type = patch.ad_type;
+    if ('status' in patch) cleaned.status = patch.status;
+    if ('instruction' in patch) cleaned.instruction = (patch.instruction || '').trim() || null;
+    if ('file_note' in patch) cleaned.file_note = (patch.file_note || '').trim() || null;
+    cleaned.updated_at = new Date().toISOString();
+
+    if (supabase) {
+      const { data, error } = await supabase.from('content_ads').update(cleaned).eq('id', id).select().single();
+      if (error) {
+        notify(`Could not update ad: ${errText(error)}`, 'error');
+        return false;
+      }
+      setContentAds((list) => list.map((a) => (a.id === id ? data : a)));
+    } else {
+      setContentAds((list) => list.map((a) => (a.id === id ? { ...a, ...cleaned } : a)));
+    }
+    notify('Ad updated', 'success');
+    return true;
+  };
+
+  const deleteContentAd = async (id) => {
+    if (!canEditAds(actor)) {
+      notify('Only the Owner, Managers and Producers can change ads', 'error');
+      return false;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('content_ads').delete().eq('id', id);
+      if (error) {
+        notify(`Could not remove ad: ${errText(error)}`, 'error');
+        return false;
+      }
+    }
+    setContentAds((list) => list.filter((a) => a.id !== id));
+    notify('Ad removed', 'success');
     return true;
   };
 
@@ -1905,6 +2015,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                               </div>
                               {r.is_script_locked ? <LockIcon message="Script locked" className="h-4 w-4 shrink-0 text-white" /> : null}
                             </div>
+                            <div><AdBadge ads={adsByContent[String(r.id)] || []} /></div>
                             <ShortNote r={r} range={range} />
                           </div>
                         </td>
@@ -1949,6 +2060,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                   onOpen={setSelectedId}
                   onRun={runAction}
                   channelLabel={r.channel || 'No channel'}
+                  ads={adsByContent[String(r.id)] || []}
                 />
               ))}
             </div>
@@ -2024,6 +2136,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                       onOpen={setSelectedId}
                                       onRun={runAction}
                                       onCollapse={() => setExpandedId(null)}
+                                      ads={adsByContent[String(r.id)] || []}
                                     />
                                   </div>
                                 );
@@ -2035,6 +2148,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                   range={range}
                                   alt={idx % 2 === 1}
                                   onToggle={() => setExpandedId(r.id)}
+                                  ads={adsByContent[String(r.id)] || []}
                                 />
                               );
                             })}
@@ -2052,6 +2166,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                 notify={notify}
                                 onOpen={setSelectedId}
                                 onRun={runAction}
+                                ads={adsByContent[String(r.id)] || []}
                               />
                             ))}
                           </div>
@@ -2202,7 +2317,25 @@ function NewsroomApp({ authUser, onSignOut }) {
           </span>
         </div>
       </footer>
-      {selected ? <Drawer row={selected} actor={actor} team={team} channels={channels} platforms={platforms} onAddPlatform={() => setShowAddPlatform(true)} onClose={() => setSelectedId(null)} onPatch={patchRow} onRun={runAction} onDelete={(r) => setDeleteFor(r.id)} /> : null}
+      {selected ? (
+        <Drawer
+          row={selected}
+          actor={actor}
+          team={team}
+          channels={channels}
+          platforms={platforms}
+          onAddPlatform={() => setShowAddPlatform(true)}
+          onClose={() => setSelectedId(null)}
+          onPatch={patchRow}
+          onRun={runAction}
+          onDelete={(r) => setDeleteFor(r.id)}
+          advertisers={advertisers}
+          ads={adsByContent[String(selected.id)] || []}
+          onAddAd={(payload) => addContentAd(selected.id, payload)}
+          onUpdateAd={updateContentAd}
+          onDeleteAd={deleteContentAd}
+        />
+      ) : null}
       
         {showEmpReport ? (
           <EmployeeReportModal 
