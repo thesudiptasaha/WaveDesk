@@ -20,7 +20,8 @@ import {
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
-  GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes
+  GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes,
+  canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES
 } from '../../lib/core';
 
 
@@ -959,6 +960,215 @@ function ShootCard({ row, actor, patch }) {
   );
 }
 
+function FilesDeliveredCard({ row, actor, patch }) {
+  const [ticking, setTicking] = useState(false);
+  const [showUndoModal, setShowUndoModal] = useState(false);
+  const [undoReason, setUndoReason] = useState('');
+  const [undoBusy, setUndoBusy] = useState(false);
+
+  const isDelivered = Boolean(row.files_delivered_at);
+  const canTick = canTickFilesDelivered(actor);
+  const statusAllowed = FILES_DELIVERED_STATUSES.includes(row.status);
+  const canDeliver = canTick && statusAllowed;
+
+  let disabledReason = '';
+  if (!statusAllowed) {
+    disabledReason = 'Available from Shooting onwards';
+  } else if (!canTick) {
+    disabledReason = 'Only the Camera Operator, Data Wrangler, Producer, Production Manager or a Manager can tick this';
+  }
+
+  const handleTick = async () => {
+    if (!canDeliver || ticking) return;
+    setTicking(true);
+    try {
+      await patch({ files_delivered_at: new Date().toISOString() });
+    } finally {
+      setTicking(false);
+    }
+  };
+
+  const undoValid = undoReason.trim().length >= 3;
+
+  const handleUndoConfirm = async () => {
+    if (!undoValid || undoBusy) return;
+    setUndoBusy(true);
+    try {
+      const prevAudit = Array.isArray(row.audit_log) ? row.audit_log : [];
+      const fromStamp = row.files_delivered_at ? formatStamp(row.files_delivered_at) : '';
+      const fromStr = `Delivered by ${row.files_delivered_by || ''} at ${fromStamp}`.trim();
+      const newEntry = {
+        kind: 'change',
+        field: 'Files delivered',
+        from: fromStr,
+        to: 'Undone',
+        actor: actor.full_name,
+        role: actor.role,
+        time: new Date().toISOString(),
+        note: undoReason.trim(),
+      };
+      await patch({
+        files_delivered_at: null,
+        audit_log: [...prevAudit, newEntry],
+      });
+      setShowUndoModal(false);
+    } finally {
+      setUndoBusy(false);
+    }
+  };
+
+  const canEditNotes = canEditProductionNotes(actor);
+  const lockMsgNotes = 'Only the Camera Operator, Data Wrangler, Producer, Production Manager or a Manager can edit production notes';
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
+      <div className={`absolute inset-y-0 left-0 w-1.5 ${isDelivered ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span
+            className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
+              isDelivered ? 'bg-emerald-400/15 text-emerald-200' : 'bg-zinc-700/30 text-zinc-300'
+            }`}
+          >
+            Files
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {row.content_uid ? (
+          <div className="space-y-1.5">
+            <div className="inline-flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-1.5">
+              <span className="inline-flex items-center text-amber-400 shrink-0">
+                <Icon name="folder" className="h-4 w-4" strokeWidth={2} />
+              </span>
+              <span className="font-mono text-[13px] sm:text-[14px] font-semibold text-zinc-200 select-all">
+                {row.content_uid}
+              </span>
+              <CopyButton text={row.content_uid} />
+            </div>
+            <p className="text-[12px] text-zinc-500">
+              The folder on the drive is named exactly like the content ID.
+            </p>
+          </div>
+        ) : null}
+
+        {!isDelivered ? (
+          <div>
+            <button
+              type="button"
+              className={`${btnPrimary} min-h-[44px] w-full sm:w-auto px-5 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+              disabled={!canDeliver || ticking}
+              title={!canDeliver ? disabledReason : 'Files delivered'}
+              onClick={handleTick}
+            >
+              {ticking ? 'Marking delivered…' : 'Files delivered'}
+            </button>
+            {!canDeliver && disabledReason ? (
+              <p className="mt-1.5 text-[12px] text-zinc-500">
+                {disabledReason}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+                <Icon name="check" className="h-4 w-4" strokeWidth={2.5} />
+              </span>
+              <div className="text-[13px]">
+                <div className="font-medium text-emerald-200">
+                  Delivered by {row.files_delivered_by || 'Unknown'}
+                </div>
+                <div className="text-[12px] text-zinc-400">
+                  {row.files_delivered_at ? formatStamp(row.files_delivered_at) : ''}
+                </div>
+              </div>
+            </div>
+            {isManager(actor) ? (
+              <button
+                type="button"
+                className={`${btnGhost} !px-3 !py-1 text-[12px] min-h-[44px] sm:min-h-0 text-zinc-300 hover:text-white`}
+                onClick={() => {
+                  setUndoReason('');
+                  setShowUndoModal(true);
+                }}
+              >
+                Undo
+              </button>
+            ) : null}
+          </div>
+        )}
+
+        <div className="pt-2 border-t border-white/[0.06] space-y-1.5">
+          <Field label="Production notes" locked={!canEditNotes} lockMessage={lockMsgNotes}>
+            <BlurInput
+              multiline
+              rows={4}
+              value={row.production_notes}
+              disabled={!canEditNotes}
+              onCommit={(v) => patch({ production_notes: v })}
+              placeholder="Anything the editor or the team should know about this shoot…"
+            />
+          </Field>
+          {!canEditNotes ? (
+            <p className="flex items-center gap-1.5 text-[12px] text-zinc-500">
+              <LockIcon message={lockMsgNotes} /> {lockMsgNotes}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {showUndoModal ? (
+        <ModalShell
+          title="Undo files delivered?"
+          subtitle="This will clear the delivered stamp and allow files to be marked delivered again."
+          onClose={() => setShowUndoModal(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                className={`${btnGhost} min-h-[44px] sm:min-h-0`}
+                onClick={() => setShowUndoModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${btnDanger} min-h-[44px] sm:min-h-0`}
+                disabled={!undoValid || undoBusy}
+                onClick={handleUndoConfirm}
+              >
+                {undoBusy ? 'Saving…' : 'Save'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <p className="text-[14px] text-zinc-300">
+              Please enter a reason for undoing (at least 3 characters):
+            </p>
+            <input
+              autoFocus
+              type="text"
+              className={inputBase}
+              placeholder="Reason for undoing…"
+              value={undoReason}
+              onChange={(e) => setUndoReason(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && undoValid && !undoBusy) {
+                  e.preventDefault();
+                  handleUndoConfirm();
+                }
+              }}
+            />
+          </div>
+        </ModalShell>
+      ) : null}
+    </div>
+  );
+}
+
 function ProductionTab({ row, actor, team, patch }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
@@ -968,6 +1178,7 @@ function ProductionTab({ row, actor, team, patch }) {
       <div className="space-y-4">
         <div className="hidden lg:block h-[27px]" aria-hidden="true" />
         <ShootCard row={row} actor={actor} patch={patch} />
+        <FilesDeliveredCard row={row} actor={actor} patch={patch} />
       </div>
     </div>
   );

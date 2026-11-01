@@ -347,6 +347,15 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
     - Publish ট্যাবে (`PackagingTab`) শীর্ষের `CreditSelect` ব্লকটি সরিয়ে `w-full lg:w-1/2` র‍্যাপারের ভেতর `<StaffGroupCard group="publish" row={row} actor={actor} team={team} patch={patch} />` যুক্ত করা হয়েছে, যা Credits ট্যাবের একই শেয়ার্ড Publishing কার্ড প্রদর্শন করে (এক জায়গায় বদলালে সবখানে কার্যকর হয়)।
     - অব্যবহৃত `CreditSelect` কম্পোনেন্ট ড্রয়ার থেকে পুরোপুরি মুছে ফেলা হয়েছে।
 
+## ১ নভেম্বর ২০২৬ (N125)
+- **Files delivered কার্ড ও Production notes (১ নভেম্বর ২০২৬, N125):**
+  - **ড্রয়ারের Production ট্যাবে "Files" কার্ড (`components/ui/Drawer.js`):** Shoot কার্ডের নিচে নতুন `FilesDeliveredCard` যুক্ত। কার্ডের মাথায় "Files" পিল ও বাঁয়ে একসেন্ট বার (ডেলিভারড হলে পান্না সবুজ, নইলে ধূসর)।
+  - **ফোল্ডার চিপ:** হলুদ ফোল্ডার আইকন (`Icon name="folder"`), সম্পূর্ণ কনটেন্ট আইডি (মনোস্পেস ও সিলেক্টেবল) এবং `CopyButton` যুক্ত চিপ; নিচে ব্যাখ্যা: "The folder on the drive is named exactly like the content ID." (কনটেন্ট আইডি না থাকলে চিপ লুকানো থাকে)।
+  - **Files delivered বোতাম ও পারমিশন:** Shooting ধাপ থেকে শুরু করে Camera Operator, Data Wrangler, Producer, Production Manager বা Manager/Owner-রা এটি টিক দিতে পারেন (`canTickFilesDelivered(actor)` এবং `FILES_DELIVERED_STATUSES` চেক); অননুমোদিত হলে উপযুক্ত কারণসহ বোতাম নিষ্ক্রিয় থাকে। ডাটাবেস নিজে `files_delivered_at = now()` এবং `files_delivered_by` বসায় ও নির্ধারিত এডিটরকে নোটিফিকেশন পাঠায়; ডাবল-ক্লিক এড়াতে রিকোয়েস্ট চলাকালে বোতাম ডিসেবল থাকে।
+  - **ডেলিভারড অবস্থা ও Undo:** ডেলিভারি সম্পন্ন হলে সবুজ চেকমার্ক, ডেলিভারিকারীর নাম এবং সময় দেখায়। শুধুমাত্র Manager ও Owner-দের জন্য "Undo" বোতাম থাকে, যা একটি `ModalShell` খুলে কমপক্ষে ৩ অক্ষরের কারণ বাধ্যতামূলক করে; কনফার্ম করলে `files_delivered_at: null` সেভ হয় এবং অডিট লগে `{ kind: 'change', field: 'Files delivered', from: 'Delivered by <name> at <formatStamp>', to: 'Undone', actor: actor.full_name, role: actor.role, time: now, note: <reason> }` সরাসরি যুক্ত হয়।
+  - **Production notes:** নিচে ৪ লাইনের `BlurInput` টেক্সট এরিয়া, যা একই ক্রু ও ম্যানেজারদের জন্য সম্পাদনযোগ্য (`canEditProductionNotes(actor)`); অন্যরা রিড-অনলি এবং উপযুক্ত লক হিন্ট দেখতে পান।
+  - **অ্যাপ ও অডিট ট্র্যাকিং (`lib/core.js`, `app/page.js`):** `lib/core.js`-এ `canTickFilesDelivered`, `canEditProductionNotes`, `FILES_DELIVERED_STATUSES` এক্সপোর্ট; `TRACKED_FIELDS`-এ `files_delivered_at: 'Files delivered'` এবং `production_notes: 'Production notes'` যুক্ত; `app/page.js`-এর `describeValue`-এ `files_delivered_at` ফরম্যাট করা হয়। কোনো নতুন SQL ফাইলের প্রয়োজন হয়নি (ডাটাবেস রুল আগেই তৈরি ছিল)।
+
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
 - **Employee Report (ও অন্য রিপোর্ট) পপ-আপ হিসেবে খোলা (মালিকের পর্যবেক্ষণ):** কোন কোন রিপোর্ট ও কীভাবে তা মালিক জানাবেন; লঞ্চের পরে।

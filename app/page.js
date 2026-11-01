@@ -484,7 +484,7 @@ const clip = (v, n = 80) => {
 };
 
 function describeValue(field, v) {
-  if (field === 'scheduled_publish_time' || field === 'shoot_started_at' || field === 'shoot_finished_at') return v ? formatStamp(v) : '';
+  if (field === 'scheduled_publish_time' || field === 'shoot_started_at' || field === 'shoot_finished_at' || field === 'files_delivered_at') return v ? formatStamp(v) : '';
   if (field === 'is_script_locked') return v ? 'Locked' : 'Unlocked';
   if (field === 'target_platforms') return asArray(v).join(', ');
   if (field === 'script') return v ? `${scriptToPlainText(v).split(/\s+/).filter(Boolean).length} words` : 'empty';
