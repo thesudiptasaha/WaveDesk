@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { can, FIELD_PERM, presenterMembers } from '../../lib/core';
+import { can, FIELD_PERM, presenterMembers, memberOptionLabel } from '../../lib/core';
 import { Avatar, PersonName } from './Shared';
 
 export function StaffAssignSelect({ value, names, placeholder, onChange, team }) {
@@ -9,7 +9,7 @@ export function StaffAssignSelect({ value, names, placeholder, onChange, team })
 
   const stop = (e) => e.stopPropagation();
 
-  const labelOf = (n) => { const m = (team || []).find((x) => x.full_name === n); return (m && m.nickname) || n; };
+  const labelOf = (n) => { const m = (team || []).find((x) => x.full_name === n); return m ? memberOptionLabel(m) : n; };
 
   return (
     <select
@@ -49,7 +49,7 @@ function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow
   const needsExtra = val && !names.includes(val);
   const labelOf = (n) => {
     const m = (team || []).find((x) => x.full_name === n);
-    return (m && m.nickname) || n;
+    return m ? memberOptionLabel(m) : n;
   };
 
   return (

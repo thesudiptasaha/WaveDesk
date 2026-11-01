@@ -13,20 +13,20 @@ import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Person
 import { fetchAllPages } from '../utils/fetchAll';
 import { Drawer, DeleteModal } from '../components/ui/Drawer';
 import { StaffCell } from '../components/ui/StaffAssignSelect';
-import { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, BackupModal, DirectoryModal, PublishTimeModal, AdvertisersModal } from '../components/ui/Modals';
+import { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, BackupModal, DirectoryModal, PublishTimeModal, AdvertisersModal, ExternalPeopleModal } from '../components/ui/Modals';
 import { NoticeModal } from '../components/ui/NoticeModal';
 import { HowItWorksModal } from '../components/ui/HowItWorksModal';
 import { PhoneCard, PhoneRow, ShortNote } from '../components/ui/RundownCards';
 import { fetchNotices, createNotice, deleteNotice } from '../services/noticeService';
 
 import {
-  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, CONTENT_TYPE_COLORS, PLATFORMS, PERMISSIONS, ROLE_LIST, ROLE_LABEL,
+  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, CONTENT_TYPE_COLORS, PLATFORMS, PERMISSIONS, ACCESS_LIST, ROLE_LIST, ROLE_LABEL,
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isComplete, isBin, isRemovedPublished, missingFields, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, wentLiveDefault,
-  canEditAds
+  canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -499,6 +499,8 @@ const errText = (e) => {
   const has = (...parts) => parts.some((p) => msg.includes(p));
   if (msg.includes('team_members_nickname_unique')) return 'This nickname is already taken';
   if (msg.includes('team_members_nickname_one_word')) return 'Nickname must be one English word (letters only, up to 20)';
+  if (msg.includes('team_members_name_unique')) return 'Someone with this name already exists. Add a small difference to the name.';
+  if (msg.includes('team_members_external_rules')) return 'External people need a nickname and a valid phone number, and cannot have a login or access permissions';
   if (msg.includes('advertisers_org_name_uq')) return 'An advertiser with this name already exists';
   if (raw === 'Not allowed') return 'You are not allowed to do this.';
   if (has('failed to fetch', 'networkerror', 'load failed', 'network request failed')) return 'No internet connection. Check your network and try again.';
@@ -637,6 +639,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     const [showEmpReport, setShowEmpReport] = useState(false);
     const [showBackup, setShowBackup] = useState(false);
   const [showAdvertisers, setShowAdvertisers] = useState(false);
+  const [showExternals, setShowExternals] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -708,9 +711,10 @@ function NewsroomApp({ authUser, onSignOut }) {
     const [unreadNoticesCount, setUnreadNoticesCount] = useState(0);
 
   /* Signed-in person's own team record, and who the app treats as the actor. */
-  const me = useMemo(() => (authId ? team.find((m) => m.auth_user_id === authId) || null : null), [team, authId]);
+  const staffTeam = useMemo(() => team.filter((m) => !isExternal(m)), [team]);
+  const me = useMemo(() => (authId ? staffTeam.find((m) => m.auth_user_id === authId) || null : null), [staffTeam, authId]);
   const switcherOn = !authId || isOwner(me);
-  const actor = useMemo(() => (authId && !isOwner(me) ? me : team.find((m) => m.id === actorId) || null), [team, actorId, authId, me]);
+  const actor = useMemo(() => (authId && !isOwner(me) ? me : staffTeam.find((m) => m.id === actorId) || null), [staffTeam, actorId, authId, me]);
   actorIdRef.current = actor?.id ?? null;
 
   const closeHelp = () => {
@@ -1505,12 +1509,133 @@ function NewsroomApp({ authUser, onSignOut }) {
     notify(`${t.full_name} removed`, 'success');
   };
 
+  const addExternal = async ({ full_name, nickname, phone, designation, avatar_url, external_note, roles }) => {
+    if (!canManageExternals(actor)) {
+      notify('Only the Owner, Managers, Producers and Production Managers can add external people', 'error');
+      return false;
+    }
+    const trimmedName = (full_name || '').trim();
+    if (!trimmedName) {
+      notify('Full name is required', 'error');
+      return false;
+    }
+    const trimmedNick = (nickname || '').trim();
+    if (!/^[A-Za-z]{1,20}$/.test(trimmedNick)) {
+      notify('Nickname must be one English word (letters only, up to 20)', 'error');
+      return false;
+    }
+    const normalizedP = normalizePhone(phone);
+    if (!normalizedP) {
+      notify('Check the phone number', 'error');
+      return false;
+    }
+    const hasAnyRole = ROLE_LIST.some((r) => (Array.isArray(roles) ? roles.includes(r.key) : !!roles?.[r.key]));
+    if (!hasAnyRole) {
+      notify('Select at least one skill', 'error');
+      return false;
+    }
+    const roleFlags = {};
+    ROLE_LIST.forEach((r) => {
+      roleFlags[r.key] = Array.isArray(roles) ? roles.includes(r.key) : !!roles?.[r.key];
+    });
+    const accessFlags = {};
+    ACCESS_LIST.forEach((a) => {
+      accessFlags[a.key] = false;
+    });
+    const payload = {
+      organization_id: org.id,
+      member_type: 'external',
+      role: 'general',
+      email: null,
+      auth_user_id: null,
+      full_name: trimmedName,
+      nickname: trimmedNick,
+      phone: normalizedP,
+      whatsapp: normalizedP,
+      designation: (designation || '').trim() || null,
+      avatar_url: (avatar_url || '').trim() || null,
+      external_note: (external_note || '').trim() || null,
+      active: true,
+      ...accessFlags,
+      ...roleFlags,
+    };
+    let created = { id: uid(), user_id: uid(), ...payload };
+    if (supabase) {
+      const { data, error } = await supabase.from('team_members').insert(payload).select().single();
+      if (error) {
+        notify(`Could not add external person: ${errText(error)}`, 'error');
+        return false;
+      }
+      created = data;
+    }
+    setTeam((t) => [...t, normalizeMember(created)]);
+    notify(`${trimmedName} added`, 'success');
+    return true;
+  };
+
+  const updateExternal = async (id, patch) => {
+    if (!canManageExternals(actor)) {
+      notify('Only the Owner, Managers, Producers and Production Managers can edit external people', 'error');
+      return false;
+    }
+    const target = teamRef.current.find((m) => m.id === id);
+    if (!target || !isExternal(target)) {
+      notify('External person not found', 'error');
+      return false;
+    }
+    const cleanPatch = { ...patch };
+    delete cleanPatch.member_type;
+    delete cleanPatch.role;
+    delete cleanPatch.email;
+    delete cleanPatch.auth_user_id;
+    ACCESS_LIST.forEach((a) => {
+      delete cleanPatch[a.key];
+    });
+    if (cleanPatch.phone !== undefined) {
+      const p = normalizePhone(cleanPatch.phone);
+      if (!p) {
+        notify('Check the phone number', 'error');
+        return false;
+      }
+      cleanPatch.phone = p;
+      cleanPatch.whatsapp = p;
+    }
+    if (cleanPatch.nickname !== undefined) {
+      const nick = cleanPatch.nickname.trim();
+      if (!/^[A-Za-z]{1,20}$/.test(nick)) {
+        notify('Nickname must be one English word (letters only, up to 20)', 'error');
+        return false;
+      }
+      cleanPatch.nickname = nick;
+    }
+    if (cleanPatch.full_name !== undefined) {
+      const name = cleanPatch.full_name.trim();
+      if (!name) {
+        notify('Full name is required', 'error');
+        return false;
+      }
+      cleanPatch.full_name = name;
+    }
+    const prev = target;
+    setTeam((t) => t.map((m) => (m.id === id ? { ...m, ...cleanPatch } : m)));
+    if (!supabase) return true;
+    const { error } = await supabase.from('team_members').update(cleanPatch).eq('id', id);
+    if (error) {
+      setTeam((t) => t.map((m) => (m.id === id ? prev : m)));
+      notify(`Save failed: ${errText(error)}`, 'error');
+      return false;
+    }
+    notify('Saved', 'success');
+    return true;
+  };
+
+
   useEffect(() => {
-    if (team.length && !team.some((m) => m.id === actorId)) {
-      const owner = team.find((m) => m.role === 'owner') || team[0];
+    if (staffTeam.length && !staffTeam.some((m) => m.id === actorId)) {
+      const owner = staffTeam.find((m) => m.role === 'owner') || staffTeam[0];
       setActorId(owner.id);
     }
-  }, [team, actorId]);
+  }, [staffTeam, actorId]);
 
   /* ---------------- derived rows ---------------- */
   const visible = useMemo(() => {
@@ -1675,6 +1800,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       else if (showAddChannel) setShowAddChannel(false);
       else if (showAddPlatform) setShowAddPlatform(false);
       else if (showAdvertisers) setShowAdvertisers(false);
+      else if (showExternals) setShowExternals(false);
       else if (showTeam) setShowTeam(false);
       else if (showDirectory) setShowDirectory(false);
       else if (showHelp) closeHelp();
@@ -1685,7 +1811,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [publishFor, reasonFor, showNew, showAddChannel, showAddPlatform, showAdvertisers, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices, selectedId]);
+  }, [publishFor, reasonFor, showNew, showAddChannel, showAddPlatform, showAdvertisers, showExternals, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices, selectedId]);
   /* ---------------- my profile ---------------- */
   const saveProfile = async ({ full_name, designation, avatar_url, phone, whatsapp, employee_id, nickname }) => {
     if (!me) return false;
@@ -1749,6 +1875,7 @@ function NewsroomApp({ authUser, onSignOut }) {
   if (canManage) {
     menuSections.push({ title: 'Manage', items: [
       { icon: 'users', label: 'Team & permissions', onClick: () => setShowTeam(true) },
+      { icon: 'users', label: 'External people', onClick: () => setShowExternals(true) },
       { icon: 'plus', label: 'Add channel', onClick: () => setShowAddChannel(true) },
       { icon: 'plus', label: 'Add publish platform', onClick: () => setShowAddPlatform(true) },
       { icon: 'megaphone', label: 'Advertisers', onClick: () => setShowAdvertisers(true) },
@@ -1760,6 +1887,10 @@ function NewsroomApp({ authUser, onSignOut }) {
     dataItems.push({ icon: 'download', label: 'Rundown Export', onClick: () => exportXlsx() });
     dataItems.push({ icon: 'download', label: 'Database Backup', onClick: () => setShowBackup(true) });
     menuSections.push({ title: 'Reports & data', items: dataItems });
+  } else if (canManageExternals(actor)) {
+    menuSections.push({ title: 'Manage', items: [
+      { icon: 'users', label: 'External people', onClick: () => setShowExternals(true) },
+    ] });
   }
 
   /* ---------------- main UI ---------------- */
@@ -1786,7 +1917,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                 onChange={(e) => setActorId(e.target.value)}
                 className="max-w-[180px] rounded-full bg-transparent py-1.5 pr-1 text-[13px] text-white outline-none"
               >
-                {team.map((m) => (
+                {staffTeam.map((m) => (
                   <option key={m.id} value={m.id} className="bg-[#121215]">
                     {m.full_name} · {ROLE_LABEL[m.role]}
                     {m.active ? '' : ' (inactive)'}
@@ -2375,7 +2506,8 @@ function NewsroomApp({ authUser, onSignOut }) {
       {showAddChannel ? <AddChannelModal existing={channels} onClose={() => setShowAddChannel(false)} onAdd={addChannel} /> : null}
       {showAddPlatform ? <AddPlatformModal existing={platforms} onClose={() => setShowAddPlatform(false)} onAdd={addPlatform} /> : null}
       {showAdvertisers ? <AdvertisersModal advertisers={advertisers} onClose={() => setShowAdvertisers(false)} onAdd={addAdvertiser} onUpdate={updateAdvertiser} /> : null}
-      {showTeam ? <TeamModal team={team} actor={actor} orgName={org ? org.name : ''} onClose={() => setShowTeam(false)} onAdd={addMember} onUpdate={updateMember} onRemove={removeMember} /> : null}
+      {showExternals ? <ExternalPeopleModal team={team} actor={actor} onClose={() => setShowExternals(false)} onAdd={addExternal} onUpdate={updateExternal} /> : null}
+      {showTeam ? <TeamModal team={staffTeam} actor={actor} orgName={org ? org.name : ''} onClose={() => setShowTeam(false)} onAdd={addMember} onUpdate={updateMember} onRemove={removeMember} /> : null}
       {showDirectory ? <DirectoryModal team={team} onClose={() => setShowDirectory(false)} /> : null}
       {showHelp ? <HowItWorksModal onClose={closeHelp} /> : null}
       {confirmReq ? (

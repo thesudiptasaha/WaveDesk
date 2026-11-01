@@ -22,7 +22,8 @@ import {
   FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
   GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes,
   canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES,
-  AD_TYPES, AD_STATUSES, canEditAds
+  AD_TYPES, AD_STATUSES, canEditAds,
+  memberOptionLabel
 } from '../../lib/core';
 
 
@@ -114,7 +115,7 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
 
   if (isCrew && !isCrewAdmin) {
     showUnassigned = isSelf;
-    options = actor ? [{ value: actor.full_name, label: actor.nickname || actor.full_name }] : [];
+    options = actor ? [{ value: actor.full_name, label: memberOptionLabel(actor) }] : [];
   } else {
     const eligibleMembers = isPresenter
       ? presenterMembers(team)
@@ -122,14 +123,14 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
 
     options = eligibleMembers.map((m) => ({
       value: m.full_name,
-      label: m.nickname || m.full_name,
+      label: memberOptionLabel(m),
     }));
 
     if (assignedName && !eligibleMembers.some((m) => m.full_name === assignedName)) {
       const extra = (team || []).find((m) => m.full_name === assignedName);
       options.unshift({
         value: assignedName,
-        label: (extra && extra.nickname) || assignedName,
+        label: extra ? memberOptionLabel(extra) : assignedName,
       });
     }
   }

@@ -8,7 +8,8 @@ import {
   DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, PLATFORMS, PERMISSIONS, ROLE_LIST, ACCESS_LIST, ROLE_LABEL,
   isManager, isOwner, can, toLocalInput, fromLocalInput, formatDay, formatTime, 
   SLUG_MAX, normalizeSlugInput, pad, formatStamp, startOfDay, addDays, sameDay, shortsInRange,
-  normalizeRow, presenterMembers
+  normalizeRow, presenterMembers,
+  isExternal, canManageExternals, normalizePhone, memberOptionLabel
 } from '../../lib/core';
 
 import { downloadUserReport } from '../../services/exportService';
@@ -17,9 +18,9 @@ import { resizeToJpeg } from '../../utils/helpers';
 import { fetchAllPages } from '../../utils/fetchAll';
 
 function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate }) {
-  const conceptOptions = team.filter((m) => m.active !== false && (m.role_concept_creator || m.role === 'owner' || m.role === 'manager')).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }));
-  const writerOptions = team.filter((m) => m.active !== false && (m.role_research_script_writer || m.role === 'owner' || m.role === 'manager')).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }));
-  const presenterOptions = presenterMembers(team).map((m) => ({ value: m.full_name, label: m.nickname || m.full_name }));
+  const conceptOptions = team.filter((m) => m.active !== false && (m.role_concept_creator || m.role === 'owner' || m.role === 'manager')).map((m) => ({ value: m.full_name, label: memberOptionLabel(m) }));
+  const writerOptions = team.filter((m) => m.active !== false && (m.role_research_script_writer || m.role === 'owner' || m.role === 'manager')).map((m) => ({ value: m.full_name, label: memberOptionLabel(m) }));
+  const presenterOptions = presenterMembers(team).map((m) => ({ value: m.full_name, label: memberOptionLabel(m) }));
   const okPres = can(actor, 'can_assign_presenter');
   const initialTime = () => {
     const d = new Date(defaultDate);
@@ -669,12 +670,12 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
   };
 
   const channelOptions = channels.map(c => ({ value: c.name, label: c.name }));
-  const activeWriters = team.filter(t => t.active !== false && (t.role_research_script_writer || t.role === 'owner')).map(t => t.full_name);
-  const activePresenters = presenterMembers(team).map((m) => m.full_name);
-  const activeEditors = team.filter(t => t.active !== false && (t.role_video_editor || t.role === 'owner')).map(t => t.full_name);
+  const activeWriters = team.filter(t => t.active !== false && (t.role_research_script_writer || t.role === 'owner')).map(t => ({ value: t.full_name, label: memberOptionLabel(t) }));
+  const activePresenters = presenterMembers(team).map((m) => ({ value: m.full_name, label: memberOptionLabel(m) }));
+  const activeEditors = team.filter(t => t.active !== false && (t.role_video_editor || t.role === 'owner')).map(t => ({ value: t.full_name, label: memberOptionLabel(t) }));
   
   // Actually, standard activeNames for everyone
-  const activeNames = team.filter(t => t.active !== false).map(t => t.full_name);
+  const activeNames = team.filter(t => t.active !== false).map(t => ({ value: t.full_name, label: memberOptionLabel(t) }));
 
   return (
     <FullScreenCard onClose={onClose} title="Bulk Schedule Entry">
@@ -1156,6 +1157,7 @@ function EmployeeReportModal({ rows, range, team, orgId, onClose, onOpenContent 
     team.forEach(m => {
       stats[m.full_name] = { 
         name: m.full_name, 
+        is_external: isExternal(m),
         total: 0, 
         published: 0, 
         roles: {}, 
@@ -1286,7 +1288,16 @@ function EmployeeReportModal({ rows, range, team, orgId, onClose, onOpenContent 
             <tbody>
               {data.map(d => (
                 <tr key={d.name} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 font-medium text-white">{d.name}</td>
+                  <td className="px-4 py-3 font-medium text-white">
+                    <div className="flex items-center gap-2">
+                      <span>{d.name}</span>
+                      {d.is_external ? (
+                        <span className="rounded-full bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/25 px-2 py-0.5 text-[10px] font-bold tracking-wider">
+                          EXTERNAL
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-emerald-400 font-bold">{d.total}</td>
                   <td className="px-4 py-3 text-sky-400">{d.published}</td>
                   {activeRoles.map(r => (
@@ -1347,47 +1358,108 @@ function DirectoryModal({ team, onClose }) {
       {list.length === 0 ? (
         <p className="mt-4 text-[13px] text-zinc-500">No member found</p>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {list.map((m) => (
-            <div key={m.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Avatar member={m} size="h-10 w-10" text="text-[14px]" />
-                <span className="text-[14px] font-medium text-white">{m.full_name}</span>
-                {m.nickname ? <span className="text-[12px] text-zinc-500">({m.nickname})</span> : null}
-                <RoleBadge role={m.role} />
-                <DesignationPill designation={m.designation} />
-              </div>
-              <div className="mt-3 space-y-1">
-                {m.employee_id ? <div className="text-[12px] text-zinc-400">ID: {m.employee_id}</div> : null}
-                {m.email ? (
-                  <div className="text-[12px] text-zinc-400">
-                    <a href={`mailto:${m.email}`} className="text-sky-400 hover:underline">
-                      {m.email}
-                    </a>
+        <div className="mt-4 space-y-6">
+          {(() => {
+            const staffList = list.filter((m) => !isExternal(m));
+            const externalList = list.filter(isExternal);
+            return (
+              <>
+                {staffList.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {staffList.map((m) => (
+                      <div key={m.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Avatar member={m} size="h-10 w-10" text="text-[14px]" />
+                          <span className="text-[14px] font-medium text-white">{m.full_name}</span>
+                          {m.nickname ? <span className="text-[12px] text-zinc-500">({m.nickname})</span> : null}
+                          <RoleBadge role={m.role} />
+                          <DesignationPill designation={m.designation} />
+                        </div>
+                        <div className="mt-3 space-y-1">
+                          {m.employee_id ? <div className="text-[12px] text-zinc-400">ID: {m.employee_id}</div> : null}
+                          {m.email ? (
+                            <div className="text-[12px] text-zinc-400">
+                              <a href={`mailto:${m.email}`} className="text-sky-400 hover:underline">
+                                {m.email}
+                              </a>
+                            </div>
+                          ) : null}
+                          {m.phone ? (
+                            <div className="text-[12px] text-zinc-400">
+                              <a href={`tel:${m.phone}`} className="text-sky-400 hover:underline">
+                                {m.phone}
+                              </a>
+                            </div>
+                          ) : null}
+                          {m.whatsapp ? (
+                            <div className="text-[12px] text-zinc-400">
+                              <a
+                                href={`https://wa.me/${m.whatsapp.replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sky-400 hover:underline"
+                              >
+                                {"WhatsApp: " + m.whatsapp}
+                              </a>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : null}
-                {m.phone ? (
-                  <div className="text-[12px] text-zinc-400">
-                    <a href={`tel:${m.phone}`} className="text-sky-400 hover:underline">
-                      {m.phone}
-                    </a>
+
+                {externalList.length > 0 ? (
+                  <div>
+                    <div className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-zinc-500">
+                      External
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {externalList.map((m) => (
+                        <div key={m.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Avatar member={m} size="h-10 w-10" text="text-[14px]" />
+                            <span className="text-[14px] font-medium text-white">{m.full_name}</span>
+                            {m.nickname ? <span className="text-[12px] text-zinc-500">({m.nickname})</span> : null}
+                            <span className="rounded-full bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/25 px-2 py-0.5 text-[10px] font-bold tracking-wider">
+                              EXTERNAL
+                            </span>
+                            <DesignationPill designation={m.designation} />
+                          </div>
+                          <div className="mt-3 space-y-1">
+                            {m.phone ? (
+                              <div className="text-[12px] text-zinc-400">
+                                <a href={`tel:${m.phone}`} className="text-sky-400 hover:underline">
+                                  {m.phone}
+                                </a>
+                              </div>
+                            ) : null}
+                            {m.whatsapp ? (
+                              <div className="text-[12px] text-zinc-400">
+                                <a
+                                  href={`https://wa.me/${m.whatsapp.replace(/[^0-9]/g, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sky-400 hover:underline"
+                                >
+                                  {"WhatsApp: " + m.whatsapp}
+                                </a>
+                              </div>
+                            ) : null}
+                            {m.external_note ? (
+                              <div className="text-[12px] text-zinc-500 italic">
+                                {m.external_note}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
-                {m.whatsapp ? (
-                  <div className="text-[12px] text-zinc-400">
-                    <a
-                      href={`https://wa.me/${m.whatsapp.replace(/[^0-9]/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sky-400 hover:underline"
-                    >
-                      {"WhatsApp: " + m.whatsapp}
-                    </a>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ))}
+              </>
+            );
+          })()}
         </div>
       )}
     </ModalShell>
@@ -1686,6 +1758,438 @@ function AdvertisersModal({ advertisers = [], onClose, onAdd, onUpdate }) {
 
 export { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, DirectoryModal, PublishTimeModal, AdvertisersModal };
 
+
+
+export function ExternalPeopleModal({ team = [], actor, onClose, onAdd, onUpdate }) {
+  const canManage = canManageExternals(actor);
+  const externals = useMemo(() => team.filter(isExternal), [team]);
+
+  const [fullName, setFullName] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [phone, setPhone] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [note, setNote] = useState('');
+  const [roles, setRoles] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  const [editingId, setEditingId] = useState(null);
+  const [editFullName, setEditFullName] = useState('');
+  const [editNickname, setEditNickname] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editDesignation, setEditDesignation] = useState('');
+  const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [editNote, setEditNote] = useState('');
+  const [editRoles, setEditRoles] = useState([]);
+  const [editBusy, setEditBusy] = useState(false);
+
+  const sorted = useMemo(() => {
+    const active = externals.filter((m) => m.active !== false).sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+    const inactive = externals.filter((m) => m.active === false).sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+    return [...active, ...inactive];
+  }, [externals]);
+
+  const normalizedAddPhone = normalizePhone(phone);
+  const isNickValid = /^[A-Za-z]{1,20}$/.test(nickname.trim());
+  const canSubmit = !!(fullName.trim() && isNickValid && normalizedAddPhone && roles.length > 0 && !busy);
+
+  const handleAdd = async (e) => {
+    if (e) e.preventDefault();
+    if (!canSubmit) return;
+    setBusy(true);
+    try {
+      const ok = await onAdd({
+        full_name: fullName.trim(),
+        nickname: nickname.trim(),
+        phone: phone.trim(),
+        designation: designation.trim(),
+        avatar_url: avatarUrl.trim(),
+        external_note: note.trim(),
+        roles,
+      });
+      if (ok) {
+        setFullName('');
+        setNickname('');
+        setPhone('');
+        setDesignation('');
+        setAvatarUrl('');
+        setNote('');
+        setRoles([]);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startEdit = (m) => {
+    setEditingId(m.id);
+    setEditFullName(m.full_name || '');
+    setEditNickname(m.nickname || '');
+    setEditPhone(m.phone || '');
+    setEditDesignation(m.designation || '');
+    setEditAvatarUrl(m.avatar_url || '');
+    setEditNote(m.external_note || '');
+    const activeR = ROLE_LIST.filter((r) => m[r.key] === true).map((r) => r.key);
+    setEditRoles(activeR);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditFullName('');
+    setEditNickname('');
+    setEditPhone('');
+    setEditDesignation('');
+    setEditAvatarUrl('');
+    setEditNote('');
+    setEditRoles([]);
+  };
+
+  const normalizedEditPhone = normalizePhone(editPhone);
+  const isEditNickValid = /^[A-Za-z]{1,20}$/.test(editNickname.trim());
+  const canSaveEdit = !!(editFullName.trim() && isEditNickValid && normalizedEditPhone && editRoles.length > 0 && !editBusy);
+
+  const handleSaveEdit = async (id) => {
+    if (!canSaveEdit) return;
+    setEditBusy(true);
+    try {
+      const patch = {
+        full_name: editFullName.trim(),
+        nickname: editNickname.trim(),
+        phone: normalizedEditPhone,
+        whatsapp: normalizedEditPhone,
+        designation: editDesignation.trim() || null,
+        avatar_url: editAvatarUrl.trim() || null,
+        external_note: editNote.trim() || null,
+      };
+      ROLE_LIST.forEach((r) => {
+        patch[r.key] = editRoles.includes(r.key);
+      });
+      const ok = await onUpdate(id, patch);
+      if (ok) {
+        cancelEdit();
+      }
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  return (
+    <ModalShell
+      title="External people"
+      subtitle="People outside the team who are called for shoots. They have no login and cannot see the app."
+      onClose={onClose}
+      wide
+    >
+      {!canManage ? (
+        <div className="mb-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-[13px] text-zinc-400">
+          Only the Owner, Managers, Producers and Production Managers can add or edit external people.
+        </div>
+      ) : null}
+
+      {canManage ? (
+        <div className="mb-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+          <div className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-zinc-500">Add external person</div>
+          <form onSubmit={handleAdd} className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <input
+                  className={`${inputBase} min-h-[44px]`}
+                  placeholder="Full name *"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  className={`${inputBase} min-h-[44px]`}
+                  placeholder="Nickname * (One English word)"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value.replace(/[^A-Za-z]/g, '').slice(0, 20))}
+                />
+              </div>
+              <div>
+                <input
+                  className={`${inputBase} min-h-[44px]`}
+                  placeholder="Phone * (01XXXXXXXXX or +8801XXXXXXXXX)"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+                <p className="mt-1 text-[11px] text-zinc-500">
+                  {phone.trim() ? (normalizedAddPhone ? `Will be saved as: ${normalizedAddPhone}` : 'Check the phone number') : '01XXXXXXXXX or +8801XXXXXXXXX'}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="Designation / organisation (optional)"
+                value={designation}
+                onChange={(e) => setDesignation(e.target.value)}
+              />
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="Photo link (optional)"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+              />
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="Note (optional)"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+
+            <div className="mt-2">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
+                Skills * (select at least one)
+              </label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {ROLE_LIST.map((r) => {
+                  const checked = roles.includes(r.key);
+                  return (
+                    <label
+                      key={r.key}
+                      className={`flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border p-2 text-[12px] transition select-none ${
+                        checked
+                          ? 'border-sky-400/50 bg-sky-500/10 text-white font-medium'
+                          : 'border-white/[0.08] bg-white/[0.02] text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-sky-500 focus:ring-0"
+                        checked={checked}
+                        onChange={() => {
+                          setRoles((prev) =>
+                            checked ? prev.filter((k) => k !== r.key) : [...prev, r.key]
+                          );
+                        }}
+                      />
+                      <span className="truncate">{r.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="submit"
+                className={`${btnPrimary} min-h-[44px] !px-5`}
+                disabled={!canSubmit}
+              >
+                <Icon name="plus" /> {busy ? 'Adding…' : 'Add external person'}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      <div className="space-y-2">
+        {sorted.length === 0 ? (
+          <div className="py-12 text-center text-[13px] text-zinc-500">
+            No external people yet.
+          </div>
+        ) : (
+          sorted.map((m) => {
+            const isEditing = editingId === m.id;
+            const activeRolesList = ROLE_LIST.filter((r) => m[r.key] === true);
+
+            return (
+              <div
+                key={m.id}
+                className={`rounded-2xl border border-white/[0.08] bg-white/[0.02] transition ${m.active ? '' : 'opacity-60'}`}
+              >
+                {isEditing ? (
+                  <div className="space-y-3 p-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Full name *</label>
+                        <input
+                          autoFocus
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editFullName}
+                          onChange={(e) => setEditFullName(e.target.value)}
+                          placeholder="Full name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Nickname *</label>
+                        <input
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editNickname}
+                          onChange={(e) => setEditNickname(e.target.value.replace(/[^A-Za-z]/g, '').slice(0, 20))}
+                          placeholder="One English word"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Phone *</label>
+                        <input
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editPhone}
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          placeholder="Phone number"
+                        />
+                        <p className="mt-1 text-[11px] text-zinc-500">
+                          {editPhone.trim() ? (normalizedEditPhone ? `Will be saved as: ${normalizedEditPhone}` : 'Check the phone number') : '01XXXXXXXXX or +8801XXXXXXXXX'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Designation</label>
+                        <input
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editDesignation}
+                          onChange={(e) => setEditDesignation(e.target.value)}
+                          placeholder="Designation / organisation"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Photo link</label>
+                        <input
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editAvatarUrl}
+                          onChange={(e) => setEditAvatarUrl(e.target.value)}
+                          placeholder="Photo link"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Note</label>
+                        <input
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editNote}
+                          onChange={(e) => setEditNote(e.target.value)}
+                          placeholder="Note"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-2">
+                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
+                        Skills * (select at least one)
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {ROLE_LIST.map((r) => {
+                          const checked = editRoles.includes(r.key);
+                          return (
+                            <label
+                              key={r.key}
+                              className={`flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border p-2 text-[12px] transition select-none ${
+                                checked
+                                  ? 'border-sky-400/50 bg-sky-500/10 text-white font-medium'
+                                  : 'border-white/[0.08] bg-white/[0.02] text-zinc-400 hover:text-zinc-200'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-sky-500 focus:ring-0"
+                                checked={checked}
+                                onChange={() => {
+                                  setEditRoles((prev) =>
+                                    checked ? prev.filter((k) => k !== r.key) : [...prev, r.key]
+                                  );
+                                }}
+                              />
+                              <span className="truncate">{r.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        className={`${btnGhost} min-h-[44px] !px-4`}
+                        onClick={cancelEdit}
+                        disabled={editBusy}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className={`${btnPrimary} min-h-[44px] !px-4`}
+                        disabled={!canSaveEdit}
+                        onClick={() => handleSaveEdit(m.id)}
+                      >
+                        {editBusy ? 'Saving…' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Avatar member={m} size="h-9 w-9" text="text-[13px]" />
+                        <span className="font-bold text-[14px] text-white">{m.full_name}</span>
+                        {m.nickname ? <span className="text-zinc-400 text-[12px]">({m.nickname})</span> : null}
+                        <span className="rounded-full bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/25 px-2 py-0.5 text-[10px] font-bold tracking-wider">
+                          EXTERNAL
+                        </span>
+                        {!m.active ? (
+                          <span className="inline-flex items-center rounded-sm bg-zinc-500/15 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
+                            Inactive
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-zinc-400">
+                        {m.designation ? <span className="text-zinc-300">{m.designation}</span> : null}
+                        {m.designation && m.phone ? <span className="text-zinc-600">•</span> : null}
+                        {m.phone ? <span className="font-mono text-zinc-300">{m.phone}</span> : null}
+                        {m.external_note ? (
+                          <>
+                            <span className="text-zinc-600">•</span>
+                            <span className="italic text-zinc-500">{m.external_note}</span>
+                          </>
+                        ) : null}
+                      </div>
+
+                      {activeRolesList.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {activeRolesList.map((r) => (
+                            <span
+                              key={r.key}
+                              className="rounded-full bg-white/[0.06] text-zinc-300 ring-1 ring-inset ring-white/10 px-2 py-0.5 text-[10px] font-medium"
+                            >
+                              {r.label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {canManage ? (
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/[0.04]">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-zinc-400 select-none">{m.active ? 'Active' : 'Inactive'}</span>
+                          <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                            <Toggle on={m.active !== false} onChange={() => onUpdate(m.id, { active: !m.active })} />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className={`${btnGhost} min-h-[44px] !px-4`}
+                          onClick={() => startEdit(m)}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </ModalShell>
+  );
+}
 
 export function BackupModal({ onClose }) {
   const [loading, setLoading] = useState(false);
