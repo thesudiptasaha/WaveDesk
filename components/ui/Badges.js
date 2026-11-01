@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { STATUS_META, ROLE_LABEL } from '../../utils/constants';
+import { Icon } from './Icons';
 
 export function StatusBadge({ status, removed = false }) {
   const meta = STATUS_META[status] || STATUS_META.Draft;
@@ -21,6 +22,84 @@ export function TypeBadge({ type }) {
 
 export function TypeBox({ type, small = false }) {
   return <span className="type-box" style={small ? { fontSize: '8.5px', padding: '1px 5px' } : undefined}>{type || 'UNKNOWN'}</span>;
+}
+
+export function IdBox({ uid, small = false }) {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  if (!uid) return null;
+
+  const handleCopy = async (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    let ok = false;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(String(uid));
+        ok = true;
+      } else {
+        throw new Error('Clipboard API unavailable');
+      }
+    } catch (_) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = String(uid);
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (__) {
+        ok = false;
+      }
+    }
+    if (ok) {
+      setCopied(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        setCopied(false);
+      }, 1000);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      handleCopy(e);
+    }
+  };
+
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={handleCopy}
+      onKeyDown={handleKeyDown}
+      aria-label={`Copy content ID ${uid}`}
+      title="Click to copy the content ID"
+      className="type-box cursor-pointer select-none inline-flex items-center gap-1 font-mono"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        fontVariantNumeric: 'tabular-nums',
+        letterSpacing: '0.02em',
+        userSelect: 'none',
+        ...(small ? { fontSize: '8.5px', padding: '1px 5px' } : {}),
+      }}
+    >
+      <Icon name="folder" strokeWidth={2.2} className={`shrink-0 text-amber-500 ${small ? 'h-2.5 w-2.5' : 'h-3 w-3'}`} />
+      <span>{copied ? 'Copied' : uid}</span>
+    </span>
+  );
 }
 
 export function RoleBadge({ role }) {

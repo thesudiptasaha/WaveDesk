@@ -7,7 +7,7 @@ import { APP_NAME, APP_CREDIT, APP_COPYRIGHT, APP_CONTACT_EMAIL } from '../utils
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon, LockIcon } from '../components/ui/Icons';
-import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox } from '../components/ui/Badges';
+import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox } from '../components/ui/Badges';
 import { supabase } from '../services/supabase';
 import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, ConfirmDialog, FullScreenCard, Toggle, ActionButtons } from '../components/ui/Shared';
 import { fetchAllPages } from '../utils/fetchAll';
@@ -1820,6 +1820,9 @@ function NewsroomApp({ authUser, onSignOut }) {
                             <div>
                               <TypeBox type={r.content_type} />
                             </div>
+                            <div>
+                              <IdBox uid={r.content_uid} />
+                            </div>
                             <div className="flex items-center gap-1.5">
                               <div className="uppercase text-[17px] font-bold tracking-wide text-white px-1 -ml-1 truncate w-full min-w-[150px]">
                                 {r.slug_name || 'NO SLUG...'}
@@ -2033,6 +2036,11 @@ function NewsroomApp({ authUser, onSignOut }) {
                     <td className="px-3 py-2 border-r border-white/5 relative">
                       <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
                       <TypeBadge type={r.content_type} />
+                      {r.content_uid ? (
+                        <div className="mt-1">
+                          <IdBox uid={r.content_uid} small />
+                        </div>
+                      ) : null}
                     </td>
                     <td className="max-w-[300px] px-4 py-2">
                       <span className="block truncate font-mono text-[12px] font-semibold tracking-wide text-white">{r.slug_name || '—'}</span>
@@ -2083,6 +2091,11 @@ function NewsroomApp({ authUser, onSignOut }) {
                                     </>
                                   )}
                                 <div className="scale-90 origin-left"><TypeBadge type={r.content_type} /></div>
+                                {r.content_uid ? (
+                                  <div>
+                                    <IdBox uid={r.content_uid} small />
+                                  </div>
+                                ) : null}
                              </div>
                           </td>
                           <td className="px-3 py-3 align-top w-[60%] relative">

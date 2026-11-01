@@ -13,7 +13,7 @@ import {
   shortClipNotes
 } from '../../lib/core';
 import { LockIcon } from './Icons';
-import { StatusBadge, TypeBox } from './Badges';
+import { StatusBadge, TypeBox, IdBox } from './Badges';
 import { StaffCell } from './StaffAssignSelect';
 import { ActionButtons } from './Shared';
 
@@ -58,8 +58,9 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
             </div>
             {isMultiDay ? <div className="text-[11px] text-zinc-500">{formatDay(tIso)}</div> : null}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <TypeBox type={r.content_type} />
+            <IdBox uid={r.content_uid} />
             {onCollapse ? (
               <button
                 type="button"
@@ -149,6 +150,7 @@ export function PhoneRow({ r, range, alt, onToggle }) {
         </div>
         <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
           <TypeBox type={r.content_type} small />
+          <IdBox uid={r.content_uid} small />
           <StatusBadge status={r.status} removed={isRemovedPublished(r)} />
           {n > 0 ? <span className="text-[10.5px] font-bold text-amber-500">{n} to assign</span> : null}
         </div>
