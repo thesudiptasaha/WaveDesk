@@ -10,6 +10,10 @@ WaveDesk operates around 5 primary tables in Supabase (PostgreSQL):
 3. `channels` (Broadcast / YouTube channels)
 4. `contents` (Central rundown items and video pipeline states)
 5. `notifications` (Realtime alert notifications for team members)
+6. `notices` (Global station notice board)
+7. `notice_uid_counters` (Daily atomic counters for notice UIDs)
+8. `advertisers` (Commercial sponsors and advertisers)
+9. `content_ads` (Sponsorship placements on contents)
 
 ---
 
@@ -140,6 +144,37 @@ Global station notice board and editorial announcements.
 Daily atomic counter table behind `NOTICE-YYYYMMDD_NNN`.
 * `day` (`text`, PRIMARY KEY) — Asia/Dhaka calendar date formatted as `YYYYMMDD`.
 * `last_seq` (`integer`, default 0) — Last assigned sequence number for that date.
+
+---
+
+### 8. `advertisers`
+Companies and commercial sponsors advertising across channels. Added on 1 Nov 2026 (record: `sql/2026-11-01_advertisers.sql`).
+* `id` (`uuid`, PRIMARY KEY, default `gen_random_uuid()`)
+* `organization_id` (`uuid`, FK to `organizations.id` on delete cascade)
+* `name` (`text`, NOT NULL) — Advertiser / company name. Unique per organization ignoring case (`advertisers_org_name_uq`).
+* `phone` (`text`, nullable) — Primary phone contact in international format.
+* `logo_url` (`text`, nullable) — Link to company logo image.
+* `note` (`text`, nullable) — Internal remarks and contract notes.
+* `active` (`boolean`, default `true`, NOT NULL) — Active status; inactive advertisers cannot be chosen for new ads, while existing ads keep them.
+* `created_at` (`timestamptz`, default `now()`)
+* **RLS**: SELECT allowed for all active organization members (`i_am_active()`); INSERT, UPDATE, DELETE restricted to Managers and Owners (`is_manager()`).
+
+---
+
+### 9. `content_ads`
+Advertisements and sponsorships placed on specific rundown contents. Added on 1 Nov 2026 (record: `sql/2026-11-01_advertisers.sql`).
+* `id` (`uuid`, PRIMARY KEY, default `gen_random_uuid()`)
+* `organization_id` (`uuid`, FK to `organizations.id` on delete cascade)
+* `content_id` (`bigint`, FK to `contents.id` on delete cascade) — Linked rundown item.
+* `advertiser_id` (`uuid`, FK to `advertisers.id` on delete restrict) — Linked advertiser.
+* `ad_type` (`text`, NOT NULL) — Ad placement format; CHECK `ad_type in ('spoken','intro_clip','outro_clip','logo_dog','l_shape','caption','other')`.
+* `instruction` (`text`, nullable) — Production and editorial guidance for the placement.
+* `file_note` (`text`, nullable) — Storage or file reference notes.
+* `status` (`text`, default `'agreed'`, NOT NULL) — Delivery state; CHECK `status in ('agreed','added','aired')`.
+* `created_by` (`text`, nullable) — Name of actor who scheduled/created the ad.
+* `created_at` (`timestamptz`, default `now()`)
+* `updated_at` (`timestamptz`, default `now()`) — Maintained automatically by `content_ads_touch_trg` trigger.
+* **RLS**: SELECT allowed for all active organization members; INSERT, UPDATE, DELETE allowed for Managers, Owners, and Producers (`is_manager() or i_am_producer()`). Helper function `i_am_producer()` checks if the active member holds `role_producer`.
 
 ---
 

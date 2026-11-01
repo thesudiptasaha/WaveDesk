@@ -13,7 +13,7 @@ import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Person
 import { fetchAllPages } from '../utils/fetchAll';
 import { Drawer, DeleteModal } from '../components/ui/Drawer';
 import { StaffCell } from '../components/ui/StaffAssignSelect';
-import { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, BackupModal, DirectoryModal, PublishTimeModal } from '../components/ui/Modals';
+import { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, BackupModal, DirectoryModal, PublishTimeModal, AdvertisersModal } from '../components/ui/Modals';
 import { NoticeModal } from '../components/ui/NoticeModal';
 import { HowItWorksModal } from '../components/ui/HowItWorksModal';
 import { PhoneCard, PhoneRow, ShortNote } from '../components/ui/RundownCards';
@@ -498,6 +498,7 @@ const errText = (e) => {
   const has = (...parts) => parts.some((p) => msg.includes(p));
   if (msg.includes('team_members_nickname_unique')) return 'This nickname is already taken';
   if (msg.includes('team_members_nickname_one_word')) return 'Nickname must be one English word (letters only, up to 20)';
+  if (msg.includes('advertisers_org_name_uq')) return 'An advertiser with this name already exists';
   if (raw === 'Not allowed') return 'You are not allowed to do this.';
   if (has('failed to fetch', 'networkerror', 'load failed', 'network request failed')) return 'No internet connection. Check your network and try again.';
   if (has('jwt expired', 'invalid jwt', 'invalid refresh token', 'refresh token not found')) return 'Your session has expired. Please sign in again.';
@@ -621,6 +622,7 @@ function NewsroomApp({ authUser, onSignOut }) {
   const [team, setTeam] = useState([]);
   const [channels, setChannels] = useState(DEFAULT_CHANNELS);
   const [platforms, setPlatforms] = useState(PLATFORMS);
+  const [advertisers, setAdvertisers] = useState([]);
   const [rows, setRows] = useState([]);
   const [actorId, setActorId] = useState(null);
   const [range, setRange] = useState({ start: today, end: today });
@@ -632,6 +634,7 @@ function NewsroomApp({ authUser, onSignOut }) {
   const [bulkOpen, setBulkOpen] = useState(false);
     const [showEmpReport, setShowEmpReport] = useState(false);
     const [showBackup, setShowBackup] = useState(false);
+  const [showAdvertisers, setShowAdvertisers] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -770,6 +773,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       setTeam(d.team);
       setChannels(d.channels);
       setPlatforms(PLATFORMS);
+      setAdvertisers([]);
       setRows(d.rows);
       setActorId(d.team[0].id);
       setBoot({ phase: 'ready', message: '' });
@@ -789,10 +793,11 @@ function NewsroomApp({ authUser, onSignOut }) {
       return;
     }
     const o = orgs[0];
-    const [t, c, p] = await Promise.all([
+    const [t, c, p, adv] = await Promise.all([
       supabase.from('team_members').select('*').eq('organization_id', o.id).order('created_at', { ascending: true }),
       supabase.from('channels').select('name').or(`organization_id.eq.${o.id},organization_id.is.null`),
       supabase.from('platforms').select('*').or(`organization_id.eq.${o.id},organization_id.is.null`),
+      supabase.from('advertisers').select('*').eq('organization_id', o.id).order('name', { ascending: true }),
     ]);
     if (t.error) {
       setBoot({ phase: 'error', message: `${errText(t.error)} — did you run the SQL migration in Supabase?` });
@@ -803,6 +808,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     setTeam(members);
     setChannels(mergeChannels(c.error ? [] : (c.data || []).map((x) => x.name)));
     setPlatforms(mergePlatforms(p?.error ? [] : p?.data));
+    setAdvertisers(adv?.error ? [] : (adv?.data || []));
         const owner = members.find((m) => m.role === 'owner') || members[0];
     const auth = authRef.current;
     if (auth.id) {
@@ -1241,6 +1247,76 @@ function NewsroomApp({ authUser, onSignOut }) {
     notify(`Platform “${name}” added`, 'success');
     return true;
   };
+  const addAdvertiser = async ({ name, phone, logo_url, note }) => {
+    if (!isManager(actor)) {
+      notify('Only the Owner and Managers can add advertisers', 'error');
+      return false;
+    }
+    const cleanName = (name || '').trim();
+    if (!cleanName) {
+      notify('Advertiser name cannot be empty', 'error');
+      return false;
+    }
+    if (advertisers.some((a) => a.name.toLowerCase() === cleanName.toLowerCase())) {
+      notify('An advertiser with this name already exists', 'error');
+      return false;
+    }
+    const payload = {
+      organization_id: org.id,
+      name: cleanName,
+      phone: (phone || '').trim() || null,
+      logo_url: (logo_url || '').trim() || null,
+      note: (note || '').trim() || null,
+    };
+    if (supabase) {
+      const { data, error } = await supabase.from('advertisers').insert(payload).select().single();
+      if (error) {
+        notify(`Could not add advertiser: ${errText(error)}`, 'error');
+        return false;
+      }
+      setAdvertisers((list) => [...list, data].sort((a, b) => a.name.localeCompare(b.name)));
+    } else {
+      const mock = { id: `demo-adv-${Date.now()}`, ...payload, active: true, created_at: new Date().toISOString() };
+      setAdvertisers((list) => [...list, mock].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+    notify(`Advertiser “${cleanName}” added`, 'success');
+    return true;
+  };
+
+  const updateAdvertiser = async (id, patch) => {
+    if (!isManager(actor)) {
+      notify('Only the Owner and Managers can edit advertisers', 'error');
+      return false;
+    }
+    const cleaned = { ...patch };
+    if ('name' in cleaned) {
+      cleaned.name = (cleaned.name || '').trim();
+      if (!cleaned.name) {
+        notify('Advertiser name cannot be empty', 'error');
+        return false;
+      }
+      if (advertisers.some((a) => a.id !== id && a.name.toLowerCase() === cleaned.name.toLowerCase())) {
+        notify('An advertiser with this name already exists', 'error');
+        return false;
+      }
+    }
+    if ('phone' in cleaned) cleaned.phone = (cleaned.phone || '').trim() || null;
+    if ('logo_url' in cleaned) cleaned.logo_url = (cleaned.logo_url || '').trim() || null;
+    if ('note' in cleaned) cleaned.note = (cleaned.note || '').trim() || null;
+
+    if (supabase) {
+      const { data, error } = await supabase.from('advertisers').update(cleaned).eq('id', id).select().single();
+      if (error) {
+        notify(`Could not update advertiser: ${errText(error)}`, 'error');
+        return false;
+      }
+      setAdvertisers((list) => list.map((a) => (a.id === id ? data : a)).sort((a, b) => a.name.localeCompare(b.name)));
+    } else {
+      setAdvertisers((list) => list.map((a) => (a.id === id ? { ...a, ...cleaned } : a)).sort((a, b) => a.name.localeCompare(b.name)));
+    }
+    return true;
+  };
+
 
   /* ---------------- team writes ---------------- */
   const canManageMember = (t) => !!actor && t.role !== 'owner' && (isOwner(actor) || (actor.role === 'manager' && actor.active !== false && t.role === 'general'));
@@ -1488,6 +1564,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       else if (showNew) setShowNew(false);
       else if (showAddChannel) setShowAddChannel(false);
       else if (showAddPlatform) setShowAddPlatform(false);
+      else if (showAdvertisers) setShowAdvertisers(false);
       else if (showTeam) setShowTeam(false);
       else if (showDirectory) setShowDirectory(false);
       else if (showHelp) closeHelp();
@@ -1498,7 +1575,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [publishFor, reasonFor, showNew, showAddChannel, showAddPlatform, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices, selectedId]);
+  }, [publishFor, reasonFor, showNew, showAddChannel, showAddPlatform, showAdvertisers, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices, selectedId]);
   /* ---------------- my profile ---------------- */
   const saveProfile = async ({ full_name, designation, avatar_url, phone, whatsapp, employee_id, nickname }) => {
     if (!me) return false;
@@ -1564,6 +1641,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       { icon: 'users', label: 'Team & permissions', onClick: () => setShowTeam(true) },
       { icon: 'plus', label: 'Add channel', onClick: () => setShowAddChannel(true) },
       { icon: 'plus', label: 'Add publish platform', onClick: () => setShowAddPlatform(true) },
+      { icon: 'megaphone', label: 'Advertisers', onClick: () => setShowAdvertisers(true) },
       { icon: 'calendar', label: 'Bulk schedule entry', onClick: () => setBulkOpen(true) },
     ] });
     const dataItems = [];
@@ -2163,6 +2241,7 @@ function NewsroomApp({ authUser, onSignOut }) {
 
       {showAddChannel ? <AddChannelModal existing={channels} onClose={() => setShowAddChannel(false)} onAdd={addChannel} /> : null}
       {showAddPlatform ? <AddPlatformModal existing={platforms} onClose={() => setShowAddPlatform(false)} onAdd={addPlatform} /> : null}
+      {showAdvertisers ? <AdvertisersModal advertisers={advertisers} onClose={() => setShowAdvertisers(false)} onAdd={addAdvertiser} onUpdate={updateAdvertiser} /> : null}
       {showTeam ? <TeamModal team={team} actor={actor} orgName={org ? org.name : ''} onClose={() => setShowTeam(false)} onAdd={addMember} onUpdate={updateMember} onRemove={removeMember} /> : null}
       {showDirectory ? <DirectoryModal team={team} onClose={() => setShowDirectory(false)} /> : null}
       {showHelp ? <HowItWorksModal onClose={closeHelp} /> : null}

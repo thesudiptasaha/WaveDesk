@@ -1424,7 +1424,267 @@ function PublishTimeModal({ row, defaultIso, onClose, onConfirm }) {
   );
 }
 
-export { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, DirectoryModal, PublishTimeModal };
+
+function AdvertisersModal({ advertisers = [], onClose, onAdd, onUpdate }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editLogoUrl, setEditLogoUrl] = useState('');
+  const [editNote, setEditNote] = useState('');
+  const [editBusy, setEditBusy] = useState(false);
+
+  const sorted = useMemo(() => {
+    const list = [...(advertisers || [])];
+    const active = list.filter((a) => a.active !== false).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const inactive = list.filter((a) => a.active === false).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return [...active, ...inactive];
+  }, [advertisers]);
+
+  const handleAdd = async (e) => {
+    if (e) e.preventDefault();
+    const cleanName = name.trim();
+    if (!cleanName || busy) return;
+    setBusy(true);
+    try {
+      const ok = await onAdd({
+        name: cleanName,
+        phone: phone.trim(),
+        logo_url: logoUrl.trim(),
+        note: note.trim(),
+      });
+      if (ok) {
+        setName('');
+        setPhone('');
+        setLogoUrl('');
+        setNote('');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startEdit = (a) => {
+    setEditingId(a.id);
+    setEditName(a.name || '');
+    setEditPhone(a.phone || '');
+    setEditLogoUrl(a.logo_url || '');
+    setEditNote(a.note || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+    setEditPhone('');
+    setEditLogoUrl('');
+    setEditNote('');
+  };
+
+  const handleSaveEdit = async (id) => {
+    const cleanName = editName.trim();
+    if (!cleanName || editBusy) return;
+    setEditBusy(true);
+    try {
+      const ok = await onUpdate(id, {
+        name: cleanName,
+        phone: editPhone.trim(),
+        logo_url: editLogoUrl.trim(),
+        note: editNote.trim(),
+      });
+      if (ok) {
+        cancelEdit();
+      }
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const handleToggleActive = async (a) => {
+    await onUpdate(a.id, { active: !a.active });
+  };
+
+  return (
+    <ModalShell
+      title="Advertisers"
+      subtitle="Companies that advertise on our channels. Inactive advertisers cannot be picked for new ads; old ads keep them."
+      onClose={onClose}
+      wide
+    >
+      <div className="mb-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+        <div className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-zinc-500">Add an advertiser</div>
+        <form onSubmit={handleAdd} className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="Advertiser name *"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div>
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="Phone (optional)"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <p className="mt-1 text-[11px] text-zinc-500">Use the international format, e.g. +8801XXXXXXXXX</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <input
+              className={`${inputBase} min-h-[44px]`}
+              placeholder="Logo link (optional)"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+            />
+            <input
+              className={`${inputBase} min-h-[44px]`}
+              placeholder="Note (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              className={`${btnPrimary} min-h-[44px] !px-5`}
+              disabled={!name.trim() || busy}
+            >
+              <Icon name="plus" /> {busy ? 'Adding…' : 'Add advertiser'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="space-y-2">
+        {sorted.length === 0 ? (
+          <div className="py-12 text-center text-[13px] text-zinc-500">
+            No advertisers yet.
+          </div>
+        ) : (
+          sorted.map((a) => {
+            const isEditing = editingId === a.id;
+            return (
+              <div
+                key={a.id}
+                className={`rounded-2xl border border-white/[0.08] bg-white/[0.02] transition ${a.active ? '' : 'opacity-60'}`}
+              >
+                {isEditing ? (
+                  <div className="space-y-3 p-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Name *</label>
+                        <input
+                          autoFocus
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="Advertiser name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Phone</label>
+                        <input
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editPhone}
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          placeholder="Phone (optional)"
+                        />
+                        <p className="mt-1 text-[11px] text-zinc-500">Use the international format, e.g. +8801XXXXXXXXX</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Logo link</label>
+                        <input
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editLogoUrl}
+                          onChange={(e) => setEditLogoUrl(e.target.value)}
+                          placeholder="Logo link (optional)"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Note</label>
+                        <input
+                          className={`${inputBase} min-h-[44px]`}
+                          value={editNote}
+                          onChange={(e) => setEditNote(e.target.value)}
+                          placeholder="Note (optional)"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        className={`${btnGhost} min-h-[44px] !px-4`}
+                        onClick={cancelEdit}
+                        disabled={editBusy}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className={`${btnPrimary} min-h-[44px] !px-4`}
+                        disabled={!editName.trim() || editBusy}
+                        onClick={() => handleSaveEdit(a.id)}
+                      >
+                        {editBusy ? 'Saving…' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[14px] text-white truncate">{a.name}</span>
+                        {!a.active ? (
+                          <span className="inline-flex items-center rounded-sm bg-zinc-500/15 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
+                            Inactive
+                          </span>
+                        ) : null}
+                      </div>
+                      {(a.phone || a.note) ? (
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-zinc-400">
+                          {a.phone ? <span className="truncate">{a.phone}</span> : null}
+                          {a.phone && a.note ? <span className="text-zinc-600">•</span> : null}
+                          {a.note ? <span className="truncate text-zinc-500">{a.note}</span> : null}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/[0.04]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-zinc-400 select-none">{a.active ? 'Active' : 'Inactive'}</span>
+                        <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                          <Toggle on={a.active !== false} onChange={() => handleToggleActive(a)} />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={`${btnGhost} min-h-[44px] !px-4`}
+                        onClick={() => startEdit(a)}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </ModalShell>
+  );
+}
+
+export { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, DirectoryModal, PublishTimeModal, AdvertisersModal };
 
 
 export function BackupModal({ onClose }) {
