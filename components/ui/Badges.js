@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { STATUS_META, ROLE_LABEL } from '../../utils/constants';
 import { Icon } from './Icons';
 
-export function StatusBadge({ status, removed = false }) {
+export function StatusBadge({ status, removed = false, flash = false }) {
   const meta = STATUS_META[status] || STATUS_META.Draft;
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset backdrop-blur-md ${meta.tone}`}>
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset backdrop-blur-md ${meta.tone}${flash ? ' pill-alert' : ''}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot} ${meta.live ? 'live-dot' : ''}`} />
       {removed ? 'Published, later removed' : status}
     </span>

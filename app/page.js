@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon, LockIcon } from '../components/ui/Icons';
 import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox, AdBadge } from '../components/ui/Badges';
 import { supabase } from '../services/supabase';
-import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, ConfirmDialog, FullScreenCard, Toggle, ActionButtons } from '../components/ui/Shared';
+import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, ConfirmDialog, FullScreenCard, Toggle, ActionButtons, useNow } from '../components/ui/Shared';
 import { fetchAllPages } from '../utils/fetchAll';
 import { Drawer, DeleteModal } from '../components/ui/Drawer';
 import { StaffCell } from '../components/ui/StaffAssignSelect';
@@ -27,7 +27,7 @@ import {
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isComplete, isBin, isRemovedPublished, missingFields, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, wentLiveDefault,
   canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
-  canRescheduleRow
+  canRescheduleRow, publishCheckState, canAnswerPublishCheckNow
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -693,6 +693,7 @@ function NewsroomApp({ authUser, onSignOut }) {
   const [publishCheckFor, setPublishCheckFor] = useState(null);
   const [deleteFor, setDeleteFor] = useState(null);
   const [toast, setToast] = useState(null);
+  const nowTick = useNow(30000);
 
   const rowsRef = useRef([]);
   const teamRef = useRef([]);
@@ -1694,22 +1695,78 @@ function NewsroomApp({ authUser, onSignOut }) {
       .filter((r) => !q || [r.slug_name, r.title, r.channel, r.content_uid].some((v) => String(v || '').toLowerCase().includes(q)))
       .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
   }, [rows, search]);
+  /* Pinned "Did it go out?" rows: publishCheckState is active. They ignore range, search and statusFilter, but obey channelFilter. */
+  const pinnedRows = useMemo(() => {
+    return rows.filter((r) => {
+      if (!isComplete(r)) return false;
+      if (publishCheckState(r, nowTick) === null) return false;
+      if (channelFilter !== 'all' && r.channel !== channelFilter) return false;
+      return true;
+    });
+  }, [rows, nowTick, channelFilter]);
+
+  const pinnedIds = useMemo(() => new Set(pinnedRows.map((r) => r.id)), [pinnedRows]);
+
+  const pinnedDateFlag = (r) => {
+    if (!r?.scheduled_publish_time) return true;
+    const d = new Date(r.scheduled_publish_time);
+    return !(d >= range.start && d < addDays(range.end, 1));
+  };
+
+  /* Rundown rows: union of visible and pinnedRows, with pinned rows first within each channel (oldest scheduled time first). */
+  const rundownRows = useMemo(() => {
+    const allMap = new Map();
+    pinnedRows.forEach((r) => allMap.set(r.id, r));
+    visible.forEach((r) => allMap.set(r.id, r));
+    const allRows = Array.from(allMap.values());
+
+    return allRows.sort((a, b) => {
+      if (channelFilter === 'all') {
+        const ia = channels.indexOf(a.channel);
+        const ib = channels.indexOf(b.channel);
+        const ga = ia === -1 ? channels.length : ia;
+        const gb = ib === -1 ? channels.length : ib;
+        if (ga !== gb) return ga - gb;
+        if (ga === channels.length && (a.channel || '') !== (b.channel || '')) {
+          return String(a.channel || '').localeCompare(String(b.channel || ''));
+        }
+      }
+      const aPinned = pinnedIds.has(a.id);
+      const bPinned = pinnedIds.has(b.id);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      if (aPinned && bPinned) {
+        return new Date(a.scheduled_publish_time || 0) - new Date(b.scheduled_publish_time || 0);
+      }
+      const endExclusive = addDays(range.end, 1);
+      return new Date(rowTimeIn(a, range.start, endExclusive) || 0) - new Date(rowTimeIn(b, range.start, endExclusive) || 0);
+    });
+  }, [visible, pinnedRows, pinnedIds, channelFilter, channels, range]);
+
   /* Rundown rows, with a channel header inserted before each channel group in "All Channels" view. */
   const tableItems = useMemo(() => {
     const items = [];
     let last = null;
-    visible.forEach((r) => {
+    rundownRows.forEach((r) => {
       if (channelFilter === 'all') {
         const name = r.channel || 'No channel';
         if (name !== last) {
-          items.push({ type: 'header', key: `h-${name}`, name, count: visible.filter((x) => (x.channel || 'No channel') === name).length });
+          const channelRows = rundownRows.filter((x) => (x.channel || 'No channel') === name);
+          const pinnedCount = channelRows.filter((x) => pinnedIds.has(x.id)).length;
+          items.push({
+            type: 'header',
+            key: `h-${name}`,
+            name,
+            count: channelRows.length,
+            pinnedCount,
+          });
           last = name;
         }
       }
       items.push({ type: 'row', key: r.id, row: r });
     });
     return items;
-  }, [visible, channelFilter]);
+  }, [rundownRows, channelFilter, pinnedIds]);
 
   const phoneItems = useMemo(() => {
     return tableItems.filter((item) => {
@@ -1741,12 +1798,18 @@ function NewsroomApp({ authUser, onSignOut }) {
 
   const pcCardRows = useMemo(
     () =>
-      [...visible].sort(
-        (a, b) =>
-          new Date(rowTimeIn(a, range.start, addDays(range.end, 1)) || 0) -
-          new Date(rowTimeIn(b, range.start, addDays(range.end, 1)) || 0)
-      ),
-    [visible, range]
+      [...rundownRows].sort((a, b) => {
+        const aPinned = pinnedIds.has(a.id);
+        const bPinned = pinnedIds.has(b.id);
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        if (aPinned && bPinned) {
+          return new Date(a.scheduled_publish_time || 0) - new Date(b.scheduled_publish_time || 0);
+        }
+        const endExclusive = addDays(range.end, 1);
+        return new Date(rowTimeIn(a, range.start, endExclusive) || 0) - new Date(rowTimeIn(b, range.start, endExclusive) || 0);
+      }),
+    [rundownRows, pinnedIds, range]
   );
 
   const selected = rows.find((r) => r.id === selectedId) || null;
@@ -2120,6 +2183,11 @@ function NewsroomApp({ authUser, onSignOut }) {
                                 )}
                               </svg>
                               <span className="text-[14px] font-semibold flex-1 truncate">{item.name}</span>
+                              {item.pinnedCount > 0 ? (
+                                <span className="rounded-full bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 text-[11px] font-bold">
+                                  {item.pinnedCount} to answer
+                                </span>
+                              ) : null}
                               <span className="chan-band-count rounded-full px-2.5 py-0.5 text-[12px] font-bold tabular-nums">{item.count}</span>
                             </button>
                           </td>
@@ -2128,6 +2196,12 @@ function NewsroomApp({ authUser, onSignOut }) {
                     }
                     altNo += 1;
                     const r = item.row;
+                    const isPinned = pinnedIds.has(r.id);
+                    const checkState = isPinned ? publishCheckState(r, nowTick) : null;
+                    const canAnswer = checkState ? canAnswerPublishCheckNow(actor, r, nowTick) : false;
+                    const flash = checkState === 'unanswered' && !!r.publisher && r.publisher === actor.full_name;
+                    const showDate = isPinned && pinnedDateFlag(r);
+                    const timeIso = isPinned ? r.scheduled_publish_time : rowTimeIn(r, range.start, addDays(range.end, 1));
                     return (
                       <tr
                         key={item.key}
@@ -2136,9 +2210,16 @@ function NewsroomApp({ authUser, onSignOut }) {
                         className={`row-in cursor-pointer border-b border-white/[0.14] transition last:border-0 hover:bg-white/[0.04]${altNo % 2 === 0 ? ' rd-alt' : ''}`}
                       >
                         <td className="whitespace-nowrap w-[110px] px-3 py-1.5 border-r border-white/5 tabular-nums text-zinc-300 align-top">
-                          <div className="font-medium text-white">{formatTime(rowTimeIn(r, range.start, addDays(range.end, 1)))}</div>
-                          {!sameDay(range.start, range.end) ? <div className="text-[11px] text-zinc-500">{formatDay(rowTimeIn(r, range.start, addDays(range.end, 1)))}</div> : null}
-                          <div className="mt-1"><StatusBadge status={r.status} removed={isRemovedPublished(r)} /></div>
+                          <div className="font-medium text-white">{formatTime(timeIso)}</div>
+                          {(showDate || !sameDay(range.start, range.end)) ? <div className="text-[11px] text-zinc-500">{formatDay(timeIso)}</div> : null}
+                          <div className="mt-1 flex flex-col items-start gap-0.5">
+                            <StatusBadge status={r.status} removed={isRemovedPublished(r)} flash={flash} />
+                            {checkState === 'unanswered' ? (
+                              <span className="text-[11px] font-medium text-red-400">Waiting for answer</span>
+                            ) : checkState === 'waiting_manager' ? (
+                              <span className="text-[11px] font-medium text-amber-400">Waiting for Manager</span>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="max-w-[360px] px-3 py-1.5 border-r border-white/5 relative align-top">
                           <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
@@ -2161,7 +2242,21 @@ function NewsroomApp({ authUser, onSignOut }) {
                           <StaffCell layout="tiles" r={r} team={team} actor={actor} patchRow={patchRow} notify={notify} />
                         </td>
                         <td className="min-w-[220px] px-3 py-1.5 align-top">
-                          <ActionButtons compact actions={getActions(r, actor)} onRun={(a) => runAction(r, a)} />
+                          <div className="flex flex-wrap items-center gap-2">
+                            {checkState && canAnswer ? (
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-center rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-black transition hover:bg-zinc-200 active:scale-[0.98]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPublishCheckFor(r.id);
+                                }}
+                              >
+                                {checkState === 'waiting_manager' ? 'Decide' : 'Answer'}
+                              </button>
+                            ) : null}
+                            <ActionButtons compact actions={getActions(r, actor)} onRun={(a) => runAction(r, a)} />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -2169,7 +2264,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                 })()}
               </tbody>
             </table>
-            {visible.length === 0 ? (
+            {rundownRows.length === 0 ? (
               <div className="px-6 py-16 text-center">
                 <div className="text-[15px] font-medium text-zinc-300">Nothing scheduled</div>
                 <p className="mt-1 text-[13px] text-zinc-600">Pick another date or add new content.</p>
@@ -2179,35 +2274,47 @@ function NewsroomApp({ authUser, onSignOut }) {
         ) : null}
 
         {pcView === 'cards' ? (
-          visible.length === 0 ? (
+          rundownRows.length === 0 ? (
             <div className="hidden md:block rounded-2xl border border-white/[0.08] bg-[#121215] px-6 py-16 text-center">
               <div className="text-[15px] font-medium text-zinc-300">Nothing scheduled</div>
               <p className="mt-1 text-[13px] text-zinc-600">Pick another date or add new content.</p>
             </div>
           ) : (
             <div className="hidden md:grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-4">
-              {pcCardRows.map((r) => (
-                <PhoneCard
-                  key={r.id}
-                  r={r}
-                  range={range}
-                  team={team}
-                  actor={actor}
-                  patchRow={patchRow}
-                  notify={notify}
-                  onOpen={setSelectedId}
-                  onRun={runAction}
-                  channelLabel={r.channel || 'No channel'}
-                  ads={adsByContent[String(r.id)] || []}
-                />
-              ))}
+              {pcCardRows.map((r) => {
+                const isPinned = pinnedIds.has(r.id);
+                const checkState = isPinned ? publishCheckState(r, nowTick) : null;
+                const canAnswer = checkState ? canAnswerPublishCheckNow(actor, r, nowTick) : false;
+                const flash = checkState === 'unanswered' && !!r.publisher && r.publisher === actor.full_name;
+                const showDate = isPinned && pinnedDateFlag(r);
+                return (
+                  <PhoneCard
+                    key={r.id}
+                    r={r}
+                    range={range}
+                    team={team}
+                    actor={actor}
+                    patchRow={patchRow}
+                    notify={notify}
+                    onOpen={setSelectedId}
+                    onRun={runAction}
+                    channelLabel={r.channel || 'No channel'}
+                    ads={adsByContent[String(r.id)] || []}
+                    checkState={checkState}
+                    flash={flash}
+                    canAnswer={canAnswer}
+                    onAnswerCheck={(row) => setPublishCheckFor(row.id)}
+                    showDate={showDate}
+                  />
+                );
+              })}
             </div>
           )
         ) : null}
 
         {/* Mobile View for Rundown */}
         <div className="md:hidden mb-8">
-          {visible.length === 0 ? (
+          {rundownRows.length === 0 ? (
             <div className="px-6 py-16 text-center rounded-2xl border border-white/[0.08] bg-[#121215]">
               <div className="text-[15px] font-medium text-zinc-300">Nothing scheduled</div>
               <p className="mt-1 text-[13px] text-zinc-600">Pick another date or add new content.</p>
@@ -2253,6 +2360,11 @@ function NewsroomApp({ authUser, onSignOut }) {
                             )}
                           </svg>
                           <span className="text-[15px] font-bold flex-1 truncate">{group.header.name}</span>
+                          {group.header.pinnedCount > 0 ? (
+                            <span className="rounded-full bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 text-[11px] font-bold">
+                              {group.header.pinnedCount} to answer
+                            </span>
+                          ) : null}
                           <span className="chan-band-count rounded-full px-2.5 py-0.5 text-[13px] font-bold">{group.header.count}</span>
                         </button>
                       ) : null}
@@ -2261,6 +2373,11 @@ function NewsroomApp({ authUser, onSignOut }) {
                         phoneView === 'list' ? (
                           <div className={`${group.header ? 'rounded-b-xl border-t-0' : 'rounded-xl'} border border-white/[0.14] bg-[#121215] overflow-hidden`}>
                             {group.rows.map((r, idx) => {
+                              const isPinned = pinnedIds.has(r.id);
+                              const checkState = isPinned ? publishCheckState(r, nowTick) : null;
+                              const canAnswer = checkState ? canAnswerPublishCheckNow(actor, r, nowTick) : false;
+                              const flash = checkState === 'unanswered' && !!r.publisher && r.publisher === actor.full_name;
+                              const showDate = isPinned && pinnedDateFlag(r);
                               if (expandedId === r.id) {
                                 return (
                                   <div key={r.id} className="my-2 mx-2">
@@ -2275,6 +2392,11 @@ function NewsroomApp({ authUser, onSignOut }) {
                                       onRun={runAction}
                                       onCollapse={() => setExpandedId(null)}
                                       ads={adsByContent[String(r.id)] || []}
+                                      checkState={checkState}
+                                      flash={flash}
+                                      canAnswer={canAnswer}
+                                      onAnswerCheck={(row) => setPublishCheckFor(row.id)}
+                                      showDate={showDate}
                                     />
                                   </div>
                                 );
@@ -2287,26 +2409,41 @@ function NewsroomApp({ authUser, onSignOut }) {
                                   alt={idx % 2 === 1}
                                   onToggle={() => setExpandedId(r.id)}
                                   ads={adsByContent[String(r.id)] || []}
+                                  checkState={checkState}
+                                  flash={flash}
+                                  showDate={showDate}
                                 />
                               );
                             })}
                           </div>
                         ) : (
                           <div className={`flex flex-col gap-3.5 ${group.header ? 'mt-3' : ''}`}>
-                            {group.rows.map((r) => (
-                              <PhoneCard
-                                key={r.id}
-                                r={r}
-                                range={range}
-                                team={team}
-                                actor={actor}
-                                patchRow={patchRow}
-                                notify={notify}
-                                onOpen={setSelectedId}
-                                onRun={runAction}
-                                ads={adsByContent[String(r.id)] || []}
-                              />
-                            ))}
+                            {group.rows.map((r) => {
+                              const isPinned = pinnedIds.has(r.id);
+                              const checkState = isPinned ? publishCheckState(r, nowTick) : null;
+                              const canAnswer = checkState ? canAnswerPublishCheckNow(actor, r, nowTick) : false;
+                              const flash = checkState === 'unanswered' && !!r.publisher && r.publisher === actor.full_name;
+                              const showDate = isPinned && pinnedDateFlag(r);
+                              return (
+                                <PhoneCard
+                                  key={r.id}
+                                  r={r}
+                                  range={range}
+                                  team={team}
+                                  actor={actor}
+                                  patchRow={patchRow}
+                                  notify={notify}
+                                  onOpen={setSelectedId}
+                                  onRun={runAction}
+                                  ads={adsByContent[String(r.id)] || []}
+                                  checkState={checkState}
+                                  flash={flash}
+                                  canAnswer={canAnswer}
+                                  onAnswerCheck={(row) => setPublishCheckFor(row.id)}
+                                  showDate={showDate}
+                                />
+                              );
+                            })}
                           </div>
                         )
                       ) : null}

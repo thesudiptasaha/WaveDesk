@@ -34,9 +34,9 @@ export function ShortNote({ r, range }) {
   );
 }
 
-export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel, ads }) {
+export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel, ads, checkState, flash, canAnswer, onAnswerCheck, showDate }) {
   const endEx = addDays(range.end, 1);
-  const tIso = rowTimeIn(r, range.start, endEx);
+  const tIso = showDate ? r.scheduled_publish_time : rowTimeIn(r, range.start, endEx);
   const t = formatTime(tIso);
   const spaceIdx = t.indexOf(' ');
   const clock = spaceIdx === -1 ? t : t.slice(0, spaceIdx);
@@ -55,8 +55,9 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
             <div className="flex items-baseline">
               <span className="text-[22px] font-bold tracking-tight tabular-nums text-sky-400">{clock}</span>
               {ampm ? <span className="ml-1 text-[11px] font-semibold text-zinc-500">{ampm}</span> : null}
+              {showDate ? <span className="ml-2 text-[12px] font-normal text-zinc-400">{formatDay(tIso)}</span> : null}
             </div>
-            {isMultiDay ? <div className="text-[11px] text-zinc-500">{formatDay(tIso)}</div> : null}
+            {!showDate && isMultiDay ? <div className="text-[11px] text-zinc-500">{formatDay(tIso)}</div> : null}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <TypeBox type={r.content_type} />
@@ -102,7 +103,27 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.08] bg-white/[0.03] py-2 pl-[22px] pr-3">
-        <StatusBadge status={r.status} removed={isRemovedPublished(r)} />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={r.status} removed={isRemovedPublished(r)} flash={flash} />
+          {checkState === 'unanswered' ? (
+            <span className="text-[11px] font-medium text-red-400">Waiting for answer</span>
+          ) : checkState === 'waiting_manager' ? (
+            <span className="text-[11px] font-medium text-amber-400">Waiting for Manager</span>
+          ) : null}
+          {checkState && canAnswer ? (
+            <button
+              type="button"
+              className="inline-flex min-h-[44px] sm:min-h-0 items-center justify-center rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-black transition hover:bg-zinc-200 active:scale-[0.98]"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onAnswerCheck) onAnswerCheck(r);
+              }}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              {checkState === 'waiting_manager' ? 'Decide' : 'Answer'}
+            </button>
+          ) : null}
+        </div>
         <div className="flex flex-wrap items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           <ActionButtons compact actions={getActions(r, actor).slice(0, 2)} onRun={(a) => onRun && onRun(r, a)} />
         </div>
@@ -111,9 +132,9 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
   );
 }
 
-export function PhoneRow({ r, range, alt, onToggle, ads }) {
+export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, showDate }) {
   const endEx = addDays(range.end, 1);
-  const tIso = rowTimeIn(r, range.start, endEx);
+  const tIso = showDate ? r.scheduled_publish_time : rowTimeIn(r, range.start, endEx);
   const t = formatTime(tIso);
   const spaceIdx = t.indexOf(' ');
   const clock = spaceIdx === -1 ? t : t.slice(0, spaceIdx);
@@ -127,6 +148,7 @@ export function PhoneRow({ r, range, alt, onToggle, ads }) {
   }
 
   const handleKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       if (onToggle) onToggle();
@@ -142,8 +164,11 @@ export function PhoneRow({ r, range, alt, onToggle, ads }) {
       className={`relative flex min-h-[56px] items-stretch border-b border-white/[0.14] cursor-pointer ${alt ? 'rd-alt' : ''}`}
     >
       <div className={`w-1.5 shrink-0 ${STATUS_META[r.status]?.dot || 'bg-zinc-500'}`} />
-      <div className="w-[58px] shrink-0 flex flex-col justify-center pl-2.5">
-        <span className="text-[14px] font-bold tabular-nums text-sky-400 leading-none">{clock}</span>
+      <div className={`${showDate ? 'w-[76px]' : 'w-[58px]'} shrink-0 flex flex-col justify-center pl-2.5`}>
+        <div className="flex items-baseline gap-1">
+          <span className="text-[14px] font-bold tabular-nums text-sky-400 leading-none">{clock}</span>
+          {showDate ? <span className="text-[9.5px] text-zinc-400 leading-tight">{formatDay(tIso)}</span> : null}
+        </div>
         {ampm ? <span className="text-[9.5px] font-semibold text-zinc-500 leading-tight mt-0.5">{ampm}</span> : null}
       </div>
       <div className="flex-1 min-w-0 py-1.5 pr-1 flex flex-col justify-center">
@@ -154,7 +179,12 @@ export function PhoneRow({ r, range, alt, onToggle, ads }) {
           <TypeBox type={r.content_type} small />
           <IdBox uid={r.content_uid} small />
           <AdBadge ads={ads} small />
-          <StatusBadge status={r.status} removed={isRemovedPublished(r)} />
+          <StatusBadge status={r.status} removed={isRemovedPublished(r)} flash={flash} />
+          {checkState === 'unanswered' ? (
+            <span className="text-[10.5px] font-medium text-red-400">Waiting for answer</span>
+          ) : checkState === 'waiting_manager' ? (
+            <span className="text-[10.5px] font-medium text-amber-400">Waiting for Manager</span>
+          ) : null}
           {n > 0 ? <span className="text-[10.5px] font-bold text-amber-500">{n} to assign</span> : null}
         </div>
         <ShortNote r={r} range={range} />

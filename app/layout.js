@@ -75,10 +75,25 @@ const globalCss = `
     background-color: #16a34a;
     color: #ffffff;
   }
+  @keyframes pillAlert {
+    0%, 100% {
+      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.65), 0 0 10px rgba(239, 68, 68, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.65), 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+  }
+  .pill-alert {
+    animation: pillAlert 1.1s ease-in-out infinite;
+  }
   @media (prefers-reduced-motion: reduce) {
     .play-glow {
       animation: none !important;
       box-shadow: 0 0 10px rgba(34, 197, 94, 0.5) !important;
+    }
+    .pill-alert {
+      animation: none !important;
+      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.8), 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
     }
   }
   input, textarea, select, button { font-family: inherit; letter-spacing: inherit; }
@@ -546,10 +561,25 @@ const lightCss = `
     background-color: #384a1b;
     color: #ffffff;
   }
+  @keyframes pillAlertLight {
+    0%, 100% {
+      box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.7), 0 0 10px rgba(220, 38, 38, 0.45);
+    }
+    50% {
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.7), 0 0 10px rgba(37, 99, 235, 0.45);
+    }
+  }
+  html.light .pill-alert {
+    animation: pillAlertLight 1.1s ease-in-out infinite;
+  }
   @media (prefers-reduced-motion: reduce) {
     html.light .play-glow {
       animation: none !important;
       box-shadow: 0 0 10px rgba(70, 90, 34, 0.35) !important;
+    }
+    html.light .pill-alert {
+      animation: none !important;
+      box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.8), 0 0 0 2px rgba(37, 99, 235, 0.8) !important;
     }
   }
 
