@@ -393,6 +393,19 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 ## ১ নভেম্বর ২০২৬ (N131)
 - a shared searchable name picker (PersonPicker) with photo cards replaces the plain name dropdowns in the drawer crew tiles, the rundown rows, New Content and Bulk Schedule; Owner and Manager appear in a role's list only when they hold that role's tick; a person already assigned stays visible as "Currently assigned"; External people carry an EXTERNAL chip; New Content pre-fills Concept Creator and Writer with the signed-in user only when that user holds the matching role tick.
 
+## ১ নভেম্বর ২০২৬ (N132)
+- **ড্রয়ারের স্টেপ বার, সবুজ গ্লো ও Post-production ট্যাব (১ নভেম্বর ২০২৬, N132):**
+  - **নতুন শেয়ার্ড কম্পোনেন্ট StepBar (`components/ui/StepBar.js`):** ড্রয়ারের ট্যাব নেভিগেশনে নতুন `StepBar` ব্যবহার করা হয়েছে। ড্রয়ারের ট্যাব এখন ৬টি: Editorial, Production, Post-production, Publish, QC & Audit, Credits।
+  - **স্বয়ংক্রিয় সবুজ গ্লো (Automatic Green Glow):** সম্পন্ন হওয়া পাইপলাইন ধাপে ট্যাবের টেক্সট ও আন্ডারলাইনে সবুজ গ্লো (`text-emerald-400`, `textShadow`, `boxShadow`) ফুটে ওঠে। এটি সম্পূর্ণ স্বয়ংক্রিয় এবং `lib/core.js`-এর `stepProgress(row)` দ্বারা স্ট্যাটাস, হিস্ট্রি, `shoot_finished_at`, `published_at` ও `went_live_at` থেকে গণনা করা হয়; কেউ হাতে টিক দেয় না।
+  - **ধাপের নিয়মাবলী:**
+    - **Editorial:** স্ক্রিপ্ট অনুমোদিত হলে (`AFTER_SCRIPT` স্ট্যাটাস)।
+    - **Production:** শুট সম্পন্ন হলে (`shoot_finished_at` থাকলে; LIVE-এর জন্য কখনোই নয়; PACKAGE-এর জন্য শুধুমাত্র `shoot_finished_at` থাকলে অথবা এর পরের স্ট্যাটাসে পৌঁছালে)। `Re-Shoot`-এ থাকলে Production-এর গ্লো মুছে যায়।
+    - **Post-production:** `Ready to Publish` বা তার পরের ধাপে পৌঁছালে (LIVE-এর জন্য নয়)।
+    - **Publish:** `Published` হলে।
+    - **QC & Audit** এবং **Credits** কখনোই গ্লো হয় না।
+    - **On Hold / Dropped:** অতীতে যেসব ধাপে কনটেন্টটি সত্যি পৌঁছেছিল (`row.history` বিশ্লেষণ করে) সেগুলোর গ্লো বহাল থাকে।
+  - **Post-production ট্যাব (`PostProductionTab`):** বাঁ কলামে Editing crew (Lead Editor, Co-Editor, Graphics Designer, Colorist, Sound Designer; `ROLE_LIST`-এর পোস্ট রোল) এবং ডান কলামে রিড-অনলি "Files from Production" কার্ড যা ডেলিভার্ড ড্রাইভ ফোল্ডার চিপ, রেফারেন্স ফাইল লিংক ও প্রোডাকশন নোটস প্রদর্শন করে। এডিটিং টিমের "Received" ও "Problem" বোতামগুলো পরবর্তী কাজের জন্য স্থগিত (এখনও তৈরি হয়নি)।
+
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
 - **Employee Report (ও অন্য রিপোর্ট) পপ-আপ হিসেবে খোলা (মালিকের পর্যবেক্ষণ):** কোন কোন রিপোর্ট ও কীভাবে তা মালিক জানাবেন; লঞ্চের পরে।

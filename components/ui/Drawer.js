@@ -14,6 +14,7 @@ const ScriptEditor = dynamic(() => import('./ScriptEditor'), { ssr: false });
 import { StatusBadge, TypeBadge, RoleBadge, DesignationPill } from './Badges';
 import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, FullScreenCard, Toggle, ActionButtons, ConfirmDialog } from './Shared';
 import { PersonPicker } from './PersonPicker';
+import { StepBar } from './StepBar';
 import {
   DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, PLATFORMS, PERMISSIONS, ROLE_LABEL,
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
@@ -23,7 +24,7 @@ import {
   FIELD_PERM, TRACKED_FIELDS, eligibleMembers, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
   GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes,
   canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES,
-  AD_TYPES, AD_STATUSES, canEditAds
+  AD_TYPES, AD_STATUSES, canEditAds, stepProgress
 } from '../../lib/core';
 
 
@@ -1175,6 +1176,56 @@ function ProductionTab({ row, actor, team, patch }) {
   );
 }
 
+function FilesDeliveredStatus({ row }) {
+  const isLive = row.content_type === 'LIVE';
+  const isDelivered = Boolean(row.files_delivered_at);
+
+  return (
+    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          Files from Production
+        </span>
+      </div>
+      {isLive ? (
+        <p className="text-[13px] text-zinc-400">No editing for LIVE content.</p>
+      ) : isDelivered ? (
+        <div className="space-y-1">
+          <p className="text-[13px] text-zinc-200">
+            Delivered by {row.files_delivered_by} · {formatStamp(row.files_delivered_at)}
+          </p>
+          {row.content_uid ? (
+            <p className="font-mono text-[12px] text-zinc-500 select-all">
+              {row.content_uid}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <div>
+          <p className="text-[13px] text-zinc-300">Not delivered yet</p>
+          <p className="mt-1 text-[12px] text-zinc-500">
+            Production ticks Files delivered in the Production tab.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PostProductionTab({ row, actor, team, patch }) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <div>
+        <StaffAssignment groups={['post']} row={row} actor={actor} team={team} patch={patch} title="Editing crew" />
+      </div>
+      <div className="space-y-4">
+        <div className="hidden lg:block h-[27px]" aria-hidden="true" />
+        <FilesDeliveredStatus row={row} />
+      </div>
+    </div>
+  );
+}
+
 function PackagingTab({ row, actor, team = [], patch, platforms = PLATFORMS, onAddPlatform }) {
   const active = !!actor && actor.active !== false;
   const ok = can(actor, 'can_edit_content_details');
@@ -2259,12 +2310,14 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   const dangerActions = ['hold', 'drop']
     .map((id) => actions.find((a) => a.id === id))
     .filter(Boolean);
+  const prog = stepProgress(row);
   const tabs = [
-    ['editorial', 'Editorial'],
-    ['production', 'Production'],
-    ['packaging', 'Publish'],
-    ['qc', 'QC & Audit'],
-    ['credits', 'Credits'],
+    { id: 'editorial', label: 'Editorial', done: prog.editorial },
+    { id: 'production', label: 'Production', done: prog.production },
+    { id: 'postproduction', label: 'Post-production', done: prog.post },
+    { id: 'packaging', label: 'Publish', done: prog.publish },
+    { id: 'qc', label: 'QC & Audit', done: false },
+    { id: 'credits', label: 'Credits', done: false },
   ];
   const publishedLinks = getPublishedLinks(row);
   const validLinkEntries = Object.entries(publishedLinks).filter(([_, u]) => safeHttpUrl(u));
@@ -2370,20 +2423,14 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             </div>
           ) : null}
           <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-            <nav className="-mb-px flex gap-1 overflow-x-auto">
-              {tabs.map(([id, label]) => (
-                <button
-                  key={id}
-                  onClick={() => {
-                    setTab(id);
-                    setDetailsOpen(id === 'editorial');
-                  }}
-                  className={`whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition ${tab === id ? 'border-sky-400 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
+            <StepBar
+              tabs={tabs}
+              active={tab}
+              onSelect={(id) => {
+                setTab(id);
+                setDetailsOpen(id === 'editorial');
+              }}
+            />
             {hasPublishedLinks ? (
               <div className="hidden lg:flex flex-wrap items-center gap-1.5 pb-1">
                 {renderPublishedLinks()}
@@ -2429,6 +2476,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
               </>
             ) : null}
             {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
+            {tab === 'postproduction' ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
             {tab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
             {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
             {tab === 'credits' ? <CreditsTab row={row} actor={actor} team={team} patch={patch} /> : null}
