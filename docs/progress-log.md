@@ -406,6 +406,15 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
     - **On Hold / Dropped:** অতীতে যেসব ধাপে কনটেন্টটি সত্যি পৌঁছেছিল (`row.history` বিশ্লেষণ করে) সেগুলোর গ্লো বহাল থাকে।
   - **Post-production ট্যাব (`PostProductionTab`):** বাঁ কলামে Editing crew (Lead Editor, Co-Editor, Graphics Designer, Colorist, Sound Designer; `ROLE_LIST`-এর পোস্ট রোল) এবং ডান কলামে রিড-অনলি "Files from Production" কার্ড যা ডেলিভার্ড ড্রাইভ ফোল্ডার চিপ, রেফারেন্স ফাইল লিংক ও প্রোডাকশন নোটস প্রদর্শন করে। এডিটিং টিমের "Received" ও "Problem" বোতামগুলো পরবর্তী কাজের জন্য স্থগিত (এখনও তৈরি হয়নি)।
 
+## ৭ নভেম্বর ২০২৬ (N133)
+- **Post-production Received / Problem বোতাম, Production-এ Problem fixed ও ডিফল্ট এডিটিং ক্রু ফিল (৭ নভেম্বর ২০২৬, N133):**
+  - **Post-production ট্যাবে Received ও Problem বোতাম (`components/ui/Drawer.js`):** Files delivered সম্পন্ন হলে Post-production ট্যাবের "Files from Production" কার্ডে "Received" (সবুজ) ও "Problem" (লাল টেক্সট) বোতাম দৃশ্যমান হয় (অ্যাসাইন করা Video Editor বা Manager-দের জন্য); Received শুধুমাত্র একটি মার্ক এবং এটি কনটেন্টের স্ট্যাটাস পরিবর্তন করে না; Manager-রা প্রয়োজনে কারণসহ Received Undo করতে পারেন; Problem চাপলে মোডাল খোলে এবং কারণ বাধ্যতামূলক থাকে (সেভ হলে Received মুছে যায় এবং ডেলিভারিকারি, প্রযোজক ও প্রোডাকশন ম্যানেজারকে নোটিফিকেশন পাঠায়; প্রোডাকশন ফিক্স না করা পর্যন্ত অপেক্ষা বার্তা থাকে)।
+  - **Production ট্যাবে "Problem fixed" বোতাম:** ফাইলে কোনো সমস্যা রিপোর্ট করা থাকলে Production ট্যাবের Files কার্ডে লাল প্যানেলে সমস্যা ও নোট প্রদর্শিত হয় এবং Production ক্রু বা Manager-দের জন্য "Problem fixed" বোতাম থাকে; ফিক্স মার্ক করলে Video Editor-কে নোটিফিকেশন পাঠায়।
+  - **এডিটিং ক্রুর স্বয়ংক্রিয় ডিফল্ট ফিল (Default fill):** নন-LIVE কনটেন্টে Video Editor অ্যাসাইন বা পরিবর্তন হলে ডাটাবেস ট্রিগার স্বয়ংক্রিয়ভাবে ফাঁকা `motion_graphics_designer`, `graphic_designer`, `colorist`, `audio_mixer` স্লটগুলো একই এডিটরের নাম দিয়ে পূরণ করে; পুরনো এডিটরের নাম থাকলে তা নতুন এডিটরে স্থানান্তরিত হয়, তবে একই সেভে হাতে পরিবর্তন করা স্লট অপরিবর্তিত থাকে।
+  - **নোটিফিকেশন ফিল্টার:** ডিফল্ট ফিল হওয়া স্লটগুলোর জন্য অতিরিক্ত "assigned as" নোটিফিকেশন পাঠানো বন্ধ রাখা হয়েছে (ট্রানজ্যাকশন সেটিং `nw.post_fill` পড়ে `notify_content_update` সেগুলো বাদ দেয়)।
+  - **ডাটাবেস মাইগ্রেশন (`sql/2026-11-07_post_production.sql`):** ৭ নভেম্বর ২০২৬ লাইভে চালিত; ৫টি নতুন কলাম (`files_received_at`, `files_received_by`, `files_problem_at`, `files_problem_by`, `files_problem_note`), ট্রিগার `contents_post_production` ও `notify_content_update` ফাংশন আপডেট।
+  - **পরিচিত ফাঁক (Known gap):** নতুন কনটেন্ট তৈরির সময় (যেমন Bulk schedule) শুরুতেই Video Editor বসানো থাকলে এই ডিফল্ট ফিল কার্যকর হয় না (শুধুমাত্র UPDATE-এ কার্যকর)।
+
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
 - **Employee Report (ও অন্য রিপোর্ট) পপ-আপ হিসেবে খোলা (মালিকের পর্যবেক্ষণ):** কোন কোন রিপোর্ট ও কীভাবে তা মালিক জানাবেন; লঞ্চের পরে।

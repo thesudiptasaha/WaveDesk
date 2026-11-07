@@ -24,7 +24,8 @@ import {
   FIELD_PERM, TRACKED_FIELDS, eligibleMembers, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
   GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes,
   canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES,
-  AD_TYPES, AD_STATUSES, canEditAds, stepProgress
+  AD_TYPES, AD_STATUSES, canEditAds, stepProgress,
+  canMarkFilesReceived, canFixFilesProblem
 } from '../../lib/core';
 
 
@@ -1009,6 +1010,31 @@ function FilesDeliveredCard({ row, actor, patch }) {
     }
   };
 
+  const [fixingProblem, setFixingProblem] = useState(false);
+  const canFix = canFixFilesProblem(actor, row);
+
+  const handleFixProblem = async () => {
+    if (!canFix || fixingProblem) return;
+    setFixingProblem(true);
+    try {
+      await patch({ files_problem_at: null });
+    } finally {
+      setFixingProblem(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showUndoModal) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setShowUndoModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [showUndoModal]);
+
   const canEditNotes = canEditProductionNotes(actor);
   const lockMsgNotes = 'Only the Camera Operator, Data Wrangler, Producer, Production Manager or a Manager can edit production notes';
 
@@ -1063,7 +1089,8 @@ function FilesDeliveredCard({ row, actor, patch }) {
             ) : null}
           </div>
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-3">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-3">
             <div className="flex items-center gap-2.5">
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
                 <Icon name="check" className="h-4 w-4" strokeWidth={2.5} />
@@ -1074,6 +1101,11 @@ function FilesDeliveredCard({ row, actor, patch }) {
                 </div>
                 <div className="text-[12px] text-zinc-400">
                   {row.files_delivered_at ? formatStamp(row.files_delivered_at) : ''}
+                  {row.files_received_at ? (
+                    <div className="mt-1 text-emerald-400/90">
+                      Received by {row.files_received_by || 'Unknown'} · {formatStamp(row.files_received_at)}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1090,7 +1122,36 @@ function FilesDeliveredCard({ row, actor, patch }) {
               </button>
             ) : null}
           </div>
-        )}
+
+          {row.files_problem_at ? (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/[0.05] p-3 space-y-2">
+              <div className="text-[13px] font-medium text-red-300">
+                Problem reported by {row.files_problem_by || 'Unknown'} · {formatStamp(row.files_problem_at)}
+              </div>
+              {row.files_problem_note ? (
+                <p className="text-[13px] text-zinc-200 whitespace-pre-wrap select-text">
+                  {row.files_problem_note}
+                </p>
+              ) : null}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  className={`${btnPrimary} min-h-[44px] w-full sm:w-auto px-5 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  disabled={!canFix || fixingProblem}
+                  onClick={handleFixProblem}
+                >
+                  {fixingProblem ? 'Saving…' : 'Problem fixed'}
+                </button>
+                {!canFix ? (
+                  <p className="mt-1.5 text-[12px] text-zinc-500">
+                    Only Production or a Manager can mark it fixed
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
 
         <div className="pt-2 border-t border-white/[0.06] space-y-1.5">
           <Field label="Production notes" locked={!canEditNotes} lockMessage={lockMsgNotes}>
@@ -1176,9 +1237,86 @@ function ProductionTab({ row, actor, team, patch }) {
   );
 }
 
-function FilesDeliveredStatus({ row }) {
+function FilesDeliveredStatus({ row, actor, patch }) {
+  const [receiving, setReceiving] = useState(false);
+  const [showProblemModal, setShowProblemModal] = useState(false);
+  const [problemText, setProblemText] = useState('');
+  const [problemBusy, setProblemBusy] = useState(false);
+  const [showUndoModal, setShowUndoModal] = useState(false);
+  const [undoReason, setUndoReason] = useState('');
+  const [undoBusy, setUndoBusy] = useState(false);
+
+  useEffect(() => {
+    if (!showProblemModal && !showUndoModal) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        if (showProblemModal) setShowProblemModal(false);
+        else if (showUndoModal) setShowUndoModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [showProblemModal, showUndoModal]);
+
   const isLive = row.content_type === 'LIVE';
   const isDelivered = Boolean(row.files_delivered_at);
+  const canMark = canMarkFilesReceived(actor, row);
+
+  const handleReceived = async () => {
+    if (!canMark || receiving) return;
+    setReceiving(true);
+    try {
+      await patch({ files_received_at: new Date().toISOString() });
+    } finally {
+      setReceiving(false);
+    }
+  };
+
+  const problemValid = problemText.trim().length >= 3;
+  const handleSendProblem = async () => {
+    if (!problemValid || problemBusy) return;
+    setProblemBusy(true);
+    try {
+      await patch({
+        files_problem_at: new Date().toISOString(),
+        files_problem_note: problemText.trim(),
+      });
+      setShowProblemModal(false);
+      setProblemText('');
+    } finally {
+      setProblemBusy(false);
+    }
+  };
+
+  const undoValid = undoReason.trim().length >= 3;
+  const handleUndoConfirm = async () => {
+    if (!undoValid || undoBusy) return;
+    setUndoBusy(true);
+    try {
+      const prevAudit = Array.isArray(row.audit_log) ? row.audit_log : [];
+      await patch({
+        files_received_at: null,
+        audit_log: [
+          ...prevAudit,
+          {
+            kind: 'change',
+            field: 'Files',
+            from: 'Received',
+            to: 'Undone',
+            actor: actor.full_name,
+            role: actor.role,
+            time: new Date().toISOString(),
+            note: undoReason.trim(),
+          },
+        ],
+      });
+      setShowUndoModal(false);
+      setUndoReason('');
+    } finally {
+      setUndoBusy(false);
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
@@ -1189,11 +1327,63 @@ function FilesDeliveredStatus({ row }) {
       </div>
       {isLive ? (
         <p className="text-[13px] text-zinc-400">No editing for LIVE content.</p>
-      ) : isDelivered ? (
-        <div className="space-y-1">
-          <p className="text-[13px] text-zinc-200">
-            Delivered by {row.files_delivered_by} · {formatStamp(row.files_delivered_at)}
+      ) : !isDelivered ? (
+        <div>
+          <p className="text-[13px] text-zinc-300">Not delivered yet</p>
+          <p className="mt-1 text-[12px] text-zinc-500">
+            Production ticks Files delivered in the Production tab.
           </p>
+        </div>
+      ) : row.files_problem_at ? (
+        <div className="space-y-3">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/[0.05] p-3 space-y-2">
+            <div className="text-[13px] font-medium text-red-300">
+              Problem reported by {row.files_problem_by || 'Unknown'} · {row.files_problem_at ? formatStamp(row.files_problem_at) : ''}
+            </div>
+            {row.files_problem_note ? (
+              <p className="text-[13px] text-zinc-200 whitespace-pre-wrap select-text">
+                {row.files_problem_note}
+              </p>
+            ) : null}
+            <p className="text-[12px] text-zinc-500">
+              Waiting for Production to mark it fixed
+            </p>
+          </div>
+          {row.content_uid ? (
+            <p className="font-mono text-[12px] text-zinc-500 select-all">
+              {row.content_uid}
+            </p>
+          ) : null}
+        </div>
+      ) : row.files_received_at ? (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+                <Icon name="check" className="h-4 w-4" strokeWidth={2.5} />
+              </span>
+              <div className="text-[13px]">
+                <div className="font-medium text-emerald-200">
+                  Received by {row.files_received_by || 'Unknown'} · {row.files_received_at ? formatStamp(row.files_received_at) : ''}
+                </div>
+                <div className="text-[12px] text-zinc-400">
+                  Delivered by {row.files_delivered_by || 'Unknown'} · {row.files_delivered_at ? formatStamp(row.files_delivered_at) : ''}
+                </div>
+              </div>
+            </div>
+            {isManager(actor) ? (
+              <button
+                type="button"
+                className={`${btnGhost} !px-3 !py-1 text-[12px] min-h-[44px] sm:min-h-0 text-zinc-300 hover:text-white`}
+                onClick={() => {
+                  setUndoReason('');
+                  setShowUndoModal(true);
+                }}
+              >
+                Undo
+              </button>
+            ) : null}
+          </div>
           {row.content_uid ? (
             <p className="font-mono text-[12px] text-zinc-500 select-all">
               {row.content_uid}
@@ -1201,13 +1391,142 @@ function FilesDeliveredStatus({ row }) {
           ) : null}
         </div>
       ) : (
-        <div>
-          <p className="text-[13px] text-zinc-300">Not delivered yet</p>
-          <p className="mt-1 text-[12px] text-zinc-500">
-            Production ticks Files delivered in the Production tab.
-          </p>
+        <div className="space-y-3">
+          <div>
+            <p className="text-[13px] text-zinc-200">
+              Delivered by {row.files_delivered_by || 'Unknown'} · {row.files_delivered_at ? formatStamp(row.files_delivered_at) : ''}
+            </p>
+            {row.content_uid ? (
+              <p className="mt-1 font-mono text-[12px] text-zinc-500 select-all">
+                {row.content_uid}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-1.5 pt-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                className={`${btnPrimary} min-h-[44px] w-full sm:w-auto px-5 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                disabled={!canMark || receiving}
+                onClick={handleReceived}
+              >
+                {receiving ? 'Marking received…' : 'Received'}
+              </button>
+              <button
+                type="button"
+                className={`${btnGhost} !text-red-400 hover:!text-red-300 min-h-[44px] w-full sm:w-auto px-5 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                disabled={!canMark || receiving}
+                onClick={() => {
+                  setProblemText('');
+                  setShowProblemModal(true);
+                }}
+              >
+                Problem
+              </button>
+            </div>
+            {!canMark ? (
+              <p className="text-[12px] text-zinc-500">
+                Only the assigned Video Editor or a Manager can do this
+              </p>
+            ) : null}
+          </div>
         </div>
       )}
+
+      {showUndoModal ? (
+        <ModalShell
+          title="Undo files received?"
+          subtitle="This will clear the received stamp and allow files to be marked received again."
+          onClose={() => setShowUndoModal(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                className={`${btnGhost} min-h-[44px] sm:min-h-0`}
+                onClick={() => setShowUndoModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${btnDanger} min-h-[44px] sm:min-h-0`}
+                disabled={!undoValid || undoBusy}
+                onClick={handleUndoConfirm}
+              >
+                {undoBusy ? 'Saving…' : 'Save'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <p className="text-[14px] text-zinc-300">
+              Please enter a reason for undoing (at least 3 characters):
+            </p>
+            <input
+              autoFocus
+              type="text"
+              className={inputBase}
+              placeholder="Reason for undoing…"
+              value={undoReason}
+              onChange={(e) => setUndoReason(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && undoValid && !undoBusy) {
+                  e.preventDefault();
+                  handleUndoConfirm();
+                }
+              }}
+            />
+          </div>
+        </ModalShell>
+      ) : null}
+
+      {showProblemModal ? (
+        <ModalShell
+          title="Report a problem with files"
+          subtitle="Production will be notified to resolve the issue."
+          onClose={() => setShowProblemModal(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                className={`${btnGhost} min-h-[44px] sm:min-h-0`}
+                onClick={() => setShowProblemModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${btnDanger} min-h-[44px] sm:min-h-0`}
+                disabled={!problemValid || problemBusy}
+                onClick={handleSendProblem}
+              >
+                {problemBusy ? 'Sending…' : 'Send problem'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <label className="block text-[14px] text-zinc-300">
+              What is the problem?
+            </label>
+            <textarea
+              autoFocus
+              rows={4}
+              className={inputBase}
+              placeholder="Describe the problem with the files (at least 3 characters)…"
+              value={problemText}
+              onChange={(e) => setProblemText(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && problemValid && !problemBusy) {
+                  e.preventDefault();
+                  handleSendProblem();
+                }
+              }}
+            />
+          </div>
+        </ModalShell>
+      ) : null}
     </div>
   );
 }
@@ -1220,7 +1539,7 @@ function PostProductionTab({ row, actor, team, patch }) {
       </div>
       <div className="space-y-4">
         <div className="hidden lg:block h-[27px]" aria-hidden="true" />
-        <FilesDeliveredStatus row={row} />
+        <FilesDeliveredStatus row={row} actor={actor} patch={patch} />
       </div>
     </div>
   );
