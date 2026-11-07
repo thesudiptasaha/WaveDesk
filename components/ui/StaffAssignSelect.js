@@ -1,37 +1,52 @@
 'use client';
 
-import React from 'react';
-import { can, FIELD_PERM, presenterMembers, memberOptionLabel } from '../../lib/core';
+import React, { useState, useMemo } from 'react';
+import { can, FIELD_PERM, eligibleMembers, presenterMembers } from '../../lib/core';
 import { Avatar, PersonName } from './Shared';
+import { PersonPicker } from './PersonPicker';
 
-export function StaffAssignSelect({ value, names, placeholder, onChange, team }) {
-  const needsExtra = value && !names.includes(value);
-
+export function StaffAssignSelect({ value, names, placeholder, onChange, team, title }) {
+  const [open, setOpen] = useState(false);
   const stop = (e) => e.stopPropagation();
 
-  const labelOf = (n) => { const m = (team || []).find((x) => x.full_name === n); return m ? memberOptionLabel(m) : n; };
+  const member = value ? (team || []).find((m) => m.full_name === value) : null;
+  const label = member ? (member.nickname || member.full_name) : value;
+
+  const members = useMemo(() => {
+    return (names || []).map((n) => (team || []).find((m) => m.full_name === n) || { full_name: n });
+  }, [names, team]);
 
   return (
-    <select
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      onClick={stop}
-      onMouseDown={stop}
-      onKeyDown={stop}
-      className="text-[11px] rounded-md border border-white/10 bg-transparent px-1.5 py-0.5 text-zinc-300 outline-none w-full max-w-[150px] truncate transition focus:border-white/20 focus:bg-white/[0.03]"
-    >
-      <option value="" className="bg-[#121215]">{value ? '— Unassigned —' : placeholder}</option>
-      {needsExtra ? <option value={value} className="bg-[#121215]">{labelOf(value)}</option> : null}
-      {names.map((n) => (
-        <option key={n} value={n} className="bg-[#121215]">
-          {labelOf(n)}
-        </option>
-      ))}
-    </select>
+    <>
+      <button
+        type="button"
+        onClick={(e) => {
+          stop(e);
+          setOpen(true);
+        }}
+        onMouseDown={stop}
+        onKeyDown={stop}
+        className="text-[11px] rounded-md border border-white/10 bg-transparent px-1.5 py-0.5 text-zinc-300 outline-none w-full max-w-[150px] truncate transition focus:border-white/20 focus:bg-white/[0.03] text-left cursor-pointer"
+        title={label || placeholder}
+      >
+        <span className="truncate">{value ? label : placeholder}</span>
+      </button>
+      <PersonPicker
+        open={open}
+        onClose={() => setOpen(false)}
+        title={title || 'Select person'}
+        members={members}
+        value={value}
+        onSelect={onChange}
+        allowClear={true}
+        team={team}
+      />
+    </>
   );
 }
 
 function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow, notify }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   const actorCan = actor && actor.active !== false;
   const isEditable = actorCan && can(actor, FIELD_PERM[field]);
   const val = r[field];
@@ -46,11 +61,9 @@ function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow
 
   const stop = (e) => e.stopPropagation();
 
-  const needsExtra = val && !names.includes(val);
-  const labelOf = (n) => {
-    const m = (team || []).find((x) => x.full_name === n);
-    return m ? memberOptionLabel(m) : n;
-  };
+  const members = useMemo(() => {
+    return (names || []).map((n) => (team || []).find((m) => m.full_name === n) || { full_name: n });
+  }, [names, team]);
 
   return (
     <div
@@ -94,37 +107,36 @@ function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow
       </span>
 
       {isEditable ? (
-        <select
-          value={val || ''}
-          onChange={async (e) => {
-            e.stopPropagation();
-            const v = e.target.value;
-            const ok = await patchRow(r.id, { [field]: v });
-            if (ok && notify) {
-              notify(v ? `${label.replace(/:$/, '')} → ${v}` : `${label.replace(/:$/, '')} cleared`, 'success');
-            }
-          }}
-          onClick={stop}
-          onMouseDown={stop}
-          onKeyDown={stop}
-          aria-label={`${label}: ${val ? nickname : 'Unassigned'}`}
-          title={tileTitle}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus:outline-none"
-        >
-          <option value="" className="bg-[#121215]">
-            — Unassigned —
-          </option>
-          {needsExtra ? (
-            <option value={val} className="bg-[#121215]">
-              {labelOf(val)}
-            </option>
-          ) : null}
-          {names.map((n) => (
-            <option key={n} value={n} className="bg-[#121215]">
-              {labelOf(n)}
-            </option>
-          ))}
-        </select>
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              stop(e);
+              setPickerOpen(true);
+            }}
+            onMouseDown={stop}
+            onKeyDown={stop}
+            aria-haspopup="dialog"
+            aria-label={`${label}: ${val ? nickname : 'Unassigned'}`}
+            title={tileTitle}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus:outline-none"
+          />
+          <PersonPicker
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            title={`Select ${label}`}
+            members={members}
+            value={val}
+            onSelect={async (v) => {
+              const ok = await patchRow(r.id, { [field]: v });
+              if (ok && notify) {
+                notify(v ? `${label.replace(/:$/, '')} → ${v}` : `${label.replace(/:$/, '')} cleared`, 'success');
+              }
+            }}
+            allowClear={true}
+            team={team}
+          />
+        </>
       ) : null}
     </div>
   );
@@ -133,9 +145,9 @@ function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow
 export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }) {
   const actorCan = actor && actor.active !== false;
 
-  const writers = team.filter((t) => t.role_research_script_writer || t.role === 'owner' || t.role === 'manager').map((m) => m.full_name);
+  const writers = eligibleMembers(team, 'role_research_script_writer').map((m) => m.full_name);
   const presenters = presenterMembers(team).map((m) => m.full_name);
-  const editors = team.filter((t) => t.role_video_editor || t.role === 'owner' || t.role === 'manager').map((m) => m.full_name);
+  const editors = eligibleMembers(team, 'role_video_editor').map((m) => m.full_name);
 
   const renderLine = (field, label, names, colLabel = null, showEmpty = false) => {
     const isEditable = actorCan && can(actor, FIELD_PERM[field]);
@@ -148,6 +160,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
           value={val}
           names={names}
           placeholder="+ Assign"
+          title={`Select ${label.replace(/:$/, '')}`}
           onChange={async (v) => { const ok = await patchRow(r.id, { [field]: v }); if (ok && notify) notify(v ? `${label.replace(/:$/, '')} → ${v}` : `${label.replace(/:$/, '')} cleared`, 'success'); }}
           team={team}
         />

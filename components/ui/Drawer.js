@@ -13,17 +13,17 @@ import dynamic from 'next/dynamic';
 const ScriptEditor = dynamic(() => import('./ScriptEditor'), { ssr: false });
 import { StatusBadge, TypeBadge, RoleBadge, DesignationPill } from './Badges';
 import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, FullScreenCard, Toggle, ActionButtons, ConfirmDialog } from './Shared';
+import { PersonPicker } from './PersonPicker';
 import {
   DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, PLATFORMS, PERMISSIONS, ROLE_LABEL,
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
-  FIELD_PERM, TRACKED_FIELDS, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
+  FIELD_PERM, TRACKED_FIELDS, eligibleMembers, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
   GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes,
   canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES,
-  AD_TYPES, AD_STATUSES, canEditAds,
-  memberOptionLabel
+  AD_TYPES, AD_STATUSES, canEditAds
 } from '../../lib/core';
 
 
@@ -72,6 +72,7 @@ const STAFF_GROUPS = [
 ];
 
 function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   const active = !!actor && actor.active !== false;
   const isPresenter = field === 'presenter_name';
   const isCrew = GUARDED_ASSIGN_FIELDS.includes(field);
@@ -110,29 +111,19 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
     ? (member && member.designation ? `${member.full_name} (${member.designation})` : (member ? member.full_name : assignedName))
     : `Assign ${label}`;
 
-  let options = [];
-  let showUnassigned = true;
+  let pickerMembers = [];
+  let allowClear = true;
 
   if (isCrew && !isCrewAdmin) {
-    showUnassigned = isSelf;
-    options = actor ? [{ value: actor.full_name, label: memberOptionLabel(actor) }] : [];
+    allowClear = isSelf;
+    pickerMembers = actor ? [actor] : [];
   } else {
-    const eligibleMembers = isPresenter
+    pickerMembers = isPresenter
       ? presenterMembers(team)
-      : (team || []).filter((t) => !skillKey || t[skillKey] || t.role === 'owner' || t.role === 'manager');
-
-    options = eligibleMembers.map((m) => ({
-      value: m.full_name,
-      label: memberOptionLabel(m),
-    }));
-
-    if (assignedName && !eligibleMembers.some((m) => m.full_name === assignedName)) {
-      const extra = (team || []).find((m) => m.full_name === assignedName);
-      options.unshift({
-        value: assignedName,
-        label: extra ? memberOptionLabel(extra) : assignedName,
-      });
-    }
+      : skillKey
+      ? eligibleMembers(team, skillKey)
+      : (team || []).filter((t) => t.active !== false);
+    allowClear = true;
   }
 
   return (
@@ -174,28 +165,26 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
       </span>
 
       {!isLocked ? (
-        <select
-          value={assignedName || ''}
-          onChange={(e) => patch({ [field]: e.target.value })}
-          aria-label={`${label}: ${isAssigned ? nickname : 'Unassigned'}`}
-          title={tileTitle}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus:outline-none"
-        >
-          {showUnassigned ? (
-            <option value="" className="bg-[#121215]">
-              — Unassigned —
-            </option>
-          ) : (
-            <option value="" disabled hidden>
-              — Unassigned —
-            </option>
-          )}
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-[#121215]">
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <>
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            aria-haspopup="dialog"
+            aria-label={`${label}: ${isAssigned ? nickname : 'Unassigned'}`}
+            title={tileTitle}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus:outline-none"
+          />
+          <PersonPicker
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            title={`Select ${label}`}
+            members={pickerMembers}
+            value={assignedName}
+            onSelect={(v) => patch({ [field]: v })}
+            allowClear={allowClear}
+            team={team}
+          />
+        </>
       ) : null}
     </div>
   );

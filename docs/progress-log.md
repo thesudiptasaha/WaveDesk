@@ -390,6 +390,9 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
   - **টিম সীমানা:** টিম ব্যবস্থাপনা মোডাল (`TeamModal`), "My Work", লগইন এবং Acting As সুইচারে শুধুমাত্র আসল স্টাফ সদস্যরা (`staffTeam`) অন্তর্ভুক্ত থাকেন; বহিরাগতদের কোনো লগইন বা অ্যাপ অ্যাক্সেস থাকে না।
   - **ডাটাবেস মাইগ্রেশন (`sql/2026-11-01_external_members.sql`):** `team_members` টেবিলে `member_type` ও `external_note` কলাম, `team_members_external_rules` কনস্ট্রেইন্ট, প্রতিষ্ঠানের ভেতর পুরো নামের ইউনিক ইনডেক্স `team_members_name_unique`, `can_manage_externals()` ফাংশন, `team_members_insert_external` ইনসার্ট পলিসি এবং `guard_team_members` ট্রিগার আপডেট।
 
+## ১ নভেম্বর ২০২৬ (N131)
+- a shared searchable name picker (PersonPicker) with photo cards replaces the plain name dropdowns in the drawer crew tiles, the rundown rows, New Content and Bulk Schedule; Owner and Manager appear in a role's list only when they hold that role's tick; a person already assigned stays visible as "Currently assigned"; External people carry an EXTERNAL chip; New Content pre-fills Concept Creator and Writer with the signed-in user only when that user holds the matching role tick.
+
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
 - **Employee Report (ও অন্য রিপোর্ট) পপ-আপ হিসেবে খোলা (মালিকের পর্যবেক্ষণ):** কোন কোন রিপোর্ট ও কীভাবে তা মালিক জানাবেন; লঞ্চের পরে।

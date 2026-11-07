@@ -4,12 +4,13 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon, LockIcon } from './Icons';
 import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Field, SelectBox, ModalShell, Toggle, FullScreenCard, BlurInput } from './Shared';
 import { RoleBadge, DesignationPill } from './Badges';
+import { PersonSelect } from './PersonPicker';
 import {
   DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, PLATFORMS, PERMISSIONS, ROLE_LIST, ACCESS_LIST, ROLE_LABEL,
   isManager, isOwner, can, toLocalInput, fromLocalInput, formatDay, formatTime, 
   SLUG_MAX, normalizeSlugInput, pad, formatStamp, startOfDay, addDays, sameDay, shortsInRange,
-  normalizeRow, presenterMembers,
-  isExternal, canManageExternals, normalizePhone, memberOptionLabel
+  normalizeRow, presenterMembers, eligibleMembers,
+  isExternal, canManageExternals, normalizePhone
 } from '../../lib/core';
 
 import { downloadUserReport } from '../../services/exportService';
@@ -18,9 +19,9 @@ import { resizeToJpeg } from '../../utils/helpers';
 import { fetchAllPages } from '../../utils/fetchAll';
 
 function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate }) {
-  const conceptOptions = team.filter((m) => m.active !== false && (m.role_concept_creator || m.role === 'owner' || m.role === 'manager')).map((m) => ({ value: m.full_name, label: memberOptionLabel(m) }));
-  const writerOptions = team.filter((m) => m.active !== false && (m.role_research_script_writer || m.role === 'owner' || m.role === 'manager')).map((m) => ({ value: m.full_name, label: memberOptionLabel(m) }));
-  const presenterOptions = presenterMembers(team).map((m) => ({ value: m.full_name, label: memberOptionLabel(m) }));
+  const conceptMembers = eligibleMembers(team, 'role_concept_creator');
+  const writerMembers = eligibleMembers(team, 'role_research_script_writer');
+  const presenterMembersList = presenterMembers(team);
   const okPres = can(actor, 'can_assign_presenter');
   const initialTime = () => {
     const d = new Date(defaultDate);
@@ -35,8 +36,8 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
     slug_name: '',
     title: '',
     thumbnail_text: '',
-    concept_creator: actor ? actor.full_name : '',
-    writer: actor ? actor.full_name : '',
+    concept_creator: (actor && conceptMembers.some((m) => m.full_name === actor.full_name)) ? actor.full_name : '',
+    writer: (actor && writerMembers.some((m) => m.full_name === actor.full_name)) ? actor.full_name : '',
     presenter_name: '',
     script: '',
   });
@@ -140,14 +141,14 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
                 <Field label="Concept Creator" hint="same as the writer until you change it">
-                  <SelectBox value={f.concept_creator} onChange={(v) => { setConceptTouched(true); set('concept_creator', v); }} options={conceptOptions} placeholder="Select concept creator" />
+                  <PersonSelect value={f.concept_creator} onChange={(name) => { setConceptTouched(true); set('concept_creator', name); }} members={conceptMembers} team={team} placeholder="Select concept creator" />
                 </Field>
                 <Field label="Research & Script Writer">
-                  <SelectBox value={f.writer} onChange={(v) => setF((p) => ({ ...p, writer: v, concept_creator: conceptTouched ? p.concept_creator : v }))} options={writerOptions} placeholder="Select research & script" />
+                  <PersonSelect value={f.writer} onChange={(name) => setF((p) => ({ ...p, writer: name, concept_creator: conceptTouched ? p.concept_creator : name }))} members={writerMembers} team={team} placeholder="Select research & script" />
                 </Field>
               </div>
               <Field label="Presenter" hint="optional" locked={!okPres} lockMessage={'You need the "Assign Presenter" permission'}>
-                <SelectBox value={f.presenter_name} onChange={(v) => set('presenter_name', v)} options={presenterOptions} placeholder="Select presenter" disabled={!okPres} />
+                <PersonSelect value={f.presenter_name} onChange={(name) => set('presenter_name', name)} members={presenterMembersList} team={team} placeholder="Select presenter" disabled={!okPres} />
               </Field>
             </div>
           </div>
@@ -670,12 +671,9 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
   };
 
   const channelOptions = channels.map(c => ({ value: c.name, label: c.name }));
-  const activeWriters = team.filter(t => t.active !== false && (t.role_research_script_writer || t.role === 'owner')).map(t => ({ value: t.full_name, label: memberOptionLabel(t) }));
-  const activePresenters = presenterMembers(team).map((m) => ({ value: m.full_name, label: memberOptionLabel(m) }));
-  const activeEditors = team.filter(t => t.active !== false && (t.role_video_editor || t.role === 'owner')).map(t => ({ value: t.full_name, label: memberOptionLabel(t) }));
-  
-  // Actually, standard activeNames for everyone
-  const activeNames = team.filter(t => t.active !== false).map(t => ({ value: t.full_name, label: memberOptionLabel(t) }));
+  const writers = eligibleMembers(team, 'role_research_script_writer');
+  const presenters = presenterMembers(team);
+  const editors = eligibleMembers(team, 'role_video_editor');
 
   return (
     <FullScreenCard onClose={onClose} title="Bulk Schedule Entry">
@@ -736,27 +734,33 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
                     {r.error && !r.slug_name.trim() && <div className="text-[10px] text-red-400 mt-1">Required</div>}
                   </td>
                   <td className="px-3 py-2">
-                    <SelectBox
+                    <PersonSelect
                       value={r.writer}
                       onChange={(v) => updateItem(r._id, 'writer', v)}
-                      options={activeNames}
+                      members={writers}
+                      team={team}
                       placeholder="- Unassigned -"
+                      compact
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <SelectBox
+                    <PersonSelect
                       value={r.presenter_name}
                       onChange={(v) => updateItem(r._id, 'presenter_name', v)}
-                      options={activePresenters}
+                      members={presenters}
+                      team={team}
                       placeholder="- Unassigned -"
+                      compact
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <SelectBox
+                    <PersonSelect
                       value={r.video_editor}
                       onChange={(v) => updateItem(r._id, 'video_editor', v)}
-                      options={activeNames}
+                      members={editors}
+                      team={team}
                       placeholder="- Unassigned -"
+                      compact
                     />
                   </td>
                   <td className="px-3 py-2">
