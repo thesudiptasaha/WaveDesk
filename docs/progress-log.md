@@ -415,6 +415,18 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
   - **ডাটাবেস মাইগ্রেশন (`sql/2026-11-07_post_production.sql`):** ৭ নভেম্বর ২০২৬ লাইভে চালিত; ৫টি নতুন কলাম (`files_received_at`, `files_received_by`, `files_problem_at`, `files_problem_by`, `files_problem_note`), ট্রিগার `contents_post_production` ও `notify_content_update` ফাংশন আপডেট।
   - **পরিচিত ফাঁক (Known gap):** নতুন কনটেন্ট তৈরির সময় (যেমন Bulk schedule) শুরুতেই Video Editor বসানো থাকলে এই ডিফল্ট ফিল কার্যকর হয় না (শুধুমাত্র UPDATE-এ কার্যকর)।
 
+## ৭ নভেম্বর ২০২৬ (N134)
+- **"Did it go out?" ভিত্তি ও Publisher-এর রিসিডিউল অধিকার (৭ নভেম্বর ২০২৬, N134):**
+  - **নিয়মাবলী (Rules):** past due = স্ট্যাটাস `Scheduled` বা `Ready to Publish`, শিডিউল পাবলিশের সময়ের ১০ মিনিট পর (`PUBLISH_CHECK_GRACE_MS`); Assigned Publisher বা Manager ছাড়া অন্য কেউ উত্তর দিতে পারে না।
+  - **Answer window (`PublishCheckModal`):** ড্রয়ার ব্যানার থেকে খোলা তিন উত্তরের উইন্ডো:
+    1. *Yes, it went out* — বিদ্যমান Publish উইন্ডো খুলে দেয় যাতে পাবলিশ সম্পন্ন করা যায়;
+    2. *No, new time* — ভবিষ্যতে নতুন সময় (কমপক্ষে ১ মিনিট পরে) এবং কারণ (কমপক্ষে ৩ অক্ষর) নিয়ে শিডিউল পরিবর্তন করে, এবং Activity Log-এ কারণসহ লিপিবদ্ধ হয়;
+    3. *No, a Manager must decide* — কারণসহ ম্যানেজারদের কাছে সিদ্ধান্ত চাওয়া হয় (ম্যানেজারদের নোটিফিকেশন যায় এবং কনটেন্টটি ম্যানেজারের সিদ্ধান্তের অপেক্ষায় থাকে; একবার চাওয়া থাকলে অপশনটি আর দেখায় না)।
+  - **ড্রয়ারের ব্যানার (`PublishCheckBanner`):** ড্রয়ারের শীর্ষভাগে লাল ব্যানারে "Did it go out?" এবং Answer বাটন; ম্যানেজার সিদ্ধান্তের অপেক্ষায় থাকলে অ্যাম্বার ব্যানারে বিস্তারিত ও Decide বাটন।
+  - **Publisher-এর নিজের কনটেন্ট রিসিডিউল অধিকার:** ডেটাবেস (`guard_contents_update`) এবং ক্লায়েন্ট নিয়মে assigned Publisher নিজের কনটেন্টের `scheduled_publish_time` পরিবর্তন করতে পারেন (সাধারণ `can_reschedule_content` অধিকারপ্রাপ্তদের পাশাপাশি)।
+  - **ডাটাবেস মাইগ্রেশন (`sql/2026-11-07_publish_check.sql`):** ৩টি নতুন কলাম (`publish_help_at`, `publish_help_by`, `publish_help_note`), ট্রিগার `contents_publish_check` (ম্যানেজার ডিসিশন রিকোয়েস্ট ও স্ট্যাটাস/সময় বদলালে অটো-ক্লিয়ার) এবং `guard_contents_update`-এ Publisher-এর রিসিডিউল নিয়ম (৭ নভেম্বর ২০২৬ লাইভে চালিত)।
+  - **বাকি কাজ (N135):** Assigned Publisher-এর জন্য ফ্ল্যাশিং স্ট্যাটাস পিল এবং রানডাউনের শীর্ষে পিন করা তালিকা।
+
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
 - **Employee Report (ও অন্য রিপোর্ট) পপ-আপ হিসেবে খোলা (মালিকের পর্যবেক্ষণ):** কোন কোন রিপোর্ট ও কীভাবে তা মালিক জানাবেন; লঞ্চের পরে।

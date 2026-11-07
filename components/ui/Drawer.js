@@ -12,7 +12,7 @@ import { scriptToPlainText, scriptToHtml, sanitizeScriptHtml } from '../../utils
 import dynamic from 'next/dynamic';
 const ScriptEditor = dynamic(() => import('./ScriptEditor'), { ssr: false });
 import { StatusBadge, TypeBadge, RoleBadge, DesignationPill } from './Badges';
-import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, FullScreenCard, Toggle, ActionButtons, ConfirmDialog } from './Shared';
+import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, FullScreenCard, Toggle, ActionButtons, ConfirmDialog, useNow } from './Shared';
 import { PersonPicker } from './PersonPicker';
 import { StepBar } from './StepBar';
 import {
@@ -25,7 +25,8 @@ import {
   GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes,
   canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES,
   AD_TYPES, AD_STATUSES, canEditAds, stepProgress,
-  canMarkFilesReceived, canFixFilesProblem
+  canMarkFilesReceived, canFixFilesProblem,
+  canRescheduleRow, publishCheckState, canAnswerPublishCheckNow
 } from '../../lib/core';
 
 
@@ -290,7 +291,7 @@ function StaffAssignment({ row, actor, team, patch, groups, title }) {
 function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, patch, onAddPlatform }) {
   const lockMsg = (label) => `You need the “${label}” permission`;
   const okMeta = can(actor, 'can_edit_content_details');
-  const okSched = can(actor, 'can_reschedule_content');
+  const okSched = canRescheduleRow(actor, row);
   const heldLock = row.status === 'On Hold' && !isManager(actor);
   const okChan = can(actor, 'can_change_channel');
 
@@ -2560,7 +2561,66 @@ function SponsorsSection({ row, actor, advertisers = [], ads = [], onAdd, onUpda
   );
 }
 
-function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd }) {
+function PublishCheckBanner({ row, actor, onAnswer }) {
+  const now = useNow(30000);
+  const state = publishCheckState(row, now);
+  if (!state) return null;
+
+  if (state === 'unanswered') {
+    const canAnswer = canAnswerPublishCheckNow(actor, row, now);
+    return (
+      <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/[0.05] p-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="text-[13px] text-zinc-200">
+          <span>The publish time passed ({row.scheduled_publish_time ? formatStamp(row.scheduled_publish_time) : ''}). Did it go out?</span>
+          {!canAnswer ? (
+            <p className="mt-1 text-[12px] text-zinc-500">Only the assigned Publisher or a Manager can answer</p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className={`${btnPrimary} min-h-[44px] sm:min-h-0 !px-4 !py-1.5 text-[13px] disabled:opacity-50 disabled:cursor-not-allowed`}
+          disabled={!canAnswer}
+          onClick={() => onAnswer && onAnswer(row)}
+        >
+          Answer
+        </button>
+      </div>
+    );
+  }
+
+  if (state === 'waiting_manager') {
+    const isMgr = isManager(actor);
+    return (
+      <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-3.5 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-[13px] font-semibold text-amber-300">
+            Waiting for a Manager decision
+          </div>
+          <button
+            type="button"
+            className={`${btnPrimary} min-h-[44px] sm:min-h-0 !px-4 !py-1.5 text-[13px] disabled:opacity-50 disabled:cursor-not-allowed`}
+            disabled={!isMgr}
+            onClick={() => onAnswer && onAnswer(row)}
+          >
+            Decide
+          </button>
+        </div>
+        <div className="text-[12px] text-zinc-400">
+          Asked by {row.publish_help_by || 'Unknown'} · {row.publish_help_at ? formatStamp(row.publish_help_at) : ''}
+        </div>
+        {row.publish_help_note ? (
+          <p className="text-[13px] text-zinc-200 whitespace-pre-wrap select-text">
+            {row.publish_help_note}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd, onPublishCheck }) {
     const savedScriptStats = scriptStats(row.script);
     const [tab, setTab] = useState('editorial');
   const [detailsOpen, setDetailsOpen] = useState(true);
@@ -2780,6 +2840,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             </div>
           </div>
           <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
+            <PublishCheckBanner row={row} actor={actor} onAnswer={onPublishCheck} />
             {tab === 'editorial' ? (
               <>
                 <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} />

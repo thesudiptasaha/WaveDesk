@@ -1500,6 +1500,176 @@ function PublishTimeModal({ row, defaultIso, onClose, onConfirm }) {
   );
 }
 
+function PublishCheckModal({ row, actor, onClose, onYes, onNewTime, onAskManager }) {
+  const [choice, setChoice] = useState(null);
+  const [newTime, setNewTime] = useState(() => toLocalInput(row.scheduled_publish_time || new Date().toISOString()));
+  const [newReason, setNewReason] = useState('');
+  const [askReason, setAskReason] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
+  const iso = newTime ? fromLocalInput(newTime) : '';
+  const isFuture = Boolean(newTime) && new Date(iso).getTime() >= Date.now() + 60000;
+
+  let valid = false;
+  if (choice === 'yes') {
+    valid = true;
+  } else if (choice === 'new_time') {
+    valid = isFuture && newReason.trim().length >= 3;
+  } else if (choice === 'ask_manager') {
+    valid = askReason.trim().length >= 3;
+  }
+
+  const handleConfirm = async () => {
+    if (!valid || busy) return;
+    setBusy(true);
+    try {
+      if (choice === 'yes') {
+        onYes();
+      } else if (choice === 'new_time') {
+        const ok = await onNewTime(iso, newReason.trim());
+        if (!ok) setBusy(false);
+      } else if (choice === 'ask_manager') {
+        const ok = await onAskManager(askReason.trim());
+        if (!ok) setBusy(false);
+      }
+    } catch {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ModalShell
+      title="Did it go out?"
+      subtitle={row.slug_name || row.title || ''}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className={btnGhost} onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="button" className={btnPrimary} disabled={!valid || busy} onClick={handleConfirm}>
+            {busy ? 'Saving...' : 'Confirm'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-[13px] text-zinc-400">
+          Scheduled for: {row.scheduled_publish_time ? formatStamp(row.scheduled_publish_time) : 'not set'}
+        </p>
+
+        {row.publish_help_at ? (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-3 text-[13px] text-amber-200">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">
+              Asked by {row.publish_help_by || 'Unknown'} · {formatStamp(row.publish_help_at)}
+            </div>
+            {row.publish_help_note ? (
+              <p className="mt-1 text-zinc-300 whitespace-pre-wrap">{row.publish_help_note}</p>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setChoice('yes')}
+            className={`flex min-h-[44px] w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-[14px] font-medium transition ${
+              choice === 'yes'
+                ? 'border-sky-400/60 bg-sky-500/10 text-white ring-1 ring-sky-500/30'
+                : 'border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.06]'
+            }`}
+          >
+            <span>Yes, it went out</span>
+            {choice === 'yes' ? <Icon name="check" className="h-4 w-4 text-sky-400" /> : null}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setChoice('new_time')}
+            className={`flex min-h-[44px] w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-[14px] font-medium transition ${
+              choice === 'new_time'
+                ? 'border-sky-400/60 bg-sky-500/10 text-white ring-1 ring-sky-500/30'
+                : 'border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.06]'
+            }`}
+          >
+            <span>No, new time</span>
+            {choice === 'new_time' ? <Icon name="check" className="h-4 w-4 text-sky-400" /> : null}
+          </button>
+
+          {!row.publish_help_at ? (
+            <button
+              type="button"
+              onClick={() => setChoice('ask_manager')}
+              className={`flex min-h-[44px] w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-[14px] font-medium transition ${
+                choice === 'ask_manager'
+                  ? 'border-sky-400/60 bg-sky-500/10 text-white ring-1 ring-sky-500/30'
+                  : 'border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.06]'
+              }`}
+            >
+              <span>No, a Manager must decide</span>
+              {choice === 'ask_manager' ? <Icon name="check" className="h-4 w-4 text-sky-400" /> : null}
+            </button>
+          ) : null}
+        </div>
+
+        {choice === 'yes' ? (
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-[13px] text-zinc-300">
+            This will open the Publish window so you can confirm and complete publishing.
+          </div>
+        ) : null}
+
+        {choice === 'new_time' ? (
+          <div className="space-y-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5">
+            <Field label="New scheduled time" hint="Must be at least 1 minute in the future">
+              <input
+                type="datetime-local"
+                value={newTime}
+                onChange={(e) => setNewTime(e.target.value)}
+                className={`${inputBase} [color-scheme:dark]`}
+              />
+            </Field>
+            {Boolean(newTime) && !isFuture ? (
+              <p className="text-[12px] text-red-400">Must be at least 1 minute in the future</p>
+            ) : null}
+            <Field label="Reason" hint="Explain why the publish time was changed (at least 3 characters)">
+              <textarea
+                rows={2}
+                value={newReason}
+                onChange={(e) => setNewReason(e.target.value)}
+                placeholder="Reason for rescheduling..."
+                className={inputBase}
+              />
+            </Field>
+          </div>
+        ) : null}
+
+        {choice === 'ask_manager' ? (
+          <div className="space-y-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5">
+            <Field label="Note for Managers" hint="Explain why you need a Manager decision (at least 3 characters)">
+              <textarea
+                rows={3}
+                value={askReason}
+                onChange={(e) => setAskReason(e.target.value)}
+                placeholder="Describe what is blocked or why Managers must decide..."
+                className={inputBase}
+              />
+            </Field>
+          </div>
+        ) : null}
+      </div>
+    </ModalShell>
+  );
+}
+
 
 function AdvertisersModal({ advertisers = [], onClose, onAdd, onUpdate }) {
   const [name, setName] = useState('');
@@ -1760,7 +1930,7 @@ function AdvertisersModal({ advertisers = [], onClose, onAdd, onUpdate }) {
   );
 }
 
-export { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, DirectoryModal, PublishTimeModal, AdvertisersModal };
+export { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, DirectoryModal, PublishTimeModal, AdvertisersModal, PublishCheckModal };
 
 
 

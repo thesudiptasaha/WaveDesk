@@ -13,7 +13,7 @@ import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Person
 import { fetchAllPages } from '../utils/fetchAll';
 import { Drawer, DeleteModal } from '../components/ui/Drawer';
 import { StaffCell } from '../components/ui/StaffAssignSelect';
-import { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, BackupModal, DirectoryModal, PublishTimeModal, AdvertisersModal, ExternalPeopleModal } from '../components/ui/Modals';
+import { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, BackupModal, DirectoryModal, PublishTimeModal, AdvertisersModal, ExternalPeopleModal, PublishCheckModal } from '../components/ui/Modals';
 import { NoticeModal } from '../components/ui/NoticeModal';
 import { HowItWorksModal } from '../components/ui/HowItWorksModal';
 import { PhoneCard, PhoneRow, ShortNote } from '../components/ui/RundownCards';
@@ -26,7 +26,8 @@ import {
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isComplete, isBin, isRemovedPublished, missingFields, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, wentLiveDefault,
-  canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel
+  canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
+  canRescheduleRow
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -689,6 +690,7 @@ function NewsroomApp({ authUser, onSignOut }) {
   const [showAddPlatform, setShowAddPlatform] = useState(false);
   const [reasonFor, setReasonFor] = useState(null);
   const [publishFor, setPublishFor] = useState(null);
+  const [publishCheckFor, setPublishCheckFor] = useState(null);
   const [deleteFor, setDeleteFor] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -1030,7 +1032,10 @@ function NewsroomApp({ authUser, onSignOut }) {
           notify('Inactive members cannot make changes', 'error');
           return false;
         }
-        const denied = Object.keys(patch).find((k) => FIELD_PERM[k] && !can(actor, FIELD_PERM[k]));
+        const denied = Object.keys(patch).find((k) => {
+          if (k === 'scheduled_publish_time' && canRescheduleRow(actor, prev)) return false;
+          return FIELD_PERM[k] && !can(actor, FIELD_PERM[k]);
+        });
         if (denied) {
           const p = PERMISSIONS.find((x) => x.key === FIELD_PERM[denied]);
           notify(`You need the “${p ? p.label : 'required'}” permission`, 'error');
@@ -1747,6 +1752,7 @@ function NewsroomApp({ authUser, onSignOut }) {
   const selected = rows.find((r) => r.id === selectedId) || null;
   const reasonRow = reasonFor ? rows.find((r) => r.id === reasonFor.rowId) : null;
   const publishRow = publishFor ? rows.find((r) => r.id === publishFor.rowId) : null;
+  const publishCheckRow = publishCheckFor ? rows.find((r) => r.id === publishCheckFor) : null;
 
   /* ---------------- export ---------------- */
   const exportXlsx = async () => {
@@ -1794,7 +1800,8 @@ function NewsroomApp({ authUser, onSignOut }) {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== 'Escape') return;
-      if (publishFor) setPublishFor(null);
+      if (publishCheckFor) setPublishCheckFor(null);
+      else if (publishFor) setPublishFor(null);
       else if (reasonFor) setReasonFor(null);
       else if (showNew) setShowNew(false);
       else if (showAddChannel) setShowAddChannel(false);
@@ -1811,7 +1818,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [publishFor, reasonFor, showNew, showAddChannel, showAddPlatform, showAdvertisers, showExternals, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices, selectedId]);
+  }, [publishCheckFor, publishFor, reasonFor, showNew, showAddChannel, showAddPlatform, showAdvertisers, showExternals, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices, selectedId]);
   /* ---------------- my profile ---------------- */
   const saveProfile = async ({ full_name, designation, avatar_url, phone, whatsapp, employee_id, nickname }) => {
     if (!me) return false;
@@ -2465,6 +2472,7 @@ function NewsroomApp({ authUser, onSignOut }) {
           onAddAd={(payload) => addContentAd(selected.id, payload)}
           onUpdateAd={updateContentAd}
           onDeleteAd={deleteContentAd}
+          onPublishCheck={(r) => setPublishCheckFor(r.id)}
         />
       ) : null}
       
@@ -2618,6 +2626,63 @@ function NewsroomApp({ authUser, onSignOut }) {
             const { action } = publishFor;
             setPublishFor(null);
             transition(publishRow, action, '', { wentLiveAt: iso });
+          }}
+        />
+      ) : null}
+
+      {publishCheckFor && publishCheckRow ? (
+        <PublishCheckModal
+          row={publishCheckRow}
+          actor={actor}
+          onClose={() => setPublishCheckFor(null)}
+          onYes={() => {
+            setPublishCheckFor(null);
+            const actions = getActions(publishCheckRow, actor);
+            const pub = actions.find((a) => a.id === 'publish');
+            if (pub && pub.allowed && !pub.blocked) {
+              setPublishFor({ rowId: publishCheckRow.id, action: pub });
+            } else {
+              notify('You cannot publish this content', 'error');
+            }
+          }}
+          onNewTime={async (iso, reason) => {
+            const oldStamp = publishCheckRow.scheduled_publish_time ? formatStamp(publishCheckRow.scheduled_publish_time) : 'None';
+            const newStamp = formatStamp(iso);
+            const prevAudit = Array.isArray(publishCheckRow.audit_log) ? publishCheckRow.audit_log : [];
+            const ok = await patchRow(publishCheckRow.id, {
+              scheduled_publish_time: iso,
+              audit_log: [
+                ...prevAudit,
+                {
+                  kind: 'change',
+                  field: 'Scheduled time',
+                  from: oldStamp,
+                  to: newStamp,
+                  actor: actor.full_name,
+                  role: actor.role,
+                  time: new Date().toISOString(),
+                  note: reason.trim(),
+                },
+              ],
+            });
+            if (ok) {
+              notify('Publish time changed', 'success');
+              setPublishCheckFor(null);
+              return true;
+            }
+            return false;
+          }}
+          onAskManager={async (reason) => {
+            const ok = await patchRow(publishCheckRow.id, {
+              publish_help_at: new Date().toISOString(),
+              publish_help_note: reason.trim(),
+            });
+            if (ok) {
+              notify('Managers have been asked to decide', 'success');
+              setPublishCheckFor(null);
+              return true;
+            }
+            return false;
           }}
         />
       ) : null}

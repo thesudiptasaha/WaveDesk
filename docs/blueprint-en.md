@@ -229,6 +229,8 @@ The top two rows are the full pipeline. The cards underneath list the moves that
 | Dropped | Cancelled with a reason | Restore (Draft; when isRemovedPublished(row), returns to Published instead and keeps original published_at, published_by and went_live_at) | Managers and Owner |
 | Re-Shoot | Needs another shoot | Back to Shoot Queue (Ready for Shoot) | Any active member |
 
+**"Did it go out?" and Publisher reschedule:** When a content in `Scheduled` or `Ready to Publish` is past due (10 minutes after scheduled publish time), a "Did it go out?" banner appears at the top of the drawer. The assigned Publisher or a Manager can answer with "Yes, it went out" (opens the Publish modal), "No, new time" (sets a future publish time with a logged reason), or "No, a Manager must decide" (notifies Managers and waits for their decision). In addition, the assigned Publisher may reschedule their own content directly, even without the general reschedule permission.
+
 **Side moves available from several statuses (Managers and Owner only)**
 
 - **Hold** from any status except Published, Dropped and On Hold. Asks for a reason. Stores the previous status so Resume can return to it.

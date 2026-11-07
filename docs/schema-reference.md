@@ -42,7 +42,7 @@ Staff members belonging to an organization.
   * `can_approve_scripts` - Approve or send back submitted scripts.
   * `can_edit_content_details` - Title, thumbnail text, platforms, captions, hashtags, camera operator, writer.
   * `can_change_channel` - Change the channel of a content.
-  * `can_reschedule_content` - Change scheduled date and publish time.
+  * `can_reschedule_content` - Change scheduled date and publish time (in `guard_contents_update`, a member with `role_publisher` may change `scheduled_publish_time` of a content whose publisher is his own full name, besides everyone with `can_reschedule_content`).
   * `can_assign_video_editor` - Assign or change the video editor.
   * `can_assign_presenter` - Change the presenter.
   * `can_review_videos` - Approve edited videos or send them back for changes.
@@ -111,6 +111,9 @@ Central table holding all daily video rundown items.
 * `files_problem_at` (`timestamptz`, nullable) - Timestamp when a problem was reported with the files (set by the database rule; the app only sends the time / the note).
 * `files_problem_by` (`text`, nullable) - Full name of the team member who reported the problem (set by the database rule; the app only sends the time / the note).
 * `files_problem_note` (`text`, nullable) - Description of the reported problem with the files (set by the database rule; the app only sends the time / the note).
+* `publish_help_at` (`timestamptz`, nullable) - Request for a Manager decision when a content did not go out; set by the database rule, cleared by the database when status or scheduled_publish_time changes.
+* `publish_help_by` (`text`, nullable) - Full name of the team member who requested a Manager decision (set by the database rule).
+* `publish_help_note` (`text`, nullable) - Note explaining why the content did not go out and what decision is needed (set by the database rule).
 * `video_editor` (`text`) — Assigned video editor.
 * `producer` (`text`) — Assigned producer.
 * `concept_creator` (`text`) - Concept Creator, the story idea originator (was `idea_by`).
@@ -122,6 +125,7 @@ Central table holding all daily video rundown items.
 * `history` (`jsonb`, default `'[]'`) — Audit log of assignments, status transitions, and timestamps.
 * `revisions` (`jsonb`) — Previous script versions.
 * **Trigger `contents_post_production`** (BEFORE UPDATE on `contents`, function `contents_post_production_rules`): Files received (Video Editor or Manager, only after Files delivered, once, Manager undoes), Files problem (Video Editor or Manager, note required, clears received, notifies the files-delivered person, the Producer and the Production Manager), Problem fixed (Production or Manager, notifies the Video Editor), a Manager undoing Files delivered clears received and problem, and the default fill: when a Video Editor is assigned or changed on a non-LIVE content, EMPTY `motion_graphics_designer`, `graphic_designer`, `colorist`, `audio_mixer` slots get the same name, slots holding the OLD editor's name move to the new editor, slots changed by hand in the same save are untouched. Not applied when contents are created (INSERT). Record: `sql/2026-11-07_post_production.sql`.
+* **Trigger `contents_publish_check`** (BEFORE UPDATE on `contents`, function `contents_publish_check_rules`): request allowed only for the assigned Publisher or a Manager, only when status is Scheduled or Ready to Publish and 10 minutes have passed after scheduled_publish_time, note required, notifies Owner and Managers, writes an Activity-log entry, clears itself on a status or publish-time change. Record: `sql/2026-11-07_publish_check.sql`.
 * `created_at` (`timestamptz`)
 * `updated_at` (`timestamptz`)
 
