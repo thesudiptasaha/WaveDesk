@@ -22,3 +22,13 @@ New tables use IDs from day one (see people-by-id-plan.md).
 
 ## After this
 PersonPicker (hide Owner/Manager from dropdowns unless role ticked, search with photo cards), Post-production tab + green ticks, then the later list in roadmap.
+
+## Decisions 8 Nov 2026
+- **Answer changes:** Invitee can change the answer until the link expires (inviter is notified every time).
+- **Public page visibility:** The public page shows no content name (slug/title hidden for confidentiality); only role, date/time/place, channel, the inviter's note, and the inviter's name and phone.
+- **Script access & Print:** For Presenter and Voice Over Artist bookings (`presenter_name`, `voice_over_artist`), the page also displays the content's script (plain, scrollable, newest version) and a Print button. The printed view displays only the content ID (WAVECON-...) and the script. Other roles see only the note.
+- **Initial status:** Status "sent" is set automatically when the link is created.
+- **Token security:** The secret code is stored only as a sha256 hash and returned once at creation; it is never stored in plain text.
+- **Expiry:** The link works until 23:59 Asia/Dhaka of the booking date.
+- **Assignment requirement:** The person must already be credited in that role on the content before an invite can be created.
+- **Status:** DB part done (`sql/2026-11-08_bookings.sql`), app part (Prompt A: Invite button/form, WhatsApp message, tile status) and public page (Prompt B: `/b/<token>`) remain.

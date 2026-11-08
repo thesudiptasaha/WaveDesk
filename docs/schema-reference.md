@@ -14,6 +14,7 @@ WaveDesk operates around 5 primary tables in Supabase (PostgreSQL):
 7. `notice_uid_counters` (Daily atomic counters for notice UIDs)
 8. `advertisers` (Commercial sponsors and advertisers)
 9. `content_ads` (Sponsorship placements on contents)
+10. `bookings` (External crew invites and bookings)
 
 ---
 
@@ -193,6 +194,34 @@ Advertisements and sponsorships placed on specific rundown contents. Added on 1 
 * `created_at` (`timestamptz`, default `now()`)
 * `updated_at` (`timestamptz`, default `now()`) — Maintained automatically by `content_ads_touch_trg` trigger.
 * **RLS**: SELECT allowed for all active organization members; INSERT, UPDATE, DELETE allowed for Managers, Owners, and Producers (`is_manager() or i_am_producer()`). Helper function `i_am_producer()` checks if the active member holds `role_producer`.
+
+---
+
+### 10. `bookings`
+External crew invites, bookings, and public answer links. Added on 8 Nov 2026 (record: `sql/2026-11-08_bookings.sql`).
+* `id` (`uuid`, PRIMARY KEY, default `gen_random_uuid()`)
+* `organization_id` (`uuid`, NOT NULL, FK to `organizations.id` on delete cascade)
+* `content_id` (`bigint`, nullable, FK to `contents.id` on delete cascade)
+* `member_id` (`uuid`, NOT NULL, FK to `team_members.id` on delete restrict)
+* `role_field` (`text`, NOT NULL) — Role in credit fields (one of 21 roles, matching `bookings_role_field_check`).
+* `starts_at` (`timestamptz`, NOT NULL) — Call time / booking start time.
+* `place` (`text`, nullable, max 300 chars) — Location or studio.
+* `note` (`text`, nullable, max 2000 chars) — Instructions or notes for the invitee.
+* `token_hash` (`text`, NOT NULL, UNIQUE) — sha256 hash of the secret access token (the raw secret code is returned once upon creation and never stored).
+* `expires_at` (`timestamptz`, NOT NULL) — Expiration timestamp (link works until 23:59 Asia/Dhaka of the booking date).
+* `status` (`text`, NOT NULL, default `'sent'`) — CHECK `status in ('sent','confirmed','declined','revoked','superseded')`.
+* `answered_at` (`timestamptz`, nullable) — Timestamp when the invite was answered.
+* `invited_by` (`uuid`, NOT NULL, FK to `team_members.id` on delete restrict) — Member who sent the invite.
+* `created_at` (`timestamptz`, NOT NULL, default `now()`)
+* `updated_at` (`timestamptz`, NOT NULL, default `now()`)
+* **RLS**: Signed-in organization members can only read (`SELECT using (organization_id = my_org_id())`). No direct writes from the app (only the database functions below write). Included in the `supabase_realtime` publication.
+* **Database Functions:**
+  * `create_booking(content_id, member_id, role_field, starts_at, place, note)` — Returns the secret code once, only for Owner/Managers/Producers/Production Managers (`can_manage_externals`) and only for an active external person who is already credited in that role on the content; older open invites of the same person+content+role become `'superseded'`.
+  * `revoke_booking(booking_id)` — Revokes an open booking; only for Owner/Managers/Producers/Production Managers (`can_manage_externals`).
+  * `get_booking_by_token(token)` — Public function (open to anon and authenticated); returns state (`'ok'`, `'invalid'`, `'revoked'`, `'replaced'`, `'expired'`) and, for ok, the booking details, with the script and `content_uid` only for `presenter_name` and `voice_over_artist`.
+  * `answer_booking(token, 'confirmed'|'declined')` — Public function (open to anon and authenticated); can be changed until expiry; notifies the inviter.
+
+Record: `sql/2026-11-08_bookings.sql`.
 
 ---
 
