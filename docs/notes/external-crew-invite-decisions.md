@@ -31,7 +31,7 @@ PersonPicker (hide Owner/Manager from dropdowns unless role ticked, search with 
 - **Token security:** The secret code is stored only as a sha256 hash and returned once at creation; it is never stored in plain text.
 - **Expiry:** The link works until 23:59 Asia/Dhaka of the booking date.
 - **Assignment requirement:** The person must already be credited in that role on the content before an invite can be created.
-- **Status:** DB part done (`sql/2026-11-08_bookings.sql`), app part (Prompt A) built on 8 Nov (N140/N140b), public page (Prompt B: `/b/<token>`) remains.
+- **Status:** Complete (DB part `sql/2026-11-08_bookings.sql`, drawer app part N140/N140b, public page N141).
 
 ## Built 8 Nov 2026 (app part — N140/N140b)
 - **App components (`components/ui/BookingInvite.js`):**
@@ -46,4 +46,17 @@ PersonPicker (hide Owner/Manager from dropdowns unless role ticked, search with 
   - `StaffTile`: shows "Invite" button or `BookingBadge` for external crew when the user has `canManageExternals` permission.
   - Keyboard and click event bubbling isolated (`e.stopPropagation()` and `z-10`) so picker is never activated.
   - Modals unmounted on close, ensuring fresh state on every open. Esc key closes only the topmost modal layer.
-- **Still to build (Prompt B):** Public page `/b/<token>` (reads booking and submits answer as anon, script display & print for presenter/voice-over).
+
+## Built 8 Nov 2026 (public page — N141)
+- **All text in Bangla** (owner's decision for the external crew facing page).
+- **Page content (`app/b/[token]/page.js` and `layout.js`):**
+  - Metadata: `title: 'WaveDesk'`, `robots: { index: false, follow: false }`, `referrer: 'no-referrer'`.
+  - Calm cards for non-ok states (`invalid`, `revoked`, `replaced`, `expired`).
+  - Details card for `ok` state: person name heading, role (Bangla), date & time (Asia/Dhaka), place, channel, note, inviter name and phone (tel: link).
+  - Two large touch buttons ("✓ আসতে পারব" and "✗ আসতে পারব না") with active highlights. Status line shows current answer. Answer is changeable anytime until link expires.
+  - Script box (scrollable, sanitized HTML) and "প্রিন্ট করুন" button for Presenter and Voice Over Artist only.
+- **Print rules (@media print):**
+  - Printed view shows ONLY: content ID (`content_uid`) as heading and the script text (black on white).
+  - No buttons, cards, title, slug, or other metadata are printed.
+  - The content name/title/slug is NEVER shown anywhere on the page or in print.
+- **Completion:** External crew invite feature is fully built across database (`24baef6`), drawer app (`5493d46`), and public page (`app/b/[token]/`).

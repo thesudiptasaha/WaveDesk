@@ -13,7 +13,7 @@
 ## মালিকের ঠিক করা ক্রম (২ নভেম্বর) ও অবস্থা
 1. PersonPicker + Post-production ট্যাব: ✅ সম্পন্ন।
 2. "Did it go out?": ✅ সম্পন্ন।
-3. বাইরের ক্রু আমন্ত্রণ (WhatsApp লিংক, গোপন-লিংকে উত্তর পাতা): ⏳ SQL সম্পন্ন (8 Nov); Invite button + WhatsApp message তৈরি সম্পন্ন (N140/N140b, মালিকের টেস্টের অপেক্ষায়); পরবর্তী: /b/<token> page। বিস্তারিত `external-crew-invite-decisions.md`।
+3. বাইরের ক্রু আমন্ত্রণ (WhatsApp লিংক, গোপন-লিংকে উত্তর পাতা): ✅ সম্পূর্ণ ফিচার তৈরি সম্পন্ন (SQL, ড্রয়ার ইনভাইট ও /b/<token> পাবলিক পেজ N141, মালিকের এন্ড-টু-এন্ড টেস্টের অপেক্ষায়)। বিস্তারিত `external-crew-invite-decisions.md`।
 4. Telegram বট WaveBot: ⏳ (BotFather টোকেন লাগবে)। `telegram-bot-plan.md`।
 
 ## পরে, বিনা ক্রমে (মালিকের সিদ্ধান্ত অনুযায়ী)
