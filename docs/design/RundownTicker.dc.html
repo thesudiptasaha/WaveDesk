@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Rundown ticker and overdue band</title><script src="./support.js"></script></head>
+<body><x-dc><helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.b{box-sizing:border-box;background:#050506;color:#f4f4f5;font-family:'Inter',-apple-system,Arial,sans-serif;overflow:hidden;position:relative}
+.btn{display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);padding:7px 14px;font-size:12.5px;font-weight:500;color:#e4e4e7}
+.btn.pri{background:#fff;color:#000;font-weight:700;border-color:#fff}
+.badge{background:#fff;color:#000;border-radius:4px;padding:2px 7px;font-size:9.5px;font-weight:800;letter-spacing:.12em}
+.tile{display:flex;flex-direction:column;align-items:center;gap:2px;width:78px}
+.av{width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0c0c0f}
+.av.em{border:1.5px dashed rgba(255,255,255,.25);color:#71717a;font-size:18px;font-weight:400;background:transparent}
+.nm{font-size:11.5px;font-weight:600;color:#f4f4f5;white-space:nowrap;max-width:78px;overflow:hidden;text-overflow:ellipsis}
+.nm.em{color:#52525b;font-weight:500}
+.rl{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#71717a;white-space:nowrap}
+.row{display:grid;grid-template-columns:150px 1fr 300px 230px;align-items:center;height:70px;border-bottom:1px solid rgba(255,255,255,.05);position:relative}
+.stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.st{display:inline-block;margin-top:4px;border-radius:999px;padding:2px 9px;font-size:10.5px}
+.tick{height:38px;margin:0 20px;border-radius:0;border:0;background:#dc2626;display:flex;align-items:center;overflow:hidden;position:relative}
+.tick-lab{flex:none;height:100%;display:flex;align-items:center;gap:7px;padding:0 12px;background:#7f1d1d;font-size:11px;font-weight:800;letter-spacing:.08em;color:#fff;z-index:2}
+.tick-track{display:flex;align-items:center;gap:34px;white-space:nowrap;padding-left:20px;animation:wdtick 48s linear infinite}
+.tick:hover .tick-track{animation-play-state:paused}
+@keyframes wdtick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.tick-track{animation:none}}
+.ti{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#fff}
+.ti .d{width:8px;height:8px;border-radius:0;background:#fff!important;flex:none}
+.ti b{font-weight:700;color:#fff}
+.ti .ty{font-size:9.5px;font-weight:800;letter-spacing:.08em;border-radius:0;padding:1px 6px;background:#fff!important;color:#b91c1c!important}
+.bell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:17px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04)}
+@keyframes wdblink{0%,49%{background:#ef4444;color:#fff;box-shadow:0 0 4px #ef4444,0 0 14px #ef4444,0 0 30px rgba(239,68,68,.85),0 0 54px rgba(239,68,68,.5)}50%,100%{background:#3b82f6;color:#fff;box-shadow:0 0 4px #3b82f6,0 0 14px #3b82f6,0 0 30px rgba(59,130,246,.85),0 0 54px rgba(59,130,246,.5)}}
+.blink{animation:wdblink .7s steps(1,end) infinite!important;font-weight:800}
+@media (prefers-reduced-motion:reduce){.blink{animation:none!important;background:#ef4444!important;color:#fff!important}}
+.cnt{position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;border-radius:9px;background:#38bdf8;color:#04121a;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box}
+</style></helmet>
+<div class="b" style="width:1366px;height:768px">
+<div style="height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid rgba(255,255,255,.06)">
+<div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:#fff;color:#000;font-weight:900;display:flex;align-items:center;justify-content:center">N</div><div><div style="font-size:14px;font-weight:700">WaveDesk</div><div style="font-size:10.5px;color:#71717a">The Wave 24</div></div></div>
+<div style="display:flex;gap:8px;align-items:center"><span class="bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e4e4e7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="cnt">7</span></span><span class="btn">Rahim Uddin &middot; Owner</span><span class="btn">Notices</span></div></div>
+
+<div class="tick" style="margin-top:12px"><div class="tick-lab"><span style="width:8px;height:8px;border-radius:0;background:#fff"></span>UNREAD &middot; 7</div>
+<div class="tick-track">
+<span class="ti"><span class="d" style="background:#38bdf8"></span><span class="ty" style="background:rgba(56,189,248,.2);color:#bae6fd">CONTENT</span><b>CITY FLOOD RELIEF</b> sent for review &middot; Sadia</span>
+<span class="ti"><span class="d" style="background:#fbbf24"></span><span class="ty" style="background:rgba(251,191,36,.2);color:#fde68a">NOTICE</span>Studio B is closed tomorrow morning</span>
+<span class="ti"><span class="d" style="background:#a78bfa"></span><span class="ty" style="background:rgba(167,139,250,.2);color:#ddd6fe">TASK</span>Joy gave you: cut a 30s promo</span>
+<span class="ti"><span class="d" style="background:#38bdf8"></span><span class="ty" style="background:rgba(56,189,248,.2);color:#bae6fd">CONTENT</span><b>BUDGET TALK PART TWO</b> script saved &middot; Nusrat</span>
+<span class="ti"><span class="d" style="background:#34d399"></span><span class="ty" style="background:rgba(52,211,153,.2);color:#a7f3d0">FILES</span><b>RIVER ERODES FARMLAND</b> files delivered &middot; Camera</span>
+<span class="ti"><span class="d" style="background:#38bdf8"></span><span class="ty" style="background:rgba(56,189,248,.2);color:#bae6fd">CONTENT</span><b>CITY FLOOD RELIEF</b> sent for review &middot; Sadia</span>
+<span class="ti"><span class="d" style="background:#fbbf24"></span><span class="ty" style="background:rgba(251,191,36,.2);color:#fde68a">NOTICE</span>Studio B is closed tomorrow morning</span>
+<span class="ti"><span class="d" style="background:#a78bfa"></span><span class="ty" style="background:rgba(167,139,250,.2);color:#ddd6fe">TASK</span>Joy gave you: cut a 30s promo</span>
+<span class="ti"><span class="d" style="background:#38bdf8"></span><span class="ty" style="background:rgba(56,189,248,.2);color:#bae6fd">CONTENT</span><b>BUDGET TALK PART TWO</b> script saved &middot; Nusrat</span>
+<span class="ti"><span class="d" style="background:#34d399"></span><span class="ty" style="background:rgba(52,211,153,.2);color:#a7f3d0">FILES</span><b>RIVER ERODES FARMLAND</b> files delivered &middot; Camera</span>
+</div></div>
+
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-top:6px"><div style="display:flex;gap:6px;align-items:center"><span style="font-size:17px;font-weight:900;margin-right:10px">RUNDOWN</span><span class="btn pri" style="padding:5px 12px">List</span><span class="btn" style="padding:5px 12px">Cards</span><span class="btn" style="padding:5px 12px">Collapse all</span></div><span style="font-size:11.5px;color:#71717a">5 items &middot; Today</span></div>
+
+<div style="margin:0 20px;border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.015)">
+<div style="display:grid;grid-template-columns:150px 1fr 300px 230px;height:28px;align-items:center;font-size:10px;letter-spacing:.1em;color:#71717a;border-bottom:1px solid rgba(255,255,255,.06)"><span style="padding-left:20px">TIME</span><span>SLUG NAME</span><span>STAFF ASSIGNMENT</span><span>ACTION</span></div>
+<div class="row"><div class="stripe" style="background:#f87171"></div><div style="padding-left:20px"><div style="font-size:13px">01:30 PM</div><span class="st blink">Past publish time</span></div><div><span class="badge">PACKAGE</span><div style="font-size:16px;font-weight:800;margin-top:5px">CITY FLOOD RELIEF</div></div><div style="display:flex;gap:6px"><div class="tile"><div class="av" style="background:#7dd3fc">S</div><div class="nm">Sadia</div><div class="rl">Script Writer</div></div><div class="tile"><div class="av" style="background:#7dd3fc">N</div><div class="nm">Nusrat</div><div class="rl">Presenter</div></div><div class="tile"><div class="av" style="background:#fcd34d">J</div><div class="nm">Joy</div><div class="rl">Publisher</div></div></div><div style="display:flex;gap:6px"><span class="btn pri" style="padding:5px 11px;font-size:11.5px">Did it go out?</span></div></div>
+<div class="row"><div class="stripe" style="background:#f87171"></div><div style="padding-left:20px"><div style="font-size:13px">03:00 PM</div><span class="st blink">Ready to Publish</span></div><div><span class="badge">EXPLAINER</span><div style="font-size:16px;font-weight:800;margin-top:5px">BUDGET TALK PART TWO</div></div><div style="display:flex;gap:6px"><div class="tile"><div class="av" style="background:#7dd3fc">S</div><div class="nm">Sadia</div><div class="rl">Script Writer</div></div><div class="tile"><div class="av" style="background:#7dd3fc">N</div><div class="nm">Nusrat</div><div class="rl">Presenter</div></div><div class="tile"><div class="av em">+</div><div class="nm em">Assign</div><div class="rl">Publisher</div></div></div><div style="display:flex;gap:6px"><span class="btn pri" style="padding:5px 11px;font-size:11.5px">Publish</span></div></div>
+<div class="row"><div class="stripe" style="background:#f87171"></div><div style="padding-left:20px"><div style="font-size:13px">06:00 PM</div><span class="st" style="background:rgba(248,113,113,.12);color:#fca5a5">Edit</span></div><div><span class="badge">SOT</span><div style="font-size:16px;font-weight:800;margin-top:5px">MINISTER FOLLOW UP</div></div><div style="display:flex;gap:6px"><div class="tile"><div class="av" style="background:#7dd3fc">T</div><div class="nm">Tanvir</div><div class="rl">Script Writer</div></div><div class="tile"><div class="av" style="background:#7dd3fc">R</div><div class="nm">Rahim</div><div class="rl">Presenter</div></div><div class="tile"><div class="av" style="background:#fcd34d">J</div><div class="nm">Joy</div><div class="rl">Video Editor</div></div></div><div style="display:flex;gap:6px"><span class="btn" style="padding:5px 11px;font-size:11.5px">Open</span></div></div>
+</div>
+
+<div style="position:absolute;left:20px;right:20px;bottom:14px;font-size:11.5px;color:#a1a1aa;line-height:1.6;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:9px 12px"><b style="color:#fff">Red ticker</b> (sharp rectangle, white text) = only your unread notifications, scrolling slowly; hover pauses; click opens the content and marks it read; none unread = ticker disappears. &nbsp; <b style="color:#fff">Red/blue blinking status pill</b> (like an ambulance light) = this row needs an immediate action from you, e.g. publish time passed and nobody has answered, or Ready to Publish. The row itself has no red tint; the <b style="color:#fff">Did it go out?</b> button is in the row and the blinking stops only after the answer.</div>
+</div></x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script></body></html>

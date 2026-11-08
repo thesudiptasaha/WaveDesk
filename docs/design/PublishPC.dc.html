@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Drawer Publish tab, PC</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1500px; height: 1080px; box-sizing: border-box; overflow: hidden; background: #050506; color: #f4f4f5; font-family: 'Inter', -apple-system, Arial, sans-serif; display: flex; justify-content: flex-end">
+  <div style="width: 1410px; height: 1080px; box-sizing: border-box; background: rgba(12,12,15,.98); border-left: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column">
+    <div style="padding: 22px 32px 0; border-bottom: 1px solid rgba(255,255,255,.06)">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="background: #fff; color: #000; border-radius: 4px; padding: 3px 8px; font-size: 10px; font-weight: 800; letter-spacing: .12em">EXPLAINER</span>
+            <span style="border-radius: 999px; background: rgba(148,163,184,.16); color: #cbd5e1; padding: 3px 11px; font-size: 11.5px; font-weight: 600">Draft</span>
+          </div>
+          <div style="margin-top: 10px; font-size: 26px; font-weight: 900; letter-spacing: -.01em">BUDGET 2026 CHANGES</div>
+        </div>
+        <div style="width: 32px; height: 32px; color: #a1a1aa; display: flex; align-items: center; justify-content: center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </div>
+      </div>
+      <div style="display: flex; gap: 4px; margin-top: 14px">
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #71717a">Editorial</span>
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #71717a">Production</span>
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #fff; border-bottom: 2px solid #38bdf8">Publish</span>
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #71717a">QC &amp; Audit</span>
+      </div>
+    </div>
+    <div style="flex-grow: 1; min-height: 0; display: flex">
+      <div style="width: 470px; flex-shrink: 0; box-sizing: border-box; padding: 22px 32px; border-right: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.015); display: flex; flex-direction: column; gap: 13px">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: .1em; color: #71717a">DETAILS <span style="font-weight: 400; letter-spacing: 0; color: #52525b">&nbsp;same on every tab</span></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div><div style="{{lab}}">CHANNEL</div><div style="{{inp}}">The Wave 24</div></div>
+          <div><div style="{{lab}}">SCHEDULED PUBLISH</div><div style="{{inp}}">24/10/2026, 07:00 PM</div></div>
+        </div>
+        <div><div style="{{lab}}">SLUG NAME <span style="text-transform: none; letter-spacing: 0; font-weight: 400; color: #52525b">19/24</span></div><div style="{{inp}}; font-family: ui-monospace, Menlo, monospace; font-weight: 700">BUDGET 2026 CHANGES</div></div>
+        <div><div style="{{lab}}">TITLE</div><div style="{{inp}}">Budget 2026: what changes for ordinary families</div></div>
+        <div><div style="{{lab}}">THUMBNAIL TEXT (HOOK)</div><div style="{{inp}}">Your tax is going up?</div></div>
+        <div><div style="{{lab}}">ARCHIVE SHELF ID</div><div style="{{inp}}; color: #52525b">e.g. SHELF-A12</div></div>
+        <div>
+          <div style="{{lab}}">TARGET PLATFORMS</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px"><span style="{{on}}">YouTube</span><span style="{{on}}">Facebook</span><span style="{{off}}">Web Portal</span><span style="{{off}}">TikTok</span></div>
+        </div>
+      </div>
+      <div style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 22px 32px; display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+        <div style="width: 50%; padding-right: 7px; box-sizing: border-box">
+          <div style="{{lab}}">PUBLISHER</div>
+          <div style="{{pub.box}}"><span style="{{pub.dot}}">{{pub.init}}</span><span style="flex-grow: 1">{{pub.name}}</span></div>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px"><div style="font-size: 10.5px; font-weight: 600; letter-spacing: .08em; color: #71717a">POST CAPTION / SOCIAL COPY <span style="text-transform: none; letter-spacing: 0; font-weight: 400; color: #52525b">320 characters</span></div><span style="{{cp}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6a2 2 0 0 1 2-2h9"></path></svg>Copy</span></div>
+          <div style="{{inp}}; height: 130px; line-height: 1.65; color: #d4d4d8">What the new budget changes for ordinary families, in two minutes. Watch before you plan your month. Full video on our channel and Facebook page.</div>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px"><div style="font-size: 10.5px; font-weight: 600; letter-spacing: .08em; color: #71717a">SEO KEYWORDS / TAGS <span style="text-transform: none; letter-spacing: 0; font-weight: 400; color: #52525b">comma separated, 14 tags</span></div><span style="{{cp}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6a2 2 0 0 1 2-2h9"></path></svg>Copy</span></div>
+          <div style="{{inp}}; height: 130px; line-height: 1.65; color: #d4d4d8">budget 2026, tax changes, family budget, income tax slab, vat on essentials, subsidy, savings, price hike, fiscal year 2026-27, national budget, parliament, finance minister, explainer, bangladesh economy</div>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px"><div style="font-size: 10.5px; font-weight: 600; letter-spacing: .08em; color: #71717a">HASHTAGS (#) <span style="text-transform: none; letter-spacing: 0; font-weight: 400; color: #52525b"># is added for you, 9 hashtags</span></div><span style="{{cp}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6a2 2 0 0 1 2-2h9"></path></svg>Copy</span></div>
+          <div style="{{inp}}; height: 100px; line-height: 1.65; color: #7dd3fc">#budget2026 #tax #familybudget #bdeconomy #explainer #thewave24 #vat #nationalbudget #fiscalyear</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+          <div><div style="{{lab}}">YOUTUBE PUBLISHED LINK</div><div style="{{inp}}; color: #52525b">https://</div></div>
+          <div><div style="{{lab}}">FACEBOOK PUBLISHED LINK</div><div style="{{inp}}; color: #52525b">https://</div></div>
+        </div>
+        <div style="border-top: 1px solid rgba(255,255,255,.08); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0">
+          <div style="display: flex; align-items: center; justify-content: space-between">
+            <div style="font-size: 11px; font-weight: 600; letter-spacing: .1em; color: #71717a">SHORT CONTENT (2) <span style="font-weight: 400; letter-spacing: 0; color: #52525b">&nbsp;reels and short videos cut from this video</span></div>
+            <span style="border-radius: 999px; background: #fff; color: #000; padding: 7px 14px; font-size: 12.5px; font-weight: 700">+ Add short</span>
+          </div>
+          <div style="border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); border-radius: 14px; padding: 12px 16px; display: grid; grid-template-columns: 110px 1fr 220px 150px 70px; align-items: center; gap: 14px; font-size: 13px">
+            <span style="font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: #71717a">CON-20261024-SHORT01</span>
+            <span style="font-weight: 600">Your tax is going up? 20-second answer</span>
+            <span style="display: flex; gap: 6px"><span style="{{pOn}}">YT Shorts</span><span style="{{pOn}}">FB Reel</span></span>
+            <span style="color: #a1a1aa">24 Oct, 09:00 PM</span>
+            <span style="color: #7dd3fc; font-weight: 600">Open link</span>
+          </div>
+          <div style="border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); border-radius: 14px; padding: 12px 16px; display: grid; grid-template-columns: 110px 1fr 220px 150px 70px; align-items: center; gap: 14px; font-size: 13px">
+            <span style="font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: #71717a">CON-20261024-SHORT02</span>
+            <span style="font-weight: 600">Who pays less this year</span>
+            <span style="display: flex; gap: 6px"><span style="{{pOn}}">FB Reel</span></span>
+            <span style="color: #a1a1aa">25 Oct, 12:00 PM</span>
+            <span style="color: #52525b">no link yet</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; border-top: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.55)">
+      <div style="width: 470px; flex-shrink: 0; border-right: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.015)"></div>
+      <div style="flex-grow: 1; min-width: 0; padding: 14px 32px; display: flex; align-items: center; gap: 10px">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: .1em; color: #71717a">NEXT STEP</span>
+        <span style="{{prim}}">Mark as Published</span>
+        <span style="flex-grow: 1"></span>
+        <span style="{{ghost}}">Hold</span>
+        <span style="{{danger}}">Drop</span>
+        <span style="{{danger}}">Delete permanently</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = 'border-radius:999px;padding:6px 14px;font-size:12px;border:1px solid ';
+    const pill = 'border-radius:999px;padding:5px 12px;font-size:12px;border:1px solid ';
+    const filled = 'display:flex;align-items:center;gap:8px;box-sizing:border-box;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);border-radius:12px;padding:8px 10px;font-size:13px;font-weight:600;color:#f4f4f5';
+    const empty = 'display:flex;align-items:center;gap:8px;box-sizing:border-box;border:1px dashed rgba(255,255,255,.16);background:transparent;border-radius:12px;padding:8px 10px;font-size:13px;font-weight:500;color:#52525b';
+    const dotOn = (c) => 'width:22px;height:22px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#0c0c0f;background:' + c;
+    const dotOff = 'width:22px;height:22px;border-radius:11px;flex-shrink:0;border:1px dashed rgba(255,255,255,.2)';
+    const mk = (label, name, c) => name ? { label, name, init: name[0], box: filled, dot: dotOn(c) } : { label, name: 'Unassigned', init: '', box: empty, dot: dotOff };
+    const cchip = (bg, fg) => 'border-radius:999px;padding:3px 11px;font-size:11px;font-weight:700;letter-spacing:.08em;background:' + bg + ';color:' + fg;
+    const groups = [
+      { title: 'IDEA & SCRIPT', hint: 'who thought of it and wrote it', stripe: 'background:#7dd3fc', chip: cchip('rgba(125,211,252,.16)', '#bae6fd'), fields: [mk('CONCEPT CREATOR', 'Sudipta', '#7dd3fc'), mk('RESEARCH & SCRIPT WRITER', 'Mamun', '#7dd3fc'), mk('PRESENTER', 'Rina', '#7dd3fc')] },
+      { title: 'PRODUCTION CREW', hint: 'on the shoot', stripe: 'background:#fca5a5', chip: cchip('rgba(252,165,165,.16)', '#fecaca'), fields: [mk('PRODUCER', 'Karim', '#fca5a5'), mk('CAMERA OPERATOR', 'Rafi', '#fca5a5'), mk('TELEPROMPTER OPERATOR', '', ''), mk('LIGHT DESIGNER', 'Sumi', '#fca5a5'), mk('SOUND RECORDIST', '', ''), mk('VOICE OVER ARTIST', '', '')] },
+      { title: 'POST-PRODUCTION', hint: 'after the shoot', stripe: 'background:#fcd34d', chip: cchip('rgba(252,211,77,.16)', '#fde68a'), fields: [mk('VIDEO EDITOR', 'Joy', '#fcd34d'), mk('MOTION GRAPHICS DESIGNER', '', ''), mk('GRAPHIC DESIGNER', 'Tania', '#fcd34d'), mk('COLORIST', '', ''), mk('AUDIO MIXER', 'Nabil', '#fcd34d')] }
+    ];
+    groups.forEach((g) => { g.count = g.fields.filter((f) => f.init).length + ' / ' + g.fields.length; });
+    return {
+      groups, pub: mk('PUBLISHER', 'Joy', '#86efac'),
+      lab: 'display:flex;justify-content:space-between;font-size:10.5px;font-weight:600;letter-spacing:.08em;color:#71717a;margin-bottom:6px',
+      inp: 'box-sizing:border-box;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:12px;padding:9px 13px;font-size:13.5px;color:#f4f4f5',
+      cp: 'display:inline-flex;align-items:center;gap:5px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);padding:3px 11px;font-size:11.5px;font-weight:600;color:#e4e4e7',
+      prim: 'display:inline-flex;align-items:center;border-radius:999px;background:#fff;color:#000;padding:9px 18px;font-size:13px;font-weight:700',
+      danger: 'display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(248,113,113,.35);background:rgba(239,68,68,.1);padding:9px 16px;font-size:13px;font-weight:500;color:#fca5a5',
+      ghost: 'display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);padding:9px 16px;font-size:13px;font-weight:500;color:#e4e4e7',
+      on: chip + 'rgba(56,189,248,.5);background:rgba(14,165,233,.15);color:#bae6fd',
+      off: chip + 'rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#a1a1aa',
+      pOn: pill + 'rgba(56,189,248,.5);background:rgba(14,165,233,.15);color:#bae6fd',
+      pOff: pill + 'rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#a1a1aa'
+    };
+  }
+}
+</script>
+</body>
+</html>

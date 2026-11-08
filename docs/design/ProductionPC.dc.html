@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Drawer Production tab, PC</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1500px; height: 900px; box-sizing: border-box; overflow: hidden; background: #050506; color: #f4f4f5; font-family: 'Inter', -apple-system, Arial, sans-serif; display: flex; justify-content: flex-end">
+  <div style="width: 1410px; height: 900px; box-sizing: border-box; background: rgba(12,12,15,.98); border-left: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column">
+    <div style="padding: 22px 32px 0; border-bottom: 1px solid rgba(255,255,255,.06)">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="background: #fff; color: #000; border-radius: 4px; padding: 3px 8px; font-size: 10px; font-weight: 800; letter-spacing: .12em">EXPLAINER</span>
+            <span style="border-radius: 999px; background: rgba(148,163,184,.16); color: #cbd5e1; padding: 3px 11px; font-size: 11.5px; font-weight: 600">Draft</span>
+          </div>
+          <div style="margin-top: 10px; font-size: 26px; font-weight: 900; letter-spacing: -.01em">BUDGET 2026 CHANGES</div>
+        </div>
+        <div style="width: 32px; height: 32px; color: #a1a1aa; display: flex; align-items: center; justify-content: center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </div>
+      </div>
+      <div style="display: flex; gap: 4px; margin-top: 14px">
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #71717a">Editorial</span>
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #fff; border-bottom: 2px solid #38bdf8">Production</span>
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #71717a">Publish</span>
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #71717a">QC &amp; Audit</span>
+      </div>
+    </div>
+    <div style="flex-grow: 1; min-height: 0; display: flex">
+      <div style="width: 470px; flex-shrink: 0; box-sizing: border-box; padding: 22px 32px; border-right: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.015); display: flex; flex-direction: column; gap: 13px">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: .1em; color: #71717a">DETAILS <span style="font-weight: 400; letter-spacing: 0; color: #52525b">&nbsp;same on every tab</span></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div><div style="{{lab}}">CHANNEL</div><div style="{{inp}}">The Wave 24</div></div>
+          <div><div style="{{lab}}">SCHEDULED PUBLISH</div><div style="{{inp}}">24/10/2026, 07:00 PM</div></div>
+        </div>
+        <div><div style="{{lab}}">SLUG NAME <span style="text-transform: none; letter-spacing: 0; font-weight: 400; color: #52525b">19/24</span></div><div style="{{inp}}; font-family: ui-monospace, Menlo, monospace; font-weight: 700">BUDGET 2026 CHANGES</div></div>
+        <div><div style="{{lab}}">TITLE</div><div style="{{inp}}">Budget 2026: what changes for ordinary families</div></div>
+        <div><div style="{{lab}}">THUMBNAIL TEXT (HOOK)</div><div style="{{inp}}">Your tax is going up?</div></div>
+        <div><div style="{{lab}}">ARCHIVE SHELF ID</div><div style="{{inp}}; color: #52525b">e.g. SHELF-A12</div></div>
+        <div>
+          <div style="{{lab}}">TARGET PLATFORMS</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px"><span style="{{on}}">YouTube</span><span style="{{on}}">Facebook</span><span style="{{off}}">Web Portal</span><span style="{{off}}">TikTok</span></div>
+        </div>
+      </div>
+      <div style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 22px 32px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+        <div style="display: flex; align-items: baseline; justify-content: space-between"><div style="font-size: 11px; font-weight: 600; letter-spacing: .1em; color: #71717a">STAFF ASSIGNMENT</div><div style="font-size: 12px; color: #71717a">scrolls down to Publishing, Live crew and Files &amp; links</div></div>
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+          <div style="position: relative; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.025); border-radius: 18px; padding: 14px 20px 16px 24px; overflow: hidden">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 5px; {{g.stripe}}"></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px">
+              <div style="display: flex; align-items: center; gap: 10px"><span style="{{g.chip}}">{{g.title}}</span><span style="font-size: 12px; color: #71717a">{{g.hint}}</span></div>
+              <span style="font-size: 12px; font-weight: 600; color: #a1a1aa">{{g.count}}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px 14px">
+              <sc-for list="{{g.fields}}" as="f" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+                  <div style="font-size: 10.5px; font-weight: 600; letter-spacing: .08em; color: #71717a">{{f.label}}</div>
+                  <div style="{{f.box}}"><span style="{{f.dot}}">{{f.init}}</span><span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{f.name}}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = 'border-radius:999px;padding:6px 14px;font-size:12px;border:1px solid ';
+    const pill = 'border-radius:999px;padding:5px 12px;font-size:12px;border:1px solid ';
+    const filled = 'display:flex;align-items:center;gap:8px;box-sizing:border-box;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);border-radius:12px;padding:8px 10px;font-size:13px;font-weight:600;color:#f4f4f5';
+    const empty = 'display:flex;align-items:center;gap:8px;box-sizing:border-box;border:1px dashed rgba(255,255,255,.16);background:transparent;border-radius:12px;padding:8px 10px;font-size:13px;font-weight:500;color:#52525b';
+    const dotOn = (c) => 'width:22px;height:22px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#0c0c0f;background:' + c;
+    const dotOff = 'width:22px;height:22px;border-radius:11px;flex-shrink:0;border:1px dashed rgba(255,255,255,.2)';
+    const mk = (label, name, c) => name ? { label, name, init: name[0], box: filled, dot: dotOn(c) } : { label, name: 'Unassigned', init: '', box: empty, dot: dotOff };
+    const cchip = (bg, fg) => 'border-radius:999px;padding:3px 11px;font-size:11px;font-weight:700;letter-spacing:.08em;background:' + bg + ';color:' + fg;
+    const groups = [
+      { title: 'IDEA & SCRIPT', hint: 'who thought of it and wrote it', stripe: 'background:#7dd3fc', chip: cchip('rgba(125,211,252,.16)', '#bae6fd'), fields: [mk('CONCEPT CREATOR', 'Sudipta', '#7dd3fc'), mk('RESEARCH & SCRIPT WRITER', 'Mamun', '#7dd3fc'), mk('PRESENTER', 'Rina', '#7dd3fc')] },
+      { title: 'PRODUCTION CREW', hint: 'on the shoot', stripe: 'background:#fca5a5', chip: cchip('rgba(252,165,165,.16)', '#fecaca'), fields: [mk('PRODUCER', 'Karim', '#fca5a5'), mk('CAMERA OPERATOR', 'Rafi', '#fca5a5'), mk('TELEPROMPTER OPERATOR', '', ''), mk('LIGHT DESIGNER', 'Sumi', '#fca5a5'), mk('SOUND RECORDIST', '', ''), mk('VOICE OVER ARTIST', '', '')] },
+      { title: 'POST-PRODUCTION', hint: 'after the shoot', stripe: 'background:#fcd34d', chip: cchip('rgba(252,211,77,.16)', '#fde68a'), fields: [mk('VIDEO EDITOR', 'Joy', '#fcd34d'), mk('MOTION GRAPHICS DESIGNER', '', ''), mk('GRAPHIC DESIGNER', 'Tania', '#fcd34d'), mk('COLORIST', '', ''), mk('AUDIO MIXER', 'Nabil', '#fcd34d')] }
+    ];
+    groups.forEach((g) => { g.count = g.fields.filter((f) => f.init).length + ' / ' + g.fields.length; });
+    return {
+      groups, pub: mk('PUBLISHER', 'Joy', '#86efac'),
+      lab: 'display:flex;justify-content:space-between;font-size:10.5px;font-weight:600;letter-spacing:.08em;color:#71717a;margin-bottom:6px',
+      inp: 'box-sizing:border-box;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:12px;padding:9px 13px;font-size:13.5px;color:#f4f4f5',
+      ghost: 'display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);padding:9px 16px;font-size:13px;font-weight:500;color:#e4e4e7',
+      on: chip + 'rgba(56,189,248,.5);background:rgba(14,165,233,.15);color:#bae6fd',
+      off: chip + 'rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#a1a1aa',
+      pOn: pill + 'rgba(56,189,248,.5);background:rgba(14,165,233,.15);color:#bae6fd',
+      pOff: pill + 'rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#a1a1aa'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -15,6 +15,8 @@
 | ব্লুপ্রিন্ট | `docs/blueprint-index.md` থেকে (`blueprint-en.md`, `blueprint-bn.md`) |
 | ফাইল/সার্ভার পরিকল্পনা, ব্যবসা, Django রূপান্তর | `docs/file-management-plan.md`, `docs/business-and-operations.md`, `docs/architecture-django-transition.md` |
 | পরিকল্পনা ও সিদ্ধান্তের নোট | `docs/notes/` |
+| Mockups (Claude Design canvas sources) | `docs/design/` |
+| Continue with a new Claude account | `docs/notes/HANDOVER.md` |
 
 ## প্রজেক্ট
 Next.js 16.4.2 (App Router) + React 19 + Supabase (RLS, ট্রিগার, Realtime) + Vercel। Vercel প্রজেক্ট `wavedesk`, Supabase প্রজেক্ট `wavedesk`, GitHub `thesudiptasaha/wavedesk`। প্যাকেজ বদল শুধু মালিকের অনুমতিতে, আলাদা কমিটে।

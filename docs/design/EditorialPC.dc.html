@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Drawer Editorial tab, PC</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.55),0 0 14px 2px rgba(52,211,153,.35)}50%{box-shadow:0 0 0 6px rgba(52,211,153,0),0 0 24px 6px rgba(52,211,153,.55)}}
+@media (prefers-reduced-motion: reduce){.play-glow{animation:none!important}}
+</style>
+</helmet>
+<div style="width: 1500px; height: 900px; box-sizing: border-box; overflow: hidden; background: #050506; color: #f4f4f5; font-family: 'Inter', -apple-system, Arial, sans-serif; display: flex; justify-content: flex-end">
+
+  <div style="width: 1410px; height: 900px; box-sizing: border-box; background: rgba(12,12,15,.98); border-left: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column">
+
+    <div style="padding: 22px 32px 0; border-bottom: 1px solid rgba(255,255,255,.06)">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="background: #fff; color: #000; border-radius: 4px; padding: 3px 8px; font-size: 10px; font-weight: 800; letter-spacing: .12em">EXPLAINER</span>
+            <span style="border-radius: 999px; background: rgba(148,163,184,.16); color: #cbd5e1; padding: 3px 11px; font-size: 11.5px; font-weight: 600">Draft</span>
+          </div>
+          <div style="margin-top: 10px; font-size: 26px; font-weight: 900; letter-spacing: -.01em">BUDGET 2026 CHANGES</div>
+        </div>
+        <div style="width: 32px; height: 32px; color: #a1a1aa; display: flex; align-items: center; justify-content: center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </div>
+      </div>
+      <div style="display: flex; gap: 4px; margin-top: 14px">
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #fff; border-bottom: 2px solid #38bdf8">Editorial</span>
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #71717a">Production</span>
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #71717a">Packaging</span>
+        <span style="padding: 10px 14px; font-size: 13px; font-weight: 500; color: #71717a">QC &amp; Audit</span>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; min-height: 0; display: flex">
+
+      <!-- LEFT: editorial details -->
+      <div style="width: 470px; flex-shrink: 0; box-sizing: border-box; padding: 24px 32px; border-right: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.015); display: flex; flex-direction: column; gap: 14px">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div><div style="{{lab}}">CHANNEL</div><div style="{{inp}}">The Wave 24</div></div>
+          <div><div style="{{lab}}">SCHEDULED PUBLISH</div><div style="{{inp}}">24/10/2026, 07:00 PM</div></div>
+        </div>
+        <div><div style="{{lab}}">SLUG NAME <span style="text-transform: none; letter-spacing: 0; font-weight: 400; color: #52525b">19/24</span></div><div style="{{inp}}; font-family: ui-monospace, Menlo, monospace; font-weight: 700">BUDGET 2026 CHANGES</div></div>
+        <div><div style="{{lab}}">TITLE</div><div style="{{inp}}">Budget 2026: what changes for ordinary families</div></div>
+        <div><div style="{{lab}}">THUMBNAIL TEXT (HOOK)</div><div style="{{inp}}">Your tax is going up?</div></div>
+        <div><div style="{{lab}}">ARCHIVE SHELF ID</div><div style="{{inp}}; color: #52525b">e.g. SHELF-A12</div></div>
+        <div>
+          <div style="{{lab}}">TARGET PLATFORMS</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <span style="{{on}}">YouTube</span><span style="{{on}}">Facebook</span><span style="{{off}}">Web Portal</span><span style="{{off}}">TikTok</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: script -->
+      <div style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 24px 32px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px">
+          <div style="display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: #71717a">
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: .1em">SCRIPT</span>
+            <span>412 words &middot; 2:45 on air</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="{{ghost}}">Lock Script</span>
+            <span style="{{ghost}}">Copy Script</span>
+            <span style="{{ghost}}">Edit</span>
+            <span class="play-glow" style="display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; background: #10b981; color: #022c22; padding: 9px 18px; font-size: 13px; font-weight: 800; animation: glow 2s ease-in-out infinite">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"></path></svg>
+              Play Script
+            </span>
+          </div>
+        </div>
+        <div style="flex-grow: 1; box-sizing: border-box; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); border-radius: 16px; padding: 22px 26px; font-size: 16px; line-height: 1.85; color: #e4e4e7; overflow: hidden">
+          <p style="margin: 0 0 14px">[Placeholder script text] Opening line of the story goes here, in the presenter's voice.</p>
+          <p style="margin: 0 0 14px">Second paragraph of the script. The full script shows here at a comfortable reading size, and grows to fill the whole height of the panel.</p>
+          <p style="margin: 0 0 14px">Third paragraph&hellip;</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = 'border-radius:999px;padding:6px 14px;font-size:12px;border:1px solid ';
+    return {
+      lab: 'display:flex;justify-content:space-between;font-size:10.5px;font-weight:600;letter-spacing:.08em;color:#71717a;margin-bottom:6px',
+      inp: 'box-sizing:border-box;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:12px;padding:9px 13px;font-size:13.5px;color:#f4f4f5',
+      ghost: 'display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);padding:9px 16px;font-size:13px;font-weight:500;color:#e4e4e7',
+      on: chip + 'rgba(56,189,248,.5);background:rgba(14,165,233,.15);color:#bae6fd',
+      off: chip + 'rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#a1a1aa'
+    };
+  }
+}
+</script>
+</body>
+</html>

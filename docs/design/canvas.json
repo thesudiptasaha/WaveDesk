@@ -1,0 +1,171 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "DrawerHeaderDrop.dc.html": {
+      "h": 768,
+      "title": "Drawer: big content ID + Copy ID, red close; Drop on a Published content (reason required)",
+      "w": 1366,
+      "x": 1446,
+      "y": 7200
+    },
+    "DrawerLaptopEditorial.dc.html": {
+      "h": 768,
+      "title": "Laptop 1366x768 - Drawer Editorial, no scrolling",
+      "w": 1366,
+      "x": 1446,
+      "y": 2500
+    },
+    "DrawerLaptopProduction.dc.html": {
+      "h": 768,
+      "title": "Laptop 1366x768 - Drawer Production: Presenter in Production Crew, Concept Creator + Writer together",
+      "w": 1366,
+      "x": 0,
+      "y": 3348
+    },
+    "DrawerLaptopPublish.dc.html": {
+      "h": 768,
+      "title": "Laptop 1366x768 - Drawer Publish, no scrolling",
+      "w": 1366,
+      "x": 1446,
+      "y": 3348
+    },
+    "DrawerStaffPC.dc.html": {
+      "h": 1170,
+      "title": "Step 1 - Production tab: Staff assignment (PC)",
+      "w": 860,
+      "x": 0,
+      "y": 0
+    },
+    "EditorialPC.dc.html": {
+      "h": 900,
+      "title": "Editorial tab (PC): Details on the left, Script on the right",
+      "w": 1500,
+      "x": 940,
+      "y": 0
+    },
+    "ProductionPC.dc.html": {
+      "h": 900,
+      "title": "Production tab (PC): Details stay on the left, Staff assignment on the right",
+      "w": 1500,
+      "x": 0,
+      "y": 1250
+    },
+    "PublishAnswer.dc.html": {
+      "h": 768,
+      "title": "'Did it go out?' answer window (4 ways) + phone: single-line red ticker and blinking pill",
+      "w": 1366,
+      "x": 1446,
+      "y": 8088
+    },
+    "PublishPC.dc.html": {
+      "h": 1080,
+      "title": "Publish tab (PC): bigger caption/tags/hashtags with Copy buttons, new footer row",
+      "w": 1500,
+      "x": 1580,
+      "y": 1250
+    },
+    "RundownHoldDrop.dc.html": {
+      "h": 768,
+      "title": "Rundown: no Parking zone. No-date + On hold band, yellow glow for Hold, grey for Dropped and Published-later-removed",
+      "w": 1366,
+      "x": 0,
+      "y": 7200
+    },
+    "RundownLaptop.dc.html": {
+      "h": 768,
+      "title": "Laptop 1366x768 - Rundown: compact channel rows, 3 people side by side",
+      "w": 1366,
+      "x": 0,
+      "y": 2500
+    },
+    "RundownTicker.dc.html": {
+      "h": 768,
+      "title": "Rundown: red 'Did it go out?' band + scrolling unread-notification ticker",
+      "w": 1366,
+      "x": -69,
+      "y": 8088
+    },
+    "ScriptPaperDark.dc.html": {
+      "h": 768,
+      "title": "Script as printed paper - dark theme (read view)",
+      "w": 1366,
+      "x": 0,
+      "y": 4196
+    },
+    "ScriptPaperEdit.dc.html": {
+      "h": 768,
+      "title": "Script editor - writing on the paper (dark theme)",
+      "w": 1366,
+      "x": 0,
+      "y": 5044
+    },
+    "ScriptPaperLight.dc.html": {
+      "h": 768,
+      "title": "Script as printed paper - light theme (read view)",
+      "w": 1366,
+      "x": 1446,
+      "y": 4196
+    },
+    "ScriptPrintA4.dc.html": {
+      "h": 1220,
+      "title": "A4 print of the script: page 1 = script, page 2 = details, staff, activity log",
+      "w": 1708,
+      "x": 1446,
+      "y": 5044
+    },
+    "DrawerProduction5Tabs.dc.html": {
+      "x": 0,
+      "y": 9824,
+      "w": 1366,
+      "h": 768,
+      "title": "Drawer with 5 tabs - Production tab: 11-person crew, shoot start/end, files delivered, production notes (Credits tab last)"
+    },
+    "DrawerCredits5Tabs.dc.html": {
+      "x": 1446,
+      "y": 9824,
+      "w": 1366,
+      "h": 768,
+      "title": "Drawer with 5 tabs - Credits tab (last): every role of every stage, plus credit line"
+    },
+    "DrawerPublish5Tabs.dc.html": {
+      "x": 0,
+      "y": 10672,
+      "w": 1366,
+      "h": 768,
+      "title": "Drawer with 5 tabs - Publish tab: all file links, caption, tags, published links, shorts (Credits tab is last)"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-25T13:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {},
+  "order": [
+    "DrawerStaffPC.dc.html",
+    "EditorialPC.dc.html",
+    "ProductionPC.dc.html",
+    "PublishPC.dc.html",
+    "RundownLaptop.dc.html",
+    "DrawerLaptopEditorial.dc.html",
+    "DrawerLaptopProduction.dc.html",
+    "DrawerLaptopPublish.dc.html",
+    "ScriptPaperDark.dc.html",
+    "ScriptPaperLight.dc.html",
+    "ScriptPaperEdit.dc.html",
+    "ScriptPrintA4.dc.html",
+    "RundownHoldDrop.dc.html",
+    "DrawerHeaderDrop.dc.html",
+    "RundownTicker.dc.html",
+    "PublishAnswer.dc.html",
+    "DrawerProduction5Tabs.dc.html",
+    "DrawerCredits5Tabs.dc.html",
+    "DrawerPublish5Tabs.dc.html"
+  ],
+  "pages": [],
+  "title": "WaveDesk Drawer redesign"
+}

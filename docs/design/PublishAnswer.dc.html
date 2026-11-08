@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Publish answer and phone ticker</title><script src="./support.js"></script></head>
+<body><x-dc><helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.b{box-sizing:border-box;background:#050506;color:#f4f4f5;font-family:'Inter',-apple-system,Arial,sans-serif;overflow:hidden;position:relative}
+.btn{display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);padding:8px 16px;font-size:13px;font-weight:500;color:#e4e4e7}
+.btn.pri{background:#fff;color:#000;font-weight:700;border-color:#fff}
+.lab{font-size:10px;font-weight:600;letter-spacing:.08em;color:#71717a;margin-bottom:4px;text-transform:uppercase}
+.inp{box-sizing:border-box;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);border-radius:10px;padding:7px 11px;font-size:13px;color:#f4f4f5;height:36px;display:flex;align-items:center}
+.inp.ph{color:#52525b}
+.opt{flex:1;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);border-radius:12px;padding:10px 12px}
+.opt.on{border-color:#fff;background:rgba(255,255,255,.1)}
+.opt b{display:block;font-size:13.5px}
+.opt span{font-size:11px;color:#a1a1aa}
+@keyframes wdblink{0%,49%{background:#ef4444;color:#fff;box-shadow:0 0 4px #ef4444,0 0 14px #ef4444,0 0 30px rgba(239,68,68,.85),0 0 54px rgba(239,68,68,.5)}50%,100%{background:#3b82f6;color:#fff;box-shadow:0 0 4px #3b82f6,0 0 14px #3b82f6,0 0 30px rgba(59,130,246,.85),0 0 54px rgba(59,130,246,.5)}}
+.blink{animation:wdblink .7s steps(1,end) infinite;font-weight:800;border-radius:999px;padding:2px 9px;font-size:10.5px;display:inline-block}
+@media (prefers-reduced-motion:reduce){.blink{animation:none;background:#ef4444;color:#fff}}
+.mini{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);border-radius:12px;padding:11px 13px}
+</style></helmet>
+<div class="b" style="width:1366px;height:768px">
+<div style="position:absolute;left:0;top:0;width:900px;bottom:0;background:rgba(0,0,0,.35)">
+<div style="position:absolute;left:60px;top:44px;width:780px;border:1px solid rgba(255,255,255,.14);background:#0c0c0f;border-radius:18px;padding:22px 24px;box-shadow:0 24px 60px rgba(0,0,0,.6)">
+<div style="display:flex;justify-content:space-between;align-items:flex-start"><div><span class="blink">Past publish time</span><div style="font-size:21px;font-weight:900;margin-top:8px">Did it go out? &middot; CITY FLOOD RELIEF</div><div style="font-size:12.5px;color:#a1a1aa;margin-top:3px">Due 01:30 PM today &middot; Publisher: Joy &middot; WAVECON-20261029_0003</div></div><span style="width:30px;height:30px;border-radius:15px;background:#dc2626;display:flex;align-items:center;justify-content:center;font-weight:800">&times;</span></div>
+<div style="display:flex;gap:10px;margin-top:16px"><div class="opt on"><b>Yes, published</b><span>Add the links and time</span></div><div class="opt"><b>Reschedule</b><span>New time, with reason</span></div><div class="opt"><b>Drop</b><span>Not publishing, with reason</span></div><div class="opt"><b>Delete</b><span>Remove it, with reason</span></div></div>
+<div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div><div class="lab">YouTube link</div><div class="inp ph">https://youtube.com/watch?v=...</div></div>
+<div><div class="lab">Facebook link</div><div class="inp ph">https://facebook.com/...</div></div>
+<div><div class="lab">Actual publish time</div><div class="inp">29 Oct 2026, 01:42 PM</div></div>
+<div><div class="lab">Note (optional)</div><div class="inp ph">Anything the team should know</div></div></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px"><span style="font-size:11.5px;color:#71717a;max-width:430px;line-height:1.5">The blinking stays on this content until you save an answer. Your name and the answer go to the Activity log.</span><div style="display:flex;gap:8px"><span class="btn">Later</span><span class="btn pri">Save answer</span></div></div>
+</div>
+<div style="position:absolute;left:60px;top:560px;width:780px;display:flex;gap:10px">
+<div class="mini" style="flex:1"><div class="lab">Reschedule shows</div><div style="font-size:12px;color:#d4d4d8;line-height:1.5">New date &amp; time, reason (required)</div></div>
+<div class="mini" style="flex:1"><div class="lab">Drop shows</div><div style="font-size:12px;color:#d4d4d8;line-height:1.5">Reason (required). Content turns grey</div></div>
+<div class="mini" style="flex:1"><div class="lab">Delete shows</div><div style="font-size:12px;color:#d4d4d8;line-height:1.5">Reason (required) and a typed confirm, as today</div></div></div>
+</div>
+
+<div style="position:absolute;left:960px;top:36px;width:340px;height:700px;border:2px solid rgba(255,255,255,.18);border-radius:34px;background:#08080a;overflow:hidden">
+<div style="padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:900;font-size:15px">RUNDOWN</span><span class="btn" style="padding:4px 10px;font-size:11px">Today</span></div>
+<div style="height:34px;background:#dc2626;color:#fff;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:12px;font-weight:600;overflow:hidden;white-space:nowrap"><span style="font-size:10px;font-weight:800;background:#7f1d1d;padding:3px 7px">3 NEW</span><span style="overflow:hidden;text-overflow:ellipsis">CITY FLOOD RELIEF sent for review &middot; Sadia</span></div>
+<div style="padding:10px 12px;display:flex;flex-direction:column;gap:10px">
+<div class="mini" style="padding:12px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#a1a1aa">01:30 PM</span><span class="blink">Past publish time</span></div><div style="font-size:15px;font-weight:800;margin-top:6px">CITY FLOOD RELIEF</div><div style="margin-top:10px"><span class="btn pri" style="padding:6px 12px;font-size:12px">Did it go out?</span></div></div>
+<div class="mini" style="padding:12px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#a1a1aa">03:00 PM</span><span class="blink">Ready to Publish</span></div><div style="font-size:15px;font-weight:800;margin-top:6px">BUDGET TALK PART TWO</div><div style="margin-top:10px"><span class="btn pri" style="padding:6px 12px;font-size:12px">Publish</span></div></div>
+<div class="mini" style="padding:12px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#a1a1aa">06:00 PM</span><span style="border-radius:999px;background:rgba(248,113,113,.12);color:#fca5a5;padding:2px 9px;font-size:10.5px">Edit</span></div><div style="font-size:15px;font-weight:800;margin-top:6px">MINISTER FOLLOW UP</div></div></div>
+</div>
+<div style="position:absolute;left:960px;top:742px;width:340px;font-size:11px;color:#71717a;text-align:center">Phone: the ticker is one line and changes item every few seconds</div>
+</div></x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script></body></html>

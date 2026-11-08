@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Drawer 1366x768 Production</title><script src="./support.js"></script></head>
+<body><x-dc><helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Serif+Bengali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.b{box-sizing:border-box;background:#050506;color:#f4f4f5;font-family:'Inter',-apple-system,Arial,sans-serif;overflow:hidden;position:relative}
+.lab{font-size:10px;font-weight:600;letter-spacing:.08em;color:#71717a;margin-bottom:4px;text-transform:uppercase;display:flex;justify-content:space-between}
+.inp{box-sizing:border-box;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:10px;padding:7px 11px;font-size:13px;color:#f4f4f5;height:34px;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
+.chip{border-radius:999px;padding:4px 11px;font-size:11.5px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#a1a1aa}
+.chip.on{border-color:rgba(56,189,248,.5);background:rgba(14,165,233,.15);color:#bae6fd}
+.tab{padding:8px 13px;font-size:13px;font-weight:500;color:#71717a}
+.tab.act{color:#fff;border-bottom:2px solid #38bdf8}
+.btn{display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);padding:7px 14px;font-size:12.5px;font-weight:500;color:#e4e4e7}
+.btn.pri{background:#fff;color:#000;font-weight:700;border-color:#fff}
+.btn.dan{border-color:rgba(248,113,113,.35);background:rgba(239,68,68,.1);color:#fca5a5}
+.badge{background:#fff;color:#000;border-radius:4px;padding:2px 7px;font-size:9.5px;font-weight:800;letter-spacing:.12em}
+.pill{border-radius:999px;background:rgba(148,163,184,.16);color:#cbd5e1;padding:2px 10px;font-size:11px;font-weight:600}
+.tile{display:flex;flex-direction:column;align-items:center;gap:2px;width:78px}
+.av{width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0c0c0f}
+.av.em{border:1.5px dashed rgba(255,255,255,.25);color:#71717a;font-size:18px;font-weight:400;background:transparent}
+.nm{font-size:11.5px;font-weight:600;color:#f4f4f5;white-space:nowrap;max-width:78px;overflow:hidden;text-overflow:ellipsis}
+.nm.em{color:#52525b;font-weight:500}
+.rl{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#71717a;white-space:nowrap}
+.card{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);border-radius:14px;padding:10px 12px 10px 16px}
+.stripe{position:absolute;left:0;top:0;bottom:0;width:5px}
+.gt{border-radius:999px;padding:2px 10px;font-size:10px;font-weight:700;letter-spacing:.08em}
+.sec{font-size:10.5px;font-weight:600;letter-spacing:.1em;color:#71717a;text-transform:uppercase}
+.cp{display:inline-flex;align-items:center;gap:5px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);padding:2px 10px;font-size:11px;font-weight:600;color:#e4e4e7}
+.lt.b{background:#f7f4ed;color:#28231d}
+.lt .inp{border-color:rgba(105,85,60,.2);background:#fff;color:#28231d}
+.lt .lab,.lt .sec,.lt .rl{color:#7a6f60}
+.lt .chip{border-color:rgba(105,85,60,.2);background:rgba(90,75,55,.04);color:#5c5245}
+.lt .chip.on{border-color:#465a22;background:rgba(70,90,34,.12);color:#2f3e16}
+.lt .tab{color:#8a7f70}.lt .tab.act{color:#28231d;border-bottom-color:#465a22}
+.lt .btn{border-color:rgba(105,85,60,.25);background:#fff;color:#28231d}
+.lt .btn.pri{background:#1c1814;color:#fff;border-color:#1c1814}
+.lt .btn.dan{border-color:rgba(185,28,28,.35);background:rgba(185,28,28,.07);color:#b91c1c}
+.lt .badge{background:#1c1814;color:#fff}.lt .pill{background:rgba(90,75,55,.1);color:#5c5245}
+.lt .cp{border-color:rgba(105,85,60,.25);background:#fff;color:#28231d}
+
+.dr{position:absolute;right:0;top:0;width:1284px;height:768px;display:flex;flex-direction:column;background:var(--dr,rgba(12,12,15,.99));border-left:1px solid var(--ln,rgba(255,255,255,.08))}
+.lt .dr{--dr:#fbf8f2;--ln:rgba(105,85,60,.2)}
+.hd{padding:12px 24px 0;border-bottom:1px solid var(--ln,rgba(255,255,255,.06))}
+.pn{width:440px;flex-shrink:0;box-sizing:border-box;padding:14px 22px;border-right:1px solid var(--ln,rgba(255,255,255,.06));background:var(--pn,rgba(255,255,255,.015));display:flex;flex-direction:column;gap:9px}
+.lt .pn{--pn:rgba(90,75,55,.04)}
+.ft{display:flex;border-top:1px solid var(--ln,rgba(255,255,255,.08));background:var(--ft,rgba(0,0,0,.55))}
+.lt .ft{--ft:rgba(247,244,237,.95)}
+.desk{flex-grow:1;min-width:0;box-sizing:border-box;padding:14px 24px;overflow:hidden;background:var(--desk,#0b0b0e)}
+.lt .desk{--desk:#ece6d8}
+.paper{width:740px;margin:0 auto;background:#f6f1e4;color:#1c1814;border-radius:2px;box-shadow:0 18px 40px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.25);padding:26px 46px 30px;font-family:'Noto Serif Bengali',Georgia,serif;position:relative;height:540px;overflow:hidden}
+.lt .paper{background:#fffefa;box-shadow:0 12px 30px rgba(70,55,35,.2),0 0 0 1px rgba(105,85,60,.18)}
+.mast{display:flex;justify-content:space-between;font-family:Inter,sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.2em;color:#5c5245;padding-bottom:7px;border-bottom:3px double #1c1814}
+.ttl{font-size:29px;font-weight:800;line-height:1.35;margin:14px 0 10px;letter-spacing:-.005em}
+.by{display:flex;align-items:center;font-family:Inter,'Noto Serif Bengali',sans-serif;font-size:11.5px;color:#4a4036;padding:7px 0;border-top:1px solid #1c1814;border-bottom:1px solid #b9ae98}
+.by .k{font-size:9px;letter-spacing:.14em;color:#8a7f70;font-weight:700;margin-right:6px;text-transform:uppercase}
+.by .s{width:1px;height:16px;background:#b9ae98;margin:0 14px}
+.body{font-size:17.5px;line-height:2;text-align:justify;margin-top:14px;color:#1c1814}
+.body p{margin:0 0 12px}
+.dl{font-weight:800}
+.cpi{display:inline-flex;align-items:center;gap:4px;border:1px solid #b9ae98;border-radius:999px;padding:1px 8px;font-size:10px;color:#4a4036;margin-left:6px;font-family:Inter,sans-serif}
+.fade{position:absolute;left:0;right:0;bottom:0;height:60px;background:linear-gradient(to bottom,rgba(246,241,228,0),#f6f1e4)}
+.lt .fade{background:linear-gradient(to bottom,rgba(255,254,250,0),#fffefa)}
+.lt.b{background:#f7f4ed;color:#28231d}
+.lt .inp{border-color:rgba(105,85,60,.2);background:#fff;color:#28231d}
+.lt .lab,.lt .sec,.lt .rl{color:#7a6f60}
+.lt .chip{border-color:rgba(105,85,60,.2);background:rgba(90,75,55,.04);color:#5c5245}
+.lt .chip.on{border-color:#465a22;background:rgba(70,90,34,.12);color:#2f3e16}
+.lt .tab{color:#8a7f70}.lt .tab.act{color:#28231d;border-bottom-color:#465a22}
+.lt .btn{border-color:rgba(105,85,60,.25);background:#fff;color:#28231d}
+.lt .btn.pri{background:#1c1814;color:#fff;border-color:#1c1814}
+.lt .btn.dan{border-color:rgba(185,28,28,.35);background:rgba(185,28,28,.07);color:#b91c1c}
+.lt .badge{background:#1c1814;color:#fff}.lt .pill{background:rgba(90,75,55,.1);color:#5c5245}
+.lt .cp{border-color:rgba(105,85,60,.25);background:#fff;color:#28231d}
+
+.dr{position:absolute;right:0;top:0;width:1284px;height:768px;display:flex;flex-direction:column;background:var(--dr,rgba(12,12,15,.99));border-left:1px solid var(--ln,rgba(255,255,255,.08))}
+.lt .dr{--dr:#fbf8f2;--ln:rgba(105,85,60,.2)}
+.hd{padding:12px 24px 0;border-bottom:1px solid var(--ln,rgba(255,255,255,.06))}
+.pn{width:440px;flex-shrink:0;box-sizing:border-box;padding:14px 22px;border-right:1px solid var(--ln,rgba(255,255,255,.06));background:var(--pn,rgba(255,255,255,.015));display:flex;flex-direction:column;gap:9px}
+.lt .pn{--pn:rgba(90,75,55,.04)}
+.ft{display:flex;border-top:1px solid var(--ln,rgba(255,255,255,.08));background:var(--ft,rgba(0,0,0,.55))}
+.lt .ft{--ft:rgba(247,244,237,.95)}
+.desk{flex-grow:1;min-width:0;box-sizing:border-box;padding:14px 24px;overflow:hidden;background:var(--desk,#0b0b0e)}
+.lt .desk{--desk:#ece6d8}
+.paper{box-sizing:border-box;width:780px;margin:0 auto;background:#f6f1e4;color:#1c1814;border-radius:2px;box-shadow:0 18px 40px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.25);padding:26px 46px 30px;font-family:'Noto Serif Bengali',Georgia,serif;position:relative;height:540px;overflow:hidden}
+.lt .paper{background:#fffefa;box-shadow:0 12px 30px rgba(70,55,35,.2),0 0 0 1px rgba(105,85,60,.18)}
+.mast{display:flex;justify-content:space-between;font-family:Inter,sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.2em;color:#5c5245;padding-bottom:7px;border-bottom:3px double #1c1814}
+.ttl{font-size:29px;font-weight:800;line-height:1.35;margin:14px 0 10px;letter-spacing:-.005em}
+.by{display:flex;align-items:center;font-family:Inter,'Noto Serif Bengali',sans-serif;font-size:11.5px;color:#4a4036;padding:7px 0;border-top:1px solid #1c1814;border-bottom:1px solid #b9ae98}
+.by .k{font-size:11px;color:#8a7f70;font-weight:600;margin-right:6px}
+.by .s{width:1px;height:16px;background:#b9ae98;margin:0 14px}
+.body{font-size:17.5px;line-height:2;text-align:justify;margin-top:14px;color:#1c1814}
+.body p{margin:0 0 12px}
+.dl{font-weight:800}
+.cpi{display:inline-flex;align-items:center;gap:4px;border:1px solid #b9ae98;border-radius:999px;padding:1px 8px;font-size:10px;color:#4a4036;margin-left:6px;font-family:Inter,sans-serif}
+.fade{position:absolute;left:0;right:0;bottom:0;height:60px;background:linear-gradient(to bottom,rgba(246,241,228,0),#f6f1e4)}
+.lt .fade{background:linear-gradient(to bottom,rgba(255,254,250,0),#fffefa)}
+</style></helmet>
+<div class="b " style="width:1366px;height:768px"><div class="dr"><div class="hd"><div style="display:flex;align-items:center;gap:8px"><span class="badge">EXPLAINER</span><span class="pill">Script Submitted</span><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#71717a">CON-20261026_001</span><span class="cp" style="padding:1px 8px;font-size:10px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6a2 2 0 0 1 2-2h9"></path></svg> Copy ID</span><span style="flex-grow:1"></span><span style="font-size:11px;color:#34d399">Saved</span><span style="color:#a1a1aa;font-size:18px;margin-left:8px">&times;</span></div><div style="display:flex;align-items:baseline;gap:12px;margin-top:6px"><span style="font-size:21px;font-weight:900;letter-spacing:-.01em">BUDGET BREAKDOWN FISCAL YEAR</span><span style="font-size:12px;color:#71717a">The Wave Money &middot; 26 Oct 10:00 AM</span></div><div style="display:flex;gap:2px;margin-top:6px"><span class="tab">Editorial</span><span class="tab act">Production</span><span class="tab">Publish</span><span class="tab">QC &amp; Audit</span></div></div><div style="flex-grow:1;min-height:0;display:flex"><div class="pn"><div class="sec" style="margin-bottom:-2px">Details <span style="font-weight:400;letter-spacing:0;color:#52525b">same on every tab</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div class="lab">Channel</div><div class="inp">The Wave Money</div></div><div><div class="lab">Scheduled publish</div><div class="inp">10/26/2026, 10:00 AM</div></div></div>
+<div><div class="lab">Slug name <span style="text-transform:none;letter-spacing:0;font-weight:400;color:#52525b">28/24</span></div><div class="inp" style="font-family:ui-monospace,Menlo,monospace;font-weight:700">BUDGET BREAKDOWN FISCAL YEAR</div></div>
+<div><div class="lab">Title</div><div class="inp">Budget Breakdown: What Changes This Fiscal Year</div></div>
+<div><div class="lab">Thumbnail text (Hook)</div><div class="inp">WHAT CHANGES?</div></div>
+<div><div class="lab">Archive shelf ID</div><div class="inp" style="color:#52525b">e.g. SHELF-A12</div></div>
+<div><div class="lab">Target platforms</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="chip">Web Portal</span><span class="chip on">YouTube</span><span class="chip on">Facebook</span><span class="chip">Instagram</span><span class="chip">TikTok</span><span class="chip">X</span><span class="chip">Threads</span><span class="chip">Telegram</span><span class="chip">WhatsApp</span><span class="chip" style="border-style:dashed;color:#7dd3fc">+ Add</span></div></div></div><div class="desk" style="background:transparent;padding:14px 24px"><div class="sec" style="margin-bottom:8px">Staff assignment <span style="font-weight:400;letter-spacing:0;color:#52525b">&nbsp;click a photo to change &middot; hover to see who</span></div><div style="display:grid;grid-template-columns:1fr 1.25fr;gap:10px;align-items:start"><div style="display:flex;flex-direction:column;gap:10px"><div class="card"><div class="stripe" style="background:#7dd3fc"></div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px"><span class="gt" style="background:rgba(125,211,252,.16);color:#bae6fd">IDEA &amp; SCRIPT</span><span style="font-size:10.5px;color:#71717a"></span></div><span style="font-size:11px;color:#a1a1aa;font-weight:600">2 / 2</span></div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px 4px;justify-items:center"><div class="tile"><div class="av" style="background:#7dd3fc">S</div><div class="nm">Sudipta</div><div class="rl">Concept Creator</div></div><div class="tile"><div class="av" style="background:#7dd3fc">T</div><div class="nm">Tanvir</div><div class="rl">Research &amp; Writer</div></div></div></div><div class="card"><div class="stripe" style="background:#fcd34d"></div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px"><span class="gt" style="background:rgba(252,211,77,.16);color:#fde68a">POST-PRODUCTION</span><span style="font-size:10.5px;color:#71717a">after the shoot</span></div><span style="font-size:11px;color:#a1a1aa;font-weight:600">3 / 5</span></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 4px;justify-items:center"><div class="tile"><div class="av" style="background:#fcd34d">J</div><div class="nm">Joy</div><div class="rl">Video Editor</div></div><div class="tile"><div class="av em">+</div><div class="nm em">Assign</div><div class="rl">Motion Gfx</div></div><div class="tile"><div class="av" style="background:#fcd34d">T</div><div class="nm">Tania</div><div class="rl">Graphic</div></div><div class="tile"><div class="av em">+</div><div class="nm em">Assign</div><div class="rl">Colorist</div></div><div class="tile"><div class="av" style="background:#fcd34d">N</div><div class="nm">Nabil</div><div class="rl">Audio Mixer</div></div></div></div></div><div style="display:flex;flex-direction:column;gap:10px"><div class="card"><div class="stripe" style="background:#fca5a5"></div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px"><span class="gt" style="background:rgba(252,165,165,.16);color:#fecaca">PRODUCTION CREW</span><span style="font-size:10.5px;color:#71717a">on the shoot</span></div><span style="font-size:11px;color:#a1a1aa;font-weight:600">4 / 7</span></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px;justify-items:center"><div class="tile"><div class="av" style="background:#fca5a5">K</div><div class="nm">Karim</div><div class="rl">Producer</div></div><div class="tile"><div class="av" style="background:#fca5a5">N</div><div class="nm">Nusrat</div><div class="rl">Presenter</div></div><div class="tile"><div class="av" style="background:#fca5a5">R</div><div class="nm">Rafi</div><div class="rl">Camera Op</div></div><div class="tile"><div class="av em">+</div><div class="nm em">Assign</div><div class="rl">Teleprompter</div></div><div class="tile"><div class="av" style="background:#fca5a5">S</div><div class="nm">Sumi</div><div class="rl">Light</div></div><div class="tile"><div class="av em">+</div><div class="nm em">Assign</div><div class="rl">Sound</div></div><div class="tile"><div class="av em">+</div><div class="nm em">Assign</div><div class="rl">Voice Over</div></div></div></div><div class="card"><div class="stripe" style="background:#86efac"></div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px"><span class="gt" style="background:rgba(134,239,172,.16);color:#bbf7d0">PUBLISHING</span><span style="font-size:10.5px;color:#71717a"></span></div><span style="font-size:11px;color:#a1a1aa;font-weight:600">1 / 1</span></div><div style="display:grid;grid-template-columns:repeat(1,1fr);gap:8px 4px;justify-items:center"><div class="tile"><div class="av" style="background:#86efac">J</div><div class="nm">Joy</div><div class="rl">Publisher</div></div></div></div></div></div><div style="margin-top:12px"><div class="sec" style="margin-bottom:6px">Files &amp; links</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px"><div><div class="lab">Raw footage</div><div class="inp" style="color:#52525b">https://...</div></div><div><div class="lab">Project file</div><div class="inp" style="color:#52525b">https://...</div></div><div><div class="lab">Master export</div><div class="inp" style="color:#52525b">https://...</div></div></div></div></div></div><div class="ft"><div class="pn" style="width:440px;padding:0;border-right:1px solid var(--ln,rgba(255,255,255,.06))"></div><div style="flex-grow:1;padding:9px 24px;display:flex;align-items:center;gap:10px"><span class="sec" style="font-size:10px">Next step</span><span class="btn pri">Approve Script</span><span class="btn">Send Back</span><span style="flex-grow:1"></span><span class="btn">Hold</span><span class="btn dan">Drop</span><span class="btn dan">Delete permanently</span></div></div></div></div></x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script></body></html>

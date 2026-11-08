@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Drawer staff assignment, PC</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 860px; height: 1170px; box-sizing: border-box; overflow: hidden; background: #0c0c0f; color: #f4f4f5; font-family: 'Inter', -apple-system, Arial, sans-serif; padding: 28px 32px; display: flex; flex-direction: column; gap: 16px">
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between">
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .1em; color: #71717a">STAFF ASSIGNMENT</div>
+    <div style="font-size: 12px; color: #71717a">8 of 14 assigned</div>
+  </div>
+
+  <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+    <div style="position: relative; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.025); border-radius: 18px; padding: 16px 20px 18px 24px; overflow: hidden">
+      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 5px; {{g.stripe}}"></div>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="{{g.chip}}">{{g.title}}</span>
+          <span style="font-size: 12px; color: #71717a">{{g.hint}}</span>
+        </div>
+        <span style="font-size: 12px; font-weight: 600; color: #a1a1aa">{{g.count}}</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 14px">
+        <sc-for list="{{g.fields}}" as="f" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+            <div style="font-size: 10.5px; font-weight: 600; letter-spacing: .08em; color: #71717a">{{f.label}}</div>
+            <div style="{{f.box}}">
+              <span style="{{f.dot}}">{{f.init}}</span>
+              <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{f.name}}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9l7 7 7-7"></path></svg>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+
+  <div style="font-size: 11.5px; color: #52525b; line-height: 1.5">Groups follow the order of work: idea &amp; script, then the shoot, then post-production, then publishing. All names are always visible, so the old "See More Credits" button is not needed on PC. Fields still hide by content type (PACKAGE hides camera, light and sound; LIVE hides editor) as today. The Live crew card appears only on LIVE content. Teleprompter Operator is a new field.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":860,"height":1170}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const filled = 'display:flex;align-items:center;gap:8px;box-sizing:border-box;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);border-radius:12px;padding:8px 10px;font-size:13px;font-weight:600;color:#f4f4f5';
+    const empty = 'display:flex;align-items:center;gap:8px;box-sizing:border-box;border:1px dashed rgba(255,255,255,.16);background:transparent;border-radius:12px;padding:8px 10px;font-size:13px;font-weight:500;color:#52525b';
+    const dotOn = (c) => 'width:22px;height:22px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#0c0c0f;background:' + c;
+    const dotOff = 'width:22px;height:22px;border-radius:11px;flex-shrink:0;border:1px dashed rgba(255,255,255,.2)';
+    const chip = (bg, fg) => 'border-radius:999px;padding:3px 11px;font-size:11px;font-weight:700;letter-spacing:.08em;background:' + bg + ';color:' + fg;
+    const mk = (label, name, c) => name
+      ? { label, name, init: name[0], box: filled, dot: dotOn(c) }
+      : { label, name: 'Unassigned', init: '', box: empty, dot: dotOff };
+    const groups = [
+      { title: 'IDEA & SCRIPT', hint: 'who thought of it and wrote it', stripe: 'background:#7dd3fc', chip: chip('rgba(125,211,252,.16)', '#bae6fd'),
+        fields: [mk('CONCEPT CREATOR', 'Sudipta', '#7dd3fc'), mk('RESEARCH & SCRIPT WRITER', 'Mamun', '#7dd3fc'), mk('PRESENTER', 'Rina', '#7dd3fc')] },
+      { title: 'PRODUCTION CREW', hint: 'on the shoot', stripe: 'background:#fca5a5', chip: chip('rgba(252,165,165,.16)', '#fecaca'),
+        fields: [mk('PRODUCER', 'Karim', '#fca5a5'), mk('CAMERA OPERATOR', 'Rafi', '#fca5a5'), mk('TELEPROMPTER OPERATOR', '', ''),
+                 mk('LIGHT DESIGNER', 'Sumi', '#fca5a5'), mk('SOUND RECORDIST', '', ''), mk('VOICE OVER ARTIST', '', '')] },
+      { title: 'POST-PRODUCTION', hint: 'after the shoot', stripe: 'background:#fcd34d', chip: chip('rgba(252,211,77,.16)', '#fde68a'),
+        fields: [mk('VIDEO EDITOR', 'Joy', '#fcd34d'), mk('MOTION GRAPHICS DESIGNER', '', ''), mk('GRAPHIC DESIGNER', 'Tania', '#fcd34d'),
+                 mk('COLORIST', '', ''), mk('AUDIO MIXER', 'Nabil', '#fcd34d')] },
+      { title: 'PUBLISHING', hint: 'who puts it live', stripe: 'background:#86efac', chip: chip('rgba(134,239,172,.16)', '#bbf7d0'),
+        fields: [mk('PUBLISHER', 'Joy', '#86efac')] },
+      { title: 'LIVE CREW', hint: 'shown only for LIVE content', stripe: 'background:#c4b5fd', chip: chip('rgba(196,181,253,.16)', '#ddd6fe'),
+        fields: [mk('LIVE VIDEO SWITCHER', '', ''), mk('LIVE AUDIO MIXER', '', '')] }
+    ];
+    groups.forEach((g) => {
+      const n = g.fields.filter((f) => f.init).length;
+      g.count = n + ' / ' + g.fields.length;
+    });
+    return { groups };
+  }
+}
+</script>
+</body>
+</html>
