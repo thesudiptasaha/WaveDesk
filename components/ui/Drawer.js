@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useContext } from 'react';
 import { Icon, LockIcon } from './Icons';
 import { copyText, safeHttpUrl } from '../../utils/helpers';
 import { scriptStats } from '../../utils/scriptDuration';
@@ -26,8 +26,17 @@ import {
   canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES,
   AD_TYPES, AD_STATUSES, canEditAds, stepProgress,
   canMarkFilesReceived, canFixFilesProblem,
-  canRescheduleRow, publishCheckState, canAnswerPublishCheckNow
+  canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
+  isExternal, canManageExternals
 } from '../../lib/core';
+import {
+  BookingsContext,
+  useContentBookings,
+  latestBookingFor,
+  BookingBadge,
+  InviteModal,
+  BookingStatusModal
+} from './BookingInvite';
 
 
 
@@ -75,7 +84,10 @@ const STAFF_GROUPS = [
 ];
 
 function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
+  const { bookings } = useContext(BookingsContext);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const active = !!actor && actor.active !== false;
   const isPresenter = field === 'presenter_name';
   const isCrew = GUARDED_ASSIGN_FIELDS.includes(field);
@@ -107,6 +119,8 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
 
   const member = isAssigned ? (team || []).find((m) => m.full_name === assignedName) : null;
   const nickname = (member && member.nickname) || assignedName;
+  const isExt = isAssigned && member && isExternal(member);
+  const booking = isExt ? latestBookingFor(bookings, field, member.id) : null;
 
   const tileTitle = isLocked
     ? lockTitle
@@ -167,6 +181,44 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
         {label}
       </span>
 
+      {isExt ? (
+        booking ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setStatusOpen(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
+            className="relative z-10 mt-1 cursor-pointer rounded-full transition hover:opacity-80 active:scale-95 focus:outline-none focus:ring-1 focus:ring-sky-400"
+            title="View booking status"
+          >
+            <BookingBadge booking={booking} />
+          </button>
+        ) : canManageExternals(actor) ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setInviteOpen(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
+            className="relative z-10 mt-1 inline-flex cursor-pointer items-center justify-center rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-300 hover:bg-sky-500/20 active:scale-95 transition focus:outline-none focus:ring-1 focus:ring-sky-400"
+            title={`Invite ${nickname} via WhatsApp`}
+          >
+            Invite
+          </button>
+        ) : null
+      ) : null}
+
       {!isLocked ? (
         <>
           <button
@@ -187,6 +239,37 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
             allowClear={allowClear}
             team={team}
           />
+        </>
+      ) : null}
+
+      {isExt ? (
+        <>
+          {inviteOpen ? (
+            <InviteModal
+              open={inviteOpen}
+              onClose={() => setInviteOpen(false)}
+              row={row}
+              field={field}
+              label={label}
+              member={member}
+              actor={actor}
+            />
+          ) : null}
+          {statusOpen && booking ? (
+            <BookingStatusModal
+              open={statusOpen}
+              onClose={() => setStatusOpen(false)}
+              booking={booking}
+              row={row}
+              label={label}
+              member={member}
+              actor={actor}
+              onInviteAgain={() => {
+                setStatusOpen(false);
+                setInviteOpen(true);
+              }}
+            />
+          ) : null}
         </>
       ) : null}
     </div>
@@ -2621,7 +2704,8 @@ function PublishCheckBanner({ row, actor, onAnswer }) {
 }
 
 function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd, onPublishCheck }) {
-    const savedScriptStats = scriptStats(row.script);
+  const bookings = useContentBookings(row?.id);
+  const savedScriptStats = scriptStats(row.script);
     const [tab, setTab] = useState('editorial');
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [saveState, setSaveState] = useState({ status: 'idle', at: null });
@@ -2735,7 +2819,8 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   };
 
   return (
-    <div className="fixed inset-0 z-50">
+    <BookingsContext.Provider value={{ bookings }}>
+      <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-[580px] lg:w-[94vw] lg:max-w-[1600px] flex-col border-l border-white/[0.08] bg-black/60 shadow-2xl shadow-black backdrop-blur-xl">
         <header className="border-b border-white/[0.06] px-4 sm:px-5 lg:px-6 pb-0 pt-3">
@@ -2892,6 +2977,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
         </footer>
       </aside>
     </div>
+    </BookingsContext.Provider>
   );
 }
 

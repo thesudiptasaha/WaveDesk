@@ -463,6 +463,14 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
   - **ফাংশনসমূহ:** `create_booking` (Owner, Manager, Producer ও Production Manager-দের জন্য; কনটেন্টে পূর্বে অ্যাসাইন করা সক্রিয় বহিরাগতদের জন্য নতুন লিংক তৈরি করে এবং পূর্বের ওপেন ইনভাইট 'superseded' করে), `revoke_booking` (আমন্ত্রণ প্রত্যাহার), `get_booking_by_token` (পাবলিক `/b/<token>` পেজের জন্য লগইনহীন রিড; শুধুমাত্র Presenter ও Voice Over Artist বুকিংয়ে স্ক্রিপ্ট ও content_uid রিটার্ন করে), এবং `answer_booking` (লগইনহীন উত্তর 'confirmed' বা 'declined'; মেয়াদের মধ্যে বদলানো যায় এবং আমন্ত্রণকারীকে নোটিফিকেশন পাঠায়)।
   - **বাকি কাজ:** অ্যাপ অংশ (ইনভাইট বাটন ও ফর্ম, হোয়াটসঅ্যাপ মেসেজ তৈরি, ক্রেডিট টাইলে স্ট্যাটাস ব্যাজ) এবং পাবলিক `/b/<token>` পেজ তৈরির কাজ বাকি।
 
+## ৮ নভেম্বর ২০২৬ (N140)
+- **External crew invite — app part (৮ নভেম্বর ২০২৬, N140/N140b):**
+  - **নতুন কম্পোনেন্ট (`components/ui/BookingInvite.js`):** `BookingsContext`, `useContentBookings` (Realtime চ্যানেলসহ), `latestBookingFor`, `BookingBadge`, `InviteModal`, `BookingStatusModal` এবং `buildInviteMessage`।
+  - **ড্রয়ার ইন্টিগ্রেশন (`components/ui/Drawer.js`):** StaffTile-এ শুধুমাত্র অ্যাসাইন করা বহিরাগত কর্মী (`isExternal`) এবং যাদের বহিরাগতদের ম্যানেজ করার অনুমতি আছে (`canManageExternals`) তাদের জন্য "Invite" বাটন অথবা স্ট্যাটাস ব্যাজ (Link created / Expired / Confirmed / Declined) প্রদর্শিত হয়।
+  - **ইনভাইট ফর্ম ও হোয়াটসঅ্যাপ বার্তা:** Invite বাটনে ক্লিক করলে ফর্ম খোলে (তারিখ ও সময় আবশ্যিক এবং শুরুতে ফাঁকা থাকে, স্থান ও নোট ঐচ্ছিক); `create_booking` RPC কল করে সিক্রেট টোকেন তৈরি হয় এবং এডিটেবল বাংলা বার্তা প্রদর্শিত হয়। এতে Open WhatsApp, Copy message, Copy link এবং Done বোতাম রয়েছে। সিক্রেট কোড শুধুমাত্র মোডালের স্টেটে সংরক্ষিত থাকে এবং মোডাল বন্ধ (X, backdrop, Done, Cancel, Esc বা unmount) হলে সমস্ত স্টেট ও সিক্রেট মুছে যায়।
+  - **স্ট্যাটাস মোডাল ও অ্যাকশন:** স্ট্যাটাস ব্যাজে ক্লিকে বিস্তারিত দেখা যায়; এতে Cancel link (`revoke_booking` RPC সহ কনফার্মেশন ডায়ালগ) এবং Invite again বোতাম রয়েছে। Esc চাপলে শুধুমাত্র শীর্ষ মোডাল স্তরটি বন্ধ হয়।
+  - **বাকি কাজ:** পাবলিক পেজ `/b/<token>` এখনও তৈরি হয়নি (পরবর্তী ধাপে তৈরি হবে)।
+
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
 - **Employee Report (ও অন্য রিপোর্ট) পপ-আপ হিসেবে খোলা (মালিকের পর্যবেক্ষণ):** কোন কোন রিপোর্ট ও কীভাবে তা মালিক জানাবেন; লঞ্চের পরে।

@@ -31,4 +31,19 @@ PersonPicker (hide Owner/Manager from dropdowns unless role ticked, search with 
 - **Token security:** The secret code is stored only as a sha256 hash and returned once at creation; it is never stored in plain text.
 - **Expiry:** The link works until 23:59 Asia/Dhaka of the booking date.
 - **Assignment requirement:** The person must already be credited in that role on the content before an invite can be created.
-- **Status:** DB part done (`sql/2026-11-08_bookings.sql`), app part (Prompt A: Invite button/form, WhatsApp message, tile status) and public page (Prompt B: `/b/<token>`) remain.
+- **Status:** DB part done (`sql/2026-11-08_bookings.sql`), app part (Prompt A) built on 8 Nov (N140/N140b), public page (Prompt B: `/b/<token>`) remains.
+
+## Built 8 Nov 2026 (app part — N140/N140b)
+- **App components (`components/ui/BookingInvite.js`):**
+  - `BookingsContext` and `useContentBookings(contentId)` hook with Realtime subscription (`bookings-` channel).
+  - `latestBookingFor`: finds newest booking for the role and member with status sent, confirmed, or declined.
+  - `BookingBadge`: shows "Link created" (zinc), "Expired" (zinc dimmer), "Confirmed" (emerald), "Declined" (red).
+  - `InviteModal`: date and time required (start empty, min = today in Asia/Dhaka), place and note optional; calls `create_booking` RPC; shows editable Bangla WhatsApp message, Open WhatsApp (`wa.me`), Copy message, Copy link, Done; secret token is kept strictly in modal state and cleared on close.
+  - `BookingStatusModal`: displays details (Dhaka timezone); offers "Cancel link" (calls `revoke_booking` RPC via `ConfirmDialog`) and "Invite again".
+  - `buildInviteMessage`: builds exact Bangla invitation message with Dhaka date/time formatting.
+- **Drawer integration (`components/ui/Drawer.js`):**
+  - Wrapped with `<BookingsContext.Provider>`.
+  - `StaffTile`: shows "Invite" button or `BookingBadge` for external crew when the user has `canManageExternals` permission.
+  - Keyboard and click event bubbling isolated (`e.stopPropagation()` and `z-10`) so picker is never activated.
+  - Modals unmounted on close, ensuring fresh state on every open. Esc key closes only the topmost modal layer.
+- **Still to build (Prompt B):** Public page `/b/<token>` (reads booking and submits answer as anon, script display & print for presenter/voice-over).

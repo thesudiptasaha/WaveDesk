@@ -46,7 +46,7 @@ Also: the old Claude Project "WaveDesk" and its memory belong to the first accou
 - Live app: https://wavedesk-manager.vercel.app
 
 ## 8. Where we are (8 Nov 2026)
-Last verified commits: see `git log`. Done recently: PersonPicker, step bar with green glow, Post-production tab, "Did it go out?" (database rules, drawer banner, pinned rundown rows, flashing pill), data fix for Owner/Manager role ticks. Next big task in the owner's order: external crew invite (SQL first), then Telegram bot, then dock and home page (dock position still undecided; proposal: top on PC, bottom on phone). Parked by the owner: Bulk schedule rethink, Teleprompter menu item. Full list: `docs/notes/roadmap.md`.
+Last verified commits: see `git log`. Done recently: PersonPicker, step bar with green glow, Post-production tab, "Did it go out?" (database rules, drawer banner, pinned rundown rows, flashing pill), data fix for Owner/Manager role ticks. Next in the owner's order: external crew invite (SQL and drawer app part done; public /b/<token> page next), then Telegram bot, then dock and home page (dock position still undecided; proposal: top on PC, bottom on phone). Parked by the owner: Bulk schedule rethink, Teleprompter menu item. Full list: `docs/notes/roadmap.md`.
 
 ## 9. Safety
 - Never put keys, passwords, server addresses, real content or the private notes into the repo (it is public).
