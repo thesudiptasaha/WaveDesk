@@ -7,6 +7,7 @@ import { supabase } from '../../../services/supabase';
 import { ROLE_NAMES_BN } from '../../../components/ui/BookingInvite';
 import { scriptToHtml, sanitizeScriptHtml } from '../../../utils/scriptRich';
 import { ScriptPrintDocument, waitForPrintImages } from '../../../components/ui/ScriptPrint';
+import { pickPrintLineHeight } from '../../../utils/printFit';
 
 const CALM_MESSAGES = {
   invalid: 'এই লিংকটি সঠিক নয়। আমন্ত্রণকারীর সাথে যোগাযোগ করুন।',
@@ -55,26 +56,59 @@ export default function BookingPage() {
   const [answering, setAnswering] = useState(false);
   const [answerError, setAnswerError] = useState('');
   const [printing, setPrinting] = useState(false);
+  const [measuredLineHeight, setMeasuredLineHeight] = useState(null);
+
+  const bookingRef = useRef(booking);
+  bookingRef.current = booking;
 
   const printedRef = useRef(false);
 
   useEffect(() => {
     if (!printing) {
       printedRef.current = false;
+      setMeasuredLineHeight(null);
       return undefined;
     }
 
     if (printedRef.current) return undefined;
+
+    let cancelled = false;
+
+    if (measuredLineHeight === null) {
+      (async () => {
+        let lh = 2;
+        try {
+          const currentBooking = bookingRef.current;
+          const res = await pickPrintLineHeight({
+            mode: 'public',
+            row: { content_uid: currentBooking?.content_uid },
+            script: currentBooking?.script,
+          });
+          if (res && res.lineHeight) {
+            lh = res.lineHeight;
+          }
+        } catch (e) {
+          console.error('Print line height calculation error:', e);
+        }
+        if (!cancelled) {
+          setMeasuredLineHeight(lh);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     printedRef.current = true;
 
     const handleAfterPrint = () => {
       setPrinting(false);
+      setMeasuredLineHeight(null);
     };
 
     window.addEventListener('afterprint', handleAfterPrint);
 
     let hasRun = false;
-    let cancelled = false;
     let rafId2 = null;
 
     const rafId1 = requestAnimationFrame(() => {
@@ -97,7 +131,7 @@ export default function BookingPage() {
       if (rafId2) cancelAnimationFrame(rafId2);
       window.removeEventListener('afterprint', handleAfterPrint);
     };
-  }, [printing]);
+  }, [printing, measuredLineHeight]);
 
   const fetchBooking = useCallback(async (mountedRef) => {
     if (!token || !supabase) {
@@ -447,6 +481,7 @@ export default function BookingPage() {
             mode="public"
             row={{ content_uid: booking.content_uid }}
             script={booking.script}
+            lineHeight={measuredLineHeight}
           />,
           document.body
         )

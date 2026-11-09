@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isFeatureEnabled } from '../../utils/features';
 import { scriptToPlainText, scriptToHtml, sanitizeScriptHtml } from '../../utils/scriptRich';
 import { channelLogoSrc } from '../../utils/channelLogo';
+import { pickPrintLineHeight } from '../../utils/printFit';
 
 export function formatScriptSavedAt(iso) {
   if (!iso) return '—';
@@ -84,7 +85,15 @@ export function waitForPrintImages(rootEl, timeoutMs = 2000) {
   });
 }
 
-export function ScriptPrintDocument({ row, team, mode = 'full', script }) {
+export function ScriptPrintDocument({
+  row,
+  team,
+  mode = 'full',
+  script,
+  html,
+  lineHeight,
+  measure = false,
+}) {
   const rawScript = script !== undefined ? script : (row?.script || '');
   const richEnabled = mode === 'full' ? isFeatureEnabled('rich_editor') : true;
 
@@ -121,9 +130,11 @@ export function ScriptPrintDocument({ row, team, mode = 'full', script }) {
     }
   }`;
 
-  return (
-    <div id="script-print-root">
-      <style dangerouslySetInnerHTML={{ __html: pageStyle }} />
+  const rootStyle = lineHeight != null ? { '--sp-line-height': lineHeight } : undefined;
+
+  const content = (
+    <>
+      {!measure ? <style dangerouslySetInnerHTML={{ __html: pageStyle }} /> : null}
       {isFull ? (
         <>
           <div className="script-print-header-top">
@@ -162,7 +173,11 @@ export function ScriptPrintDocument({ row, team, mode = 'full', script }) {
         </>
       ) : null}
       <div className="script-print-body">
-        {richEnabled ? (
+        {html ? (
+          <article
+            dangerouslySetInnerHTML={{ __html: sanitizeScriptHtml(html) }}
+          />
+        ) : richEnabled ? (
           <article
             dangerouslySetInnerHTML={{ __html: sanitizeScriptHtml(scriptToHtml(rawScript)) }}
           />
@@ -174,6 +189,20 @@ export function ScriptPrintDocument({ row, team, mode = 'full', script }) {
           </article>
         )}
       </div>
+    </>
+  );
+
+  if (measure) {
+    return (
+      <div className="script-measure-root" style={rootStyle}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div id="script-print-root" style={rootStyle}>
+      {content}
     </div>
   );
 }
@@ -182,25 +211,63 @@ export function ScriptPrintSheet({ row, team, platforms, printing, onAfterPrint 
   const onAfterPrintRef = useRef(onAfterPrint);
   onAfterPrintRef.current = onAfterPrint;
 
+  const rowRef = useRef(row);
+  rowRef.current = row;
+
+  const teamRef = useRef(team);
+  teamRef.current = team;
+
+  const [measuredLineHeight, setMeasuredLineHeight] = useState(null);
   const printedRef = useRef(false);
 
   useEffect(() => {
     if (!printing) {
       printedRef.current = false;
+      setMeasuredLineHeight(null);
       return undefined;
     }
 
     if (printedRef.current) return undefined;
+
+    let cancelled = false;
+
+    if (measuredLineHeight === null) {
+      (async () => {
+        let lh = 2;
+        try {
+          const currentRow = rowRef.current;
+          const currentTeam = teamRef.current;
+          const res = await pickPrintLineHeight({
+            mode: 'full',
+            row: currentRow,
+            team: currentTeam,
+            script: currentRow?.script,
+          });
+          if (res && res.lineHeight) {
+            lh = res.lineHeight;
+          }
+        } catch (e) {
+          console.error('Print line height calculation error:', e);
+        }
+        if (!cancelled) {
+          setMeasuredLineHeight(lh);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     printedRef.current = true;
 
     const handleAfterPrint = () => {
+      setMeasuredLineHeight(null);
       if (onAfterPrintRef.current) onAfterPrintRef.current();
     };
 
     window.addEventListener('afterprint', handleAfterPrint);
 
     let hasRun = false;
-    let cancelled = false;
     let rafId2 = null;
 
     const rafId1 = requestAnimationFrame(() => {
@@ -223,7 +290,7 @@ export function ScriptPrintSheet({ row, team, platforms, printing, onAfterPrint 
       if (rafId2) cancelAnimationFrame(rafId2);
       window.removeEventListener('afterprint', handleAfterPrint);
     };
-  }, [printing]);
+  }, [printing, measuredLineHeight]);
 
   if (!printing || typeof document === 'undefined' || !row) return null;
 
@@ -233,6 +300,7 @@ export function ScriptPrintSheet({ row, team, platforms, printing, onAfterPrint 
       row={row}
       team={team}
       script={row.script}
+      lineHeight={measuredLineHeight}
     />,
     document.body
   );

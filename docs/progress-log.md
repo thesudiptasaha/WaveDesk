@@ -485,6 +485,9 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 ## ৯ নভেম্বর ২০২৬ (N145)
 - **Script print fixes (N145) (৯ নভেম্বর ২০২৬):** restored the double black rule under the header line; the print now waits for the channel logo image to load before opening the print dialog (shared helper waitForPrintImages, used by the editorial print and the booking page print); the logo <img> has an explicit aspect ratio because the SVG only has a viewBox; header text and footer now use the script font (Noto Serif Bengali); footer redesigned: content ID on the left, page counter on the right (পাতা ১/৩), no names.
 
+## ৯ নভেম্বর ২০২৬ (N143/N143b)
+- **Print: page measuring + automatic line-spacing fit (N143/N143b) (৯ নভেম্বর ২০২৬):** new utils/printFit.js with measurePrint (renders the same print markup offscreen at 178mm width, waits for fonts, returns pages, header and body height in mm, last-page fill) and pickPrintLineHeight (measures at line-height 2.0 and 1.6; if the tighter value saves at least one page, picks the highest of 1.9/1.8/1.7/1.6 that achieves the smaller page count; otherwise keeps 2.0; font size and paragraph gap never change). Used by the editorial print (ScriptPrintSheet) and by the booking page print. Typography now has a single source (CSS variables --sp-font-size, --sp-line-height, --sp-para-gap and shared rules for #script-print-root and .script-measure-root in app/layout.js). Print effects use refs so a live data refresh cannot leave the print state stuck. Checked in headless Edge: 6 cases (including two boundary cases) all had measured pages equal to real PDF pages. Next: N144, page-end marker in the editor, which will call measurePrint directly.
+
 ## পরে করব
 - **ফুটার ঠিক করা (মালিকের পর্যবেক্ষণ, ২১ অক্টোবর):** ঠিক কী ভুল তা মালিক স্ক্রিনশটসহ জানাবেন; লঞ্চের পরে।
 - **Employee Report (ও অন্য রিপোর্ট) পপ-আপ হিসেবে খোলা (মালিকের পর্যবেক্ষণ):** কোন কোন রিপোর্ট ও কীভাবে তা মালিক জানাবেন; লঞ্চের পরে।

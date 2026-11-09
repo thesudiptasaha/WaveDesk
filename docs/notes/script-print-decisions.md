@@ -31,10 +31,26 @@ Owner decisions regarding the script print layout and printing behavior across t
 - **Content:** Content ID and script body only. No header, no title, no writer, no channel logo/name, and no slug name.
 - **Footer:** Same redesigned footer as editorial print: left ID (`@bottom-left`), right page counter (`@bottom-right`).
 
-## 5. Planned Next Steps
-- **N143 (decided, not built):** Auto-tighten line spacing to save a page. If tightening the line spacing from `2` down to at most `1.6` (keeping font size unchanged at 11.5pt) saves a whole sheet of paper, apply it automatically; otherwise keep `2`. Measuring logic will live in a shared utility.
-- **N144 (decided in principle, not designed):** Visual page-end separator in the script editor showing where each printed page breaks, so the writer can see in real-time how much fits onto one page. Uses the measuring code from N143. Requested by the owner; to be designed together before building.
+## 5. Automatic Line-Spacing Fit (N143/N143b — Built 9 Nov 2026)
+- **Exact Rule:** Never waste a paper sheet for a few lines. Tighten line spacing ONLY if doing so saves at least one whole printed page.
+- **Range & Step:** Line-height tightens from `2.0` down to at most `1.6` in steps of `0.1` (`1.9`, `1.8`, `1.7`, `1.6`). The algorithm measures at 2.0 and 1.6; if 1.6 yields fewer pages, it tests descending steps to pick the *highest* line-height achieving that smaller page count. If no whole page can be saved, it stays at `2.0`.
+- **Untouched Elements:** Font size (`11.5pt`), paragraph gap (`10pt`), and all header sizes remain strictly unchanged.
+- **Usable Page Height:** A4 content height is 261mm (297mm minus 18mm top and bottom margins). To prevent fractional rounding overflow from creating an accidental trailing page, usable height is treated as 99% of 261mm (`258.39mm`).
+- **Single Source of Truth:** Typography CSS variables (`--sp-font-size: 11.5pt;`, `--sp-line-height: 2;`, `--sp-para-gap: 10pt;`) and base styles are defined on `#script-print-root, .script-measure-root` in `app/layout.js`. Header styling is shared so offscreen measurement and print layout match identically.
+- **Stable Print Lifecycle:** Both `ScriptPrintSheet` (editorial) and `app/b/[token]/page.js` (public booking) store row/team/booking data in `useRef` instances so live Realtime refreshes during print dialog cannot clear the `afterprint` listener or get stuck in printing state.
+- **Shared API (`utils/printFit.js`):**
+  - `measurePrint({ html, mode = 'full', row, team, lineHeight = 2, script })`: mounts an offscreen `.script-measure-root` at 178mm width, waits for `document.fonts.ready` and animation frames, returns `{ pages, bodyHeightMm, headerHeightMm, lastPageFill }`.
+  - `pickPrintLineHeight({ html, mode = 'full', row, team, script })`: evaluates default and tightened counts and returns `{ lineHeight, pages, pagesAtDefault, tightened, lastPageFill }`.
 
-## 6. Browser Compatibility
+## 6. Page-End Marker in Script Editor (N144 — Owner Decisions 9 Nov 2026)
+- **Visual Marker:** A dashed "পাতা ১ শেষ" style separator line in the script editor indicating where each printed page ends.
+- **Placement:** Placed strictly at the nearest gap between paragraphs (never breaks inside a paragraph).
+- **Page Information Line:** A small indicator line under the editor, e.g. "ছাপলে ২ পাতা · শেষ পাতা ৩০% ভরা".
+- **Last-Page Warning:** A red warning when the last page has only a few lines ("ছোট করলে কাগজ বাঁচবে").
+- **Tighten Note:** Displays a note when printing will automatically tighten the line spacing to save a page.
+- **Visibility:** Visible to everyone who has permission to view the script editor.
+- **Implementation:** Reuses `measurePrint` from `utils/printFit.js`.
+
+## 7. Browser Compatibility
 - Footer page numbers and `@page` margin boxes (`@bottom-left`, `@bottom-right`) require **Chrome** or **Microsoft Edge**.
 - In Firefox and Safari, the `@page` margin boxes are ignored and no footer is displayed (accepted limitation).
