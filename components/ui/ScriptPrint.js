@@ -4,8 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { isFeatureEnabled } from '../../utils/features';
 import { scriptToPlainText, scriptToHtml, sanitizeScriptHtml } from '../../utils/scriptRich';
-import { scriptStats } from '../../utils/scriptDuration';
-import { isRemovedPublished, formatDay, formatTime, formatStamp, ROLE_LABEL, PLATFORMS, ROLE_LIST } from '../../lib/core';
+import { channelLogoSrc } from '../../utils/channelLogo';
 
 export function formatScriptSavedAt(iso) {
   if (!iso) return '—';
@@ -23,85 +22,105 @@ export function formatScriptSavedAt(iso) {
   }
 }
 
-const QC_KIND_LABEL = {
-  revision: 'Revision note',
-  qa: 'QA remark',
-  audit: 'Audit comment',
-  change: 'Change',
-};
-
-const DRAWER_ORDER = ['idea', 'crew', 'post', 'publish', 'live'];
-const STAFF_FIELDS = DRAWER_ORDER.flatMap((g) =>
-  ROLE_LIST.filter((r) => r.drawerGroup === g).map((r) => ({
-    key: r.field,
-    label: r.label,
-    liveOnly: g === 'live',
-  }))
-);
-
 function getPersonDisplay(name, team) {
   if (!name) return '';
   const m = (team || []).find((x) => x.full_name === name);
   return (m && m.nickname) || name;
 }
 
-function formatScriptSavedDetail(row) {
-  let datePart = '';
-  if (row.script_saved_at) {
-    try {
-      const d = new Date(row.script_saved_at);
-      if (!Number.isNaN(d.getTime())) {
-        datePart = new Intl.DateTimeFormat('bn-BD', {
-          timeZone: 'Asia/Dhaka',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-        }).format(d);
-      }
-    } catch {
-      datePart = '';
-    }
-  }
-
-  const stats = scriptStats(row.script);
-  const hasStats = stats && stats.words > 0;
-  const statsPart = hasStats ? `${stats.words} words, ~${stats.label}` : '';
-
-  if (datePart && statsPart) return `${datePart} (${statsPart})`;
-  if (datePart) return datePart;
-  if (statsPart) return statsPart;
-  return '—';
+function escapeCssString(str) {
+  if (!str) return '';
+  const sanitized = String(str)
+    .replace(/[\x00-\x1f\x7f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/<\/style/gi, '')
+    .trim();
+  return sanitized.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
-function formatAuditAction(a) {
-  const isStatus = a.kind === 'status' || (!a.field && a.to && a.kind !== 'revision' && a.kind !== 'qa' && a.kind !== 'audit');
-  if (isStatus) {
-    return (
-      <span>
-        Status: {a.from ? `${a.from} → ` : ''}<strong>{a.to}</strong>
-        {a.note ? <span style={{ color: '#555' }}> — {a.note}</span> : null}
-      </span>
-    );
+export function ScriptPrintDocument({ row, team, mode = 'full', script }) {
+  const rawScript = script !== undefined ? script : (row?.script || '');
+  const richEnabled = mode === 'full' ? isFeatureEnabled('rich_editor') : true;
+
+  const isFull = mode === 'full';
+  const title = (row && (row.title || row.slug_name)) || 'Untitled';
+  const writerDisplay = (row && getPersonDisplay(row.writer, team)) || (row && row.writer) || '—';
+  const savedDate = row ? formatScriptSavedAt(row.script_saved_at) : '—';
+  const slugUid = row ? [row.slug_name, row.content_uid].filter(Boolean).join(' · ') : '';
+  const logoSrc = row ? channelLogoSrc(row.channel) : null;
+
+  const footerParts = [];
+  if (row?.content_uid) footerParts.push(`আইডি ${row.content_uid}`);
+  if (isFull && row) {
+    const writer = getPersonDisplay(row.writer, team);
+    if (writer) footerParts.push(`লেখক ${writer}`);
+    const presenter = getPersonDisplay(row.presenter_name, team);
+    if (presenter) footerParts.push(`প্রেজেন্টার ${presenter}`);
+    const producer = getPersonDisplay(row.producer, team);
+    if (producer) footerParts.push(`প্রডিউসার ${producer}`);
   }
-  if (a.kind === 'change') {
-    return (
-      <span>
-        <strong>{a.field}</strong>: {a.from || 'empty'} → {a.to || 'empty'}
-        {a.note ? <span style={{ color: '#555' }}> — {a.note}</span> : null}
-      </span>
-    );
-  }
-  const label = QC_KIND_LABEL[a.kind] || a.kind || 'Note';
+  const prefix = footerParts.length > 0 ? `${footerParts.join(' · ')} · পাতা ` : 'পাতা ';
+
+  const pageStyle = `@page {
+    @bottom-center {
+      content: "${escapeCssString(prefix)}" counter(page, bengali) "/" counter(pages, bengali);
+      font-size: 7pt;
+      color: #666666;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+  }`;
+
   return (
-    <span>
-      <strong>{label}</strong>{a.note ? `: ${a.note}` : a.to ? `: ${a.to}` : ''}
-    </span>
+    <div id="script-print-root">
+      <style dangerouslySetInnerHTML={{ __html: pageStyle }} />
+      {isFull ? (
+        <>
+          <div className="script-print-header-top">
+            <span className="script-print-slug-uid">{slugUid}</span>
+            {logoSrc ? (
+              <img
+                src={logoSrc}
+                alt=""
+                className="script-print-channel-logo"
+                style={{ height: '8.5mm', width: 'auto', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+              />
+            ) : (
+              <span className="script-print-channel-text">{row?.channel || '—'}</span>
+            )}
+          </div>
+          <h1 className="script-print-title">{title}</h1>
+          <div className="script-print-by">
+            <div className="script-print-by-item">
+              <span className="script-print-by-label">লেখক</span>
+              <span className="script-print-by-val">{writerDisplay}</span>
+            </div>
+            <div className="script-print-by-item">
+              <span className="script-print-by-label">তারিখ</span>
+              <span className="script-print-by-val">{savedDate}</span>
+            </div>
+          </div>
+        </>
+      ) : null}
+      <div className="script-print-body">
+        {richEnabled ? (
+          <article
+            dangerouslySetInnerHTML={{ __html: sanitizeScriptHtml(scriptToHtml(rawScript)) }}
+          />
+        ) : (
+          <article>
+            {scriptToPlainText(rawScript).split(/\n{2,}/).map((para, i) => (
+              <p key={i}>{para}</p>
+            ))}
+          </article>
+        )}
+      </div>
+    </div>
   );
 }
 
-export function ScriptPrintSheet({ row, team, platforms = PLATFORMS, printing, onAfterPrint }) {
+export function ScriptPrintSheet({ row, team, platforms, printing, onAfterPrint }) {
   const onAfterPrintRef = useRef(onAfterPrint);
   onAfterPrintRef.current = onAfterPrint;
 
@@ -143,219 +162,13 @@ export function ScriptPrintSheet({ row, team, platforms = PLATFORMS, printing, o
 
   if (!printing || typeof document === 'undefined' || !row) return null;
 
-  const richEnabled = isFeatureEnabled('rich_editor');
-  const title = row.title || row.slug_name || 'Untitled';
-  const writerMember = (team || []).find((m) => m.full_name === row.writer);
-  const writerDisplay = (writerMember && writerMember.nickname) || row.writer || '—';
-  const savedDate = formatScriptSavedAt(row.script_saved_at);
-  const platformList = platforms || PLATFORMS;
-  const platformLabels = (row.target_platforms || [])
-    .map((pId) => platformList.find((p) => p.id === pId)?.label || platformList.find((p) => p.id === pId)?.name || pId)
-    .join(', ');
-
-  const scheduledStr = row.scheduled_publish_time
-    ? `${formatDay(row.scheduled_publish_time)} ${formatTime(row.scheduled_publish_time)}`
-    : '—';
-
-  const isLive = row.content_type === 'LIVE';
-  const assignedStaff = STAFF_FIELDS
-    .filter((f) => (!f.liveOnly || isLive) && !!row[f.key])
-    .map((f) => ({
-      key: f.key,
-      label: f.label,
-      person: getPersonDisplay(row[f.key], team),
-    }));
-
-  const auditEntries = Array.isArray(row.audit_log) ? [...row.audit_log].reverse() : [];
-  const revisionEntries = Array.isArray(row.revisions) ? [...row.revisions].reverse() : [];
-
   return createPortal(
-    <div id="script-print-root">
-      {/* Page 1: The Script */}
-      <div className="script-print-page script-print-page-1">
-        <div className="script-print-mast">
-          <span>WAVEDESK · SCRIPT</span>
-          <span>{row.channel || '—'}</span>
-        </div>
-        <h1 className="script-print-title">{title}</h1>
-        <div className="script-print-by">
-          <div className="script-print-by-item">
-            <span className="script-print-by-label">লেখক</span>
-            <span className="script-print-by-val">{writerDisplay}</span>
-          </div>
-          <div className="script-print-by-item">
-            <span className="script-print-by-label">তারিখ</span>
-            <span className="script-print-by-val">{savedDate}</span>
-          </div>
-          <div className="script-print-by-item">
-            <span className="script-print-by-label">আইডি</span>
-            <span className="script-print-by-val" style={{ display: 'inline-flex', alignItems: 'center', gap: '3pt' }}>
-              {row.content_uid ? (
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{ width: '8.5pt', height: '8.5pt', flexShrink: 0 }}
-                  aria-hidden="true"
-                >
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                </svg>
-              ) : null}
-              <span>{row.content_uid || '—'}</span>
-            </span>
-          </div>
-        </div>
-        <div className="script-print-body">
-          {richEnabled ? (
-            <article
-              dangerouslySetInnerHTML={{ __html: sanitizeScriptHtml(scriptToHtml(row.script || '')) }}
-            />
-          ) : (
-            <article>
-              {scriptToPlainText(row.script || '').split(/\n{2,}/).map((para, i) => (
-                <p key={i}>
-                  {para}
-                </p>
-              ))}
-            </article>
-          )}
-        </div>
-      </div>
-
-      {/* Page 2: Script Information */}
-      <div className="script-print-page script-print-page-2">
-        <div className="script-print-mast">
-          <span>WAVEDESK · SCRIPT INFORMATION</span>
-          <span>{row.content_uid || '—'}</span>
-        </div>
-        <h2 className="script-print-title" style={{ fontSize: '18pt' }}>{title}</h2>
-
-        {/* Details */}
-        <section className="script-print-section">
-          <h3 className="script-print-heading">Details</h3>
-          <table className="script-print-table">
-            <tbody>
-              <tr>
-                <td className="script-print-label-col">Slug</td>
-                <td className="script-print-val-col">{row.slug_name || '—'}</td>
-              </tr>
-              <tr>
-                <td className="script-print-label-col">Title</td>
-                <td className="script-print-val-col">{row.title || '—'}</td>
-              </tr>
-              <tr>
-                <td className="script-print-label-col">Thumbnail hook</td>
-                <td className="script-print-val-col">{row.thumbnail_text || '—'}</td>
-              </tr>
-              <tr>
-                <td className="script-print-label-col">Type · Status</td>
-                <td className="script-print-val-col">
-                  {row.content_type || '—'} · {isRemovedPublished(row) ? 'Published, later removed' : (row.status || '—')}
-                </td>
-              </tr>
-              <tr>
-                <td className="script-print-label-col">Channel</td>
-                <td className="script-print-val-col">{row.channel || '—'}</td>
-              </tr>
-              <tr>
-                <td className="script-print-label-col">Scheduled publish</td>
-                <td className="script-print-val-col">{scheduledStr}</td>
-              </tr>
-              <tr>
-                <td className="script-print-label-col">Platforms</td>
-                <td className="script-print-val-col">{platformLabels || '—'}</td>
-              </tr>
-              <tr>
-                <td className="script-print-label-col">Archive shelf ID</td>
-                <td className="script-print-val-col">{row.archive_shelf_id || '—'}</td>
-              </tr>
-              <tr>
-                <td className="script-print-label-col">Script saved</td>
-                <td className="script-print-val-col">{formatScriptSavedDetail(row)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        {/* Staff */}
-        <section className="script-print-section">
-          <h3 className="script-print-heading">Staff</h3>
-          <table className="script-print-table">
-            <tbody>
-              {assignedStaff.length > 0 ? (
-                assignedStaff.map((s) => (
-                  <tr key={s.key}>
-                    <td className="script-print-label-col">{s.label}</td>
-                    <td className="script-print-val-col">{s.person}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={2} style={{ padding: '4.5pt 0', color: '#555' }}>No staff assigned.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-
-        {/* Activity log */}
-        <section className="script-print-section">
-          <h3 className="script-print-heading">Activity Log</h3>
-          <table className="script-print-table script-print-log-table">
-            <tbody>
-              {auditEntries.length > 0 ? (
-                auditEntries.map((a, i) => (
-                  <tr key={i}>
-                    <td className="script-print-label-col" style={{ width: '38%' }}>
-                      <div>{formatStamp(a.time)}</div>
-                      <div style={{ color: '#111', fontWeight: 600 }}>
-                        {a.actor || 'System'}
-                        {a.role ? <span style={{ color: '#555', fontWeight: 400 }}> ({ROLE_LABEL[a.role] || a.role})</span> : null}
-                      </div>
-                    </td>
-                    <td className="script-print-val-col" style={{ width: '62%' }}>
-                      {formatAuditAction(a)}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={2} style={{ padding: '4.5pt 0', color: '#555' }}>No activity recorded yet.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-
-        {/* Revisions & notes */}
-        {revisionEntries.length > 0 ? (
-          <section className="script-print-section">
-            <h3 className="script-print-heading">Revisions &amp; Notes</h3>
-            <table className="script-print-table script-print-log-table">
-              <tbody>
-                {revisionEntries.map((r, i) => (
-                  <tr key={i}>
-                    <td className="script-print-label-col" style={{ width: '38%' }}>
-                      <div>{formatStamp(r.time)}</div>
-                      <div style={{ color: '#111', fontWeight: 600 }}>
-                        {r.actor || 'System'}
-                        {r.role ? <span style={{ color: '#555', fontWeight: 400 }}> ({ROLE_LABEL[r.role] || r.role})</span> : null}
-                      </div>
-                    </td>
-                    <td className="script-print-val-col" style={{ width: '62%' }}>
-                      {r.note || '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        ) : null}
-      </div>
-    </div>,
+    <ScriptPrintDocument
+      mode="full"
+      row={row}
+      team={team}
+      script={row.script}
+    />,
     document.body
   );
 }

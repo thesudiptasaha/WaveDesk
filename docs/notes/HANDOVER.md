@@ -45,8 +45,8 @@ Also: the old Claude Project "WaveDesk" and its memory belong to the first accou
 - Design mockups: `docs/design/` (20 board files from the Claude Design canvas "WaveDesk Drawer redesign"; see its README).
 - Live app: https://wavedesk-manager.vercel.app
 
-## 8. Where we are (8 Nov 2026)
-Last verified commits: see `git log`. Done recently: PersonPicker, step bar with green glow, Post-production tab, "Did it go out?" (database rules, drawer banner, pinned rundown rows, flashing pill), data fix for Owner/Manager role ticks. Next in the owner's order: external crew invite complete (SQL, drawer app part, and public /b/<token> page done; pending test), then Telegram bot, then dock and home page (dock position still undecided; proposal: top on PC, bottom on phone). Parked by the owner: Bulk schedule rethink, Teleprompter menu item. Full list: `docs/notes/roadmap.md`.
+## 8. Where we are (9 Nov 2026)
+Last verified commits: see `git log`. Done recently: external crew invite complete (SQL, drawer app part, public /b/<token> page; pending test), script print redesign (no page 2, logo header, footer, booking page print fix; pending test). Next: N143 auto-tighten line spacing and N144 page-end separator, then Telegram bot, then dock and home page (dock position still undecided; proposal: top on PC, bottom on phone). Parked by the owner: Bulk schedule rethink, Teleprompter menu item. Full list: `docs/notes/roadmap.md`.
 
 ## 9. Safety
 - Never put keys, passwords, server addresses, real content or the private notes into the repo (it is public).

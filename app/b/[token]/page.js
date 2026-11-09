@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../../services/supabase';
 import { ROLE_NAMES_BN } from '../../../components/ui/BookingInvite';
 import { scriptToHtml, sanitizeScriptHtml } from '../../../utils/scriptRich';
+import { ScriptPrintDocument } from '../../../components/ui/ScriptPrint';
 
 const CALM_MESSAGES = {
   invalid: 'এই লিংকটি সঠিক নয়। আমন্ত্রণকারীর সাথে যোগাযোগ করুন।',
@@ -52,6 +54,43 @@ export default function BookingPage() {
   const [status, setStatus] = useState(null); // 'sent' | 'confirmed' | 'declined'
   const [answering, setAnswering] = useState(false);
   const [answerError, setAnswerError] = useState('');
+  const [printing, setPrinting] = useState(false);
+
+  const printedRef = useRef(false);
+
+  useEffect(() => {
+    if (!printing) {
+      printedRef.current = false;
+      return undefined;
+    }
+
+    if (printedRef.current) return undefined;
+    printedRef.current = true;
+
+    const handleAfterPrint = () => {
+      setPrinting(false);
+    };
+
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    let hasRun = false;
+    let rafId2 = null;
+    const rafId1 = requestAnimationFrame(() => {
+      rafId2 = requestAnimationFrame(() => {
+        hasRun = true;
+        window.print();
+      });
+    });
+
+    return () => {
+      if (!hasRun) {
+        printedRef.current = false;
+      }
+      cancelAnimationFrame(rafId1);
+      if (rafId2) cancelAnimationFrame(rafId2);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, [printing]);
 
   const fetchBooking = useCallback(async (mountedRef) => {
     if (!token || !supabase) {
@@ -212,7 +251,7 @@ export default function BookingPage() {
   // --- Render State OK ---
   return (
     <>
-      {/* Scoped print styling */}
+      {/* Scoped styling for screen script preview */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -231,43 +270,12 @@ export default function BookingPage() {
             .booking-script-content u {
               text-underline-offset: 3px;
             }
-            @media print {
-              html, body {
-                background: #ffffff !important;
-                color: #000000 !important;
-                margin: 0 !important;
-                padding: 0 !important;
-              }
-              .screen-only-booking {
-                display: none !important;
-              }
-              .print-only-script {
-                display: block !important;
-                background: #ffffff !important;
-                color: #000000 !important;
-                font-family: 'Noto Serif Bengali', Georgia, serif;
-                font-size: 13pt;
-                line-height: 1.8;
-                page-break-inside: auto;
-              }
-              .print-only-script p {
-                margin-bottom: 10pt;
-              }
-              .print-only-script mark {
-                background-color: #facc15 !important;
-                color: #000000 !important;
-                padding: 0 2px;
-              }
-              @page {
-                margin: 1.5cm;
-              }
-            }
           `,
         }}
       />
 
       {/* Screen container */}
-      <main className="screen-only-booking min-h-screen bg-[#09090b] text-white flex flex-col items-center justify-start p-4 sm:p-6">
+      <main className="min-h-screen bg-[#09090b] text-white flex flex-col items-center justify-start p-4 sm:p-6">
         <div className="w-full max-w-md space-y-5 py-6 sm:py-8">
           {/* Top Label */}
           <div className="text-[11px] font-bold tracking-widest uppercase text-zinc-500 text-center">
@@ -414,7 +422,7 @@ export default function BookingPage() {
                 <div className="pt-2 border-t border-white/[0.06] flex justify-end">
                   <button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={() => setPrinting(true)}
                     className="min-h-[44px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[13px] font-semibold transition active:scale-[0.98] inline-flex items-center justify-center gap-2 cursor-pointer font-sans"
                   >
                     প্রিন্ট করুন
@@ -426,18 +434,15 @@ export default function BookingPage() {
         </div>
       </main>
 
-      {/* Print-only container */}
-      {booking.show_script ? (
-        <div className="hidden print-only-script max-w-3xl mx-auto p-6">
-          {booking.content_uid ? (
-            <div className="text-[14pt] font-bold font-mono pb-2 mb-4 border-b border-black">
-              {booking.content_uid}
-            </div>
-          ) : null}
-          <article
-            dangerouslySetInnerHTML={{ __html: sanitizedScriptHtml }}
-          />
-        </div>
+      {printing && typeof document !== 'undefined' && booking.show_script ? (
+        createPortal(
+          <ScriptPrintDocument
+            mode="public"
+            row={{ content_uid: booking.content_uid }}
+            script={booking.script}
+          />,
+          document.body
+        )
       ) : null}
     </>
   );

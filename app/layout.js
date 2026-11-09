@@ -628,20 +628,31 @@ const lightCss = `
       background: #ffffff !important;
       color: #111111 !important;
     }
-    #script-print-root .script-print-mast {
+    #script-print-root .script-print-header-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12pt;
+      margin-bottom: 12pt;
+    }
+    #script-print-root .script-print-slug-uid {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 9pt;
+      font-weight: 600;
+      color: #111111 !important;
+    }
+    #script-print-root .script-print-channel-logo {
+      height: 8.5mm;
+      width: auto;
+      object-fit: contain;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #script-print-root .script-print-channel-text {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 8.5pt;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      font-weight: 500;
       color: #555555 !important;
-      border-bottom: 3px double #111111 !important;
-      padding-bottom: 6pt;
-      margin-bottom: 14pt;
     }
     #script-print-root .script-print-title {
       font-family: 'Noto Serif Bengali', Georgia, serif;
@@ -655,9 +666,9 @@ const lightCss = `
     }
     #script-print-root .script-print-by {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      gap: 6pt 24pt;
+      justify-content: space-between;
+      gap: 12pt;
       padding: 6pt 0;
       border-top: 1px solid #111111 !important;
       border-bottom: 1px solid #999999 !important;
@@ -700,57 +711,6 @@ const lightCss = `
     }
     #script-print-root .script-print-body u {
       text-underline-offset: 3px;
-    }
-    #script-print-root .script-print-page-2 {
-      break-before: page;
-      page-break-before: always;
-    }
-    #script-print-root .script-print-heading {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-size: 9.5pt;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #111111 !important;
-      border-bottom: 1px solid #111111 !important;
-      padding-bottom: 3pt;
-      margin-top: 16pt;
-      margin-bottom: 6pt;
-    }
-    #script-print-root .script-print-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 12pt;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    #script-print-root .script-print-table tr {
-      break-inside: avoid;
-      page-break-inside: avoid;
-      border-bottom: 1px solid #999999 !important;
-    }
-    #script-print-root .script-print-table td {
-      padding: 4.5pt 0;
-      vertical-align: top;
-      font-size: 9.5pt;
-      color: #111111 !important;
-      line-height: 1.45;
-    }
-    #script-print-root .script-print-label-col {
-      width: 32%;
-      color: #555555 !important;
-      font-weight: 500;
-      padding-right: 8pt !important;
-      font-size: 9pt;
-    }
-    #script-print-root .script-print-val-col {
-      width: 68%;
-      color: #111111 !important;
-      font-weight: 500;
-    }
-    #script-print-root .script-print-log-table td {
-      font-size: 8.5pt;
-      line-height: 1.4;
-      padding: 3.5pt 0;
     }
   }
 `;

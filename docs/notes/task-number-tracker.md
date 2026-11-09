@@ -1,6 +1,6 @@
-# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ৮ নভেম্বর ২০২৬)
+# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ৯ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N142** (ডিফ: `n142.diff`)। শেষ যাচাই-করা কমিট: `5493d46` (N140)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N145** (N143 ও N144 প্রিন্ট কাজের জন্য সংরক্ষিত; N142 ব্যবহৃত)। শেষ যাচাই-করা কমিট: `0af7608` (N141)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -49,7 +49,10 @@
 | N138 | design mockups + HANDOVER note | 4948718 |
 | N139 | external crew invite: bookings SQL record + docs | 24baef6 |
 | N140 (b, c, d) | external crew invite app part (Invite button, WhatsApp message, status badge) | 5493d46 |
-| N141 (c, d) | public booking page /b/<token> (confirm or decline, script and print for presenters) | this commit |
+| N141 (c, d) | public booking page /b/<token> (confirm or decline, script and print for presenters) | 0af7608 |
+| N142 (c, d) | new script print layout (no page 2, logo header, footer) and booking page print fix | this commit |
+| N143 | (সংরক্ষিত) auto-tighten line spacing to save a page | reserved |
+| N144 | (সংরক্ষিত) page-end separator in script editor | reserved |
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।
 

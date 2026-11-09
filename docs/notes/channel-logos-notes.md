@@ -5,3 +5,4 @@
 - Places: rundown, reports, script PDF (black-and-white version), more later. Owner will decide the places later.
 - Need per channel: colour SVG; later a black/white SVG for print.
 - Do after the content-ID box (same rundown row).
+- 9 Nov (N142): The first logo (The Wave, colored SVG) is in `public/logos/the-wave.svg` and is used in the script print header; helper `utils/channelLogo.js` matches channel names containing "wave"; the other channels' logos and the black/white print versions are still to come.
