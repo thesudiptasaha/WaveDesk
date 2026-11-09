@@ -16,9 +16,12 @@ export async function measurePrint({
   team,
   lineHeight = DEFAULT_LINE_HEIGHT,
   script,
+  withBreaks = false,
 } = {}) {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return { pages: 1, bodyHeightMm: 0, headerHeightMm: 0, lastPageFill: 0 };
+    const res = { pages: 1, bodyHeightMm: 0, headerHeightMm: 0, lastPageFill: 0 };
+    if (withBreaks) res.breaks = [];
+    return res;
   }
 
   const container = document.createElement('div');
@@ -98,12 +101,109 @@ export async function measurePrint({
       lastPageFill = Math.min(1, Math.max(0, remainingMm / usableHeightMm));
     }
 
-    return {
+    let breaks = [];
+    if (withBreaks && pages > 1) {
+      const articleEl = measureEl.querySelector('.script-print-body > article');
+      const blockEls = articleEl ? Array.from(articleEl.children) : [];
+      const N = blockEls.length;
+      if (N >= 2) {
+        const blockPositions = blockEls.map((el) => {
+          const rect = el.getBoundingClientRect();
+          return {
+            topMm: (rect.top - measureRect.top) / pxPerMm,
+            bottomMm: (rect.bottom - measureRect.top) / pxPerMm,
+          };
+        });
+
+        for (let k = 1; k < pages; k++) {
+          const truePageEndMm = k * usableHeightMm;
+          let candidate = -1;
+          let approx = false;
+
+          let straddlingIndex = -1;
+          for (let i = 0; i < N; i++) {
+            if (
+              truePageEndMm >= blockPositions[i].topMm &&
+              truePageEndMm <= blockPositions[i].bottomMm
+            ) {
+              straddlingIndex = i;
+              break;
+            }
+          }
+
+          if (straddlingIndex !== -1) {
+            const i = straddlingIndex;
+            const { topMm, bottomMm } = blockPositions[i];
+            const distToTop = truePageEndMm - topMm;
+            const distToBottom = bottomMm - truePageEndMm;
+            candidate = distToTop < distToBottom ? i - 1 : i;
+            approx = true;
+          } else if (truePageEndMm < blockPositions[0].topMm) {
+            candidate = 0;
+            approx = true;
+          } else if (truePageEndMm > blockPositions[N - 1].bottomMm) {
+            candidate = N - 2;
+            approx = true;
+          } else {
+            for (let i = 0; i < N - 1; i++) {
+              if (
+                truePageEndMm >= blockPositions[i].bottomMm &&
+                truePageEndMm <= blockPositions[i + 1].topMm
+              ) {
+                candidate = i;
+                approx = false;
+                break;
+              }
+            }
+            if (candidate === -1) {
+              for (let i = N - 1; i >= 0; i--) {
+                if (blockPositions[i].bottomMm <= truePageEndMm) {
+                  candidate = i;
+                  approx = false;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (candidate < 0) {
+            candidate = 0;
+            approx = true;
+          }
+          if (candidate > N - 2) {
+            candidate = N - 2;
+            approx = true;
+          }
+
+          if (breaks.length > 0) {
+            const prev = breaks[breaks.length - 1].afterBlock;
+            if (candidate <= prev) {
+              candidate = prev + 1;
+              approx = true;
+            }
+          }
+
+          if (candidate <= N - 2) {
+            breaks.push({
+              page: k,
+              afterBlock: candidate,
+              approximate: approx,
+            });
+          }
+        }
+      }
+    }
+
+    const res = {
       pages,
       bodyHeightMm: Math.round(bodyHeightMm * 100) / 100,
       headerHeightMm: Math.round(headerHeightMm * 100) / 100,
       lastPageFill: Math.round(lastPageFill * 1000) / 1000,
     };
+    if (withBreaks) {
+      res.breaks = breaks;
+    }
+    return res;
   } finally {
     if (root) {
       try {
@@ -122,6 +222,7 @@ export async function pickPrintLineHeight({
   row,
   team,
   script,
+  withBreaks = false,
 } = {}) {
   try {
     const defaultRes = await measurePrint({
@@ -131,6 +232,7 @@ export async function pickPrintLineHeight({
       team,
       script,
       lineHeight: DEFAULT_LINE_HEIGHT,
+      withBreaks: false,
     });
     const pagesAtDefault = defaultRes.pages;
 
@@ -141,6 +243,7 @@ export async function pickPrintLineHeight({
         pagesAtDefault,
         tightened: false,
         lastPageFill: defaultRes.lastPageFill,
+        ...(withBreaks ? { breaks: [] } : {}),
       };
     }
 
@@ -151,19 +254,37 @@ export async function pickPrintLineHeight({
       team,
       script,
       lineHeight: MIN_LINE_HEIGHT,
+      withBreaks: false,
     });
 
     if (minRes.pages >= pagesAtDefault) {
+      let breaks = [];
+      if (withBreaks) {
+        const breakRes = await measurePrint({
+          html,
+          mode,
+          row,
+          team,
+          script,
+          lineHeight: DEFAULT_LINE_HEIGHT,
+          withBreaks: true,
+        });
+        breaks = breakRes.breaks || [];
+      }
       return {
         lineHeight: DEFAULT_LINE_HEIGHT,
         pages: pagesAtDefault,
         pagesAtDefault,
         tightened: false,
         lastPageFill: defaultRes.lastPageFill,
+        ...(withBreaks ? { breaks } : {}),
       };
     }
 
     const targetPages = minRes.pages;
+    let chosenLineHeight = MIN_LINE_HEIGHT;
+    let chosenPages = minRes.pages;
+    let chosenLastPageFill = minRes.lastPageFill;
 
     // Test candidate line-heights in descending order: 1.9, 1.8, 1.7
     // Pick the highest line-height that achieves targetPages.
@@ -176,24 +297,37 @@ export async function pickPrintLineHeight({
         team,
         script,
         lineHeight: stepLh,
+        withBreaks: false,
       });
       if (stepRes.pages <= targetPages) {
-        return {
-          lineHeight: stepLh,
-          pages: stepRes.pages,
-          pagesAtDefault,
-          tightened: true,
-          lastPageFill: stepRes.lastPageFill,
-        };
+        chosenLineHeight = stepLh;
+        chosenPages = stepRes.pages;
+        chosenLastPageFill = stepRes.lastPageFill;
+        break;
       }
     }
 
+    let breaks = [];
+    if (withBreaks) {
+      const breakRes = await measurePrint({
+        html,
+        mode,
+        row,
+        team,
+        script,
+        lineHeight: chosenLineHeight,
+        withBreaks: true,
+      });
+      breaks = breakRes.breaks || [];
+    }
+
     return {
-      lineHeight: MIN_LINE_HEIGHT,
-      pages: minRes.pages,
+      lineHeight: chosenLineHeight,
+      pages: chosenPages,
       pagesAtDefault,
       tightened: true,
-      lastPageFill: minRes.lastPageFill,
+      lastPageFill: chosenLastPageFill,
+      ...(withBreaks ? { breaks } : {}),
     };
   } catch (err) {
     console.error('pickPrintLineHeight failed:', err);
@@ -203,6 +337,7 @@ export async function pickPrintLineHeight({
       pagesAtDefault: 1,
       tightened: false,
       lastPageFill: 0,
+      ...(withBreaks ? { breaks: [] } : {}),
     };
   }
 }

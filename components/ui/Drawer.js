@@ -731,6 +731,8 @@ function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
                     if (draftsEnabled) saveDraft(window.localStorage, draftKey, { text: draft, savedAt: new Date().toISOString(), baseScript: baseScriptRef.current });
                   }}
                   autoFocus 
+                  printRow={row}
+                  team={team}
                 />
               ) : (
                 <textarea

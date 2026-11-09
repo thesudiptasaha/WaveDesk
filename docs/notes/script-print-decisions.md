@@ -42,14 +42,20 @@ Owner decisions regarding the script print layout and printing behavior across t
   - `measurePrint({ html, mode = 'full', row, team, lineHeight = 2, script })`: mounts an offscreen `.script-measure-root` at 178mm width, waits for `document.fonts.ready` and animation frames, returns `{ pages, bodyHeightMm, headerHeightMm, lastPageFill }`.
   - `pickPrintLineHeight({ html, mode = 'full', row, team, script })`: evaluates default and tightened counts and returns `{ lineHeight, pages, pagesAtDefault, tightened, lastPageFill }`.
 
-## 6. Page-End Marker in Script Editor (N144 — Owner Decisions 9 Nov 2026)
-- **Visual Marker:** A dashed "পাতা ১ শেষ" style separator line in the script editor indicating where each printed page ends.
-- **Placement:** Placed strictly at the nearest gap between paragraphs (never breaks inside a paragraph).
-- **Page Information Line:** A small indicator line under the editor, e.g. "ছাপলে ২ পাতা · শেষ পাতা ৩০% ভরা".
-- **Last-Page Warning:** A red warning when the last page has only a few lines ("ছোট করলে কাগজ বাঁচবে").
-- **Tighten Note:** Displays a note when printing will automatically tighten the line spacing to save a page.
-- **Visibility:** Visible to everyone who has permission to view the script editor.
-- **Implementation:** Reuses `measurePrint` from `utils/printFit.js`.
+## 6. Page-End Marker in Script Editor (N144 — Built 9 Nov 2026)
+- **Visual Marker:** A dashed "পাতা N শেষ" separator line in the drawer script editor (`components/ui/ScriptEditor.js`) indicating where each printed page ends.
+- **Placement:** Placed strictly at the nearest gap between paragraphs (never breaks inside a paragraph). If the real page end falls inside a paragraph, the label gets "(প্রায়)" (e.g. "পাতা ১ শেষ (প্রায়)").
+- **Non-destructive:** Implemented as ProseMirror widget decorations via a custom TipTap extension (`PageBreaksExtension`). Never stored in the document model, never in `getHTML()` or `onUpdate` output, not selectable, not editable, no effect on print, Teleprompter, or database.
+- **Page Information Line:** A small summary line under the editor, e.g. "ছাপলে N পাতা · শেষ পাতা X% ভরা" (formatted with Bengali numerals). Empty script shows "ছাপলে ১ পাতা".
+- **Last-Page Warning:** If `pages > 1` and `lastPageFill < 0.12` (< 12%, about 4–5 lines), the summary line turns red/amber with extra warning: "শেষ পাতায় মাত্র কয়েক লাইন আছে। ছোট করলে কাগজ বাঁচবে।"
+- **Tighten Note:** If printing will tighten line spacing (`tightened = true`), shows "ছাপার সময় লাইনের ফাঁক কমিয়ে পাতা বাঁচানো হবে।" Markers and summary line reflect the tightened spacing that will really print.
+- **Safety & Debounce:** Measurements are debounced at 600 ms with a request counter to ignore stale results. If block count in sanitized print HTML differs from editor document block count, markers are hidden to prevent misplaced breaks. `Drawer.js` only passes `printRow` and `team`.
+- **Measuring API Extension (`utils/printFit.js`):**
+  - `measurePrint` and `pickPrintLineHeight` take optional `withBreaks: true`.
+  - When `withBreaks: true`, returns `breaks`: array of `{ page, afterBlock, approximate }`:
+    - `page`: 1-based page number ending at this break.
+    - `afterBlock`: 0-based index of top-level paragraph block after which the separator goes.
+    - `approximate`: `true` if true page end falls inside a paragraph, `false` if it lands in the gap between paragraphs.
 
 ## 7. Browser Compatibility
 - Footer page numbers and `@page` margin boxes (`@bottom-left`, `@bottom-right`) require **Chrome** or **Microsoft Edge**.
