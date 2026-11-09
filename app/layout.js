@@ -614,7 +614,7 @@ const lightCss = `
       display: block !important;
       background: #ffffff !important;
       color: #111111 !important;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Noto Serif Bengali', Georgia, serif;
       font-size: 11.5pt;
       line-height: 1.5;
       -webkit-print-color-adjust: exact;
@@ -633,10 +633,12 @@ const lightCss = `
       align-items: center;
       justify-content: space-between;
       gap: 12pt;
-      margin-bottom: 12pt;
+      border-bottom: 3px double #111111 !important;
+      padding-bottom: 6pt;
+      margin-bottom: 14pt;
     }
     #script-print-root .script-print-slug-uid {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Noto Serif Bengali', Georgia, serif;
       font-size: 9pt;
       font-weight: 600;
       color: #111111 !important;
@@ -644,12 +646,14 @@ const lightCss = `
     #script-print-root .script-print-channel-logo {
       height: 8.5mm;
       width: auto;
+      aspect-ratio: 287.82 / 77.17;
+      min-width: 31.7mm;
       object-fit: contain;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     #script-print-root .script-print-channel-text {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Noto Serif Bengali', Georgia, serif;
       font-size: 8.5pt;
       font-weight: 500;
       color: #555555 !important;
@@ -673,7 +677,7 @@ const lightCss = `
       border-top: 1px solid #111111 !important;
       border-bottom: 1px solid #999999 !important;
       margin-bottom: 18pt;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Noto Serif Bengali', Georgia, serif;
       font-size: 9pt;
       color: #555555 !important;
     }
@@ -683,10 +687,12 @@ const lightCss = `
       gap: 6pt;
     }
     #script-print-root .script-print-by-label {
+      font-family: 'Noto Serif Bengali', Georgia, serif;
       font-weight: 500;
       color: #555555 !important;
     }
     #script-print-root .script-print-by-val {
+      font-family: 'Noto Serif Bengali', Georgia, serif;
       font-weight: 600;
       color: #111111 !important;
     }

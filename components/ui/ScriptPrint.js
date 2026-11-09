@@ -38,6 +38,52 @@ function escapeCssString(str) {
   return sanitized.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
+export function waitForPrintImages(rootEl, timeoutMs = 2000) {
+  if (!rootEl || typeof document === 'undefined') return Promise.resolve();
+  const imgs = Array.from(rootEl.querySelectorAll('img'));
+  if (imgs.length === 0) return Promise.resolve();
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve();
+      }
+    }, timeoutMs);
+
+    Promise.all(
+      imgs.map((img) => {
+        if (img.complete) {
+          if (typeof img.decode === 'function') {
+            return img.decode().catch(() => {});
+          }
+          return Promise.resolve();
+        }
+        return new Promise((res) => {
+          const done = () => {
+            img.removeEventListener('load', done);
+            img.removeEventListener('error', done);
+            if (typeof img.decode === 'function') {
+              img.decode().catch(() => {}).then(res);
+            } else {
+              res();
+            }
+          };
+          img.addEventListener('load', done);
+          img.addEventListener('error', done);
+        });
+      })
+    ).then(() => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      }
+    });
+  });
+}
+
 export function ScriptPrintDocument({ row, team, mode = 'full', script }) {
   const rawScript = script !== undefined ? script : (row?.script || '');
   const richEnabled = mode === 'full' ? isFeatureEnabled('rich_editor') : true;
@@ -49,24 +95,27 @@ export function ScriptPrintDocument({ row, team, mode = 'full', script }) {
   const slugUid = row ? [row.slug_name, row.content_uid].filter(Boolean).join(' · ') : '';
   const logoSrc = row ? channelLogoSrc(row.channel) : null;
 
-  const footerParts = [];
-  if (row?.content_uid) footerParts.push(`আইডি ${row.content_uid}`);
-  if (isFull && row) {
-    const writer = getPersonDisplay(row.writer, team);
-    if (writer) footerParts.push(`লেখক ${writer}`);
-    const presenter = getPersonDisplay(row.presenter_name, team);
-    if (presenter) footerParts.push(`প্রেজেন্টার ${presenter}`);
-    const producer = getPersonDisplay(row.producer, team);
-    if (producer) footerParts.push(`প্রডিউসার ${producer}`);
-  }
-  const prefix = footerParts.length > 0 ? `${footerParts.join(' · ')} · পাতা ` : 'পাতা ';
+  const idText = escapeCssString(row?.content_uid || '');
+  const leftRule = idText
+    ? `@bottom-left {
+        content: "${idText}";
+        text-align: left;
+        font-size: 7pt;
+        color: #666666;
+        font-family: 'Noto Serif Bengali', Georgia, serif;
+        vertical-align: middle;
+        white-space: nowrap;
+      }`
+    : '';
 
   const pageStyle = `@page {
-    @bottom-center {
-      content: "${escapeCssString(prefix)}" counter(page, bengali) "/" counter(pages, bengali);
+    ${leftRule}
+    @bottom-right {
+      content: "পাতা " counter(page, bengali) "/" counter(pages, bengali);
+      text-align: right;
       font-size: 7pt;
       color: #666666;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Noto Serif Bengali', Georgia, serif;
       vertical-align: middle;
       white-space: nowrap;
     }
@@ -83,8 +132,17 @@ export function ScriptPrintDocument({ row, team, mode = 'full', script }) {
               <img
                 src={logoSrc}
                 alt=""
+                loading="eager"
+                decoding="sync"
                 className="script-print-channel-logo"
-                style={{ height: '8.5mm', width: 'auto', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+                style={{
+                  height: '8.5mm',
+                  width: 'auto',
+                  aspectRatio: '287.82 / 77.17',
+                  minWidth: '31.7mm',
+                  WebkitPrintColorAdjust: 'exact',
+                  printColorAdjust: 'exact',
+                }}
               />
             ) : (
               <span className="script-print-channel-text">{row?.channel || '—'}</span>
@@ -142,15 +200,22 @@ export function ScriptPrintSheet({ row, team, platforms, printing, onAfterPrint 
     window.addEventListener('afterprint', handleAfterPrint);
 
     let hasRun = false;
+    let cancelled = false;
     let rafId2 = null;
+
     const rafId1 = requestAnimationFrame(() => {
-      rafId2 = requestAnimationFrame(() => {
+      rafId2 = requestAnimationFrame(async () => {
+        if (cancelled) return;
+        const rootEl = document.getElementById('script-print-root');
+        await waitForPrintImages(rootEl, 2000);
+        if (cancelled) return;
         hasRun = true;
         window.print();
       });
     });
 
     return () => {
+      cancelled = true;
       if (!hasRun) {
         printedRef.current = false;
       }

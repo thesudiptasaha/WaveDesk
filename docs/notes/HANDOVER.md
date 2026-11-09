@@ -46,7 +46,7 @@ Also: the old Claude Project "WaveDesk" and its memory belong to the first accou
 - Live app: https://wavedesk-manager.vercel.app
 
 ## 8. Where we are (9 Nov 2026)
-Last verified commits: see `git log`. Done recently: external crew invite complete (SQL, drawer app part, public /b/<token> page; pending test), script print redesign (no page 2, logo header, footer, booking page print fix; pending test). Next: N143 auto-tighten line spacing and N144 page-end separator, then Telegram bot, then dock and home page (dock position still undecided; proposal: top on PC, bottom on phone). Parked by the owner: Bulk schedule rethink, Teleprompter menu item. Full list: `docs/notes/roadmap.md`.
+Last verified commits: see `git log`. Done recently: external crew invite complete (SQL, drawer app part, public /b/<token> page; pending test), script print redesign & fixes (no page 2, double rule, logo wait, serif font, footer with ID left and page right, booking page print fix; pending test). Next: N143 auto-tighten line spacing and N144 page-end separator, then Telegram bot, then dock and home page (dock position still undecided; proposal: top on PC, bottom on phone). Parked by the owner: Bulk schedule rethink, Teleprompter menu item. Full list: `docs/notes/roadmap.md`.
 
 ## 9. Safety
 - Never put keys, passwords, server addresses, real content or the private notes into the repo (it is public).

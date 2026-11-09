@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '../../../services/supabase';
 import { ROLE_NAMES_BN } from '../../../components/ui/BookingInvite';
 import { scriptToHtml, sanitizeScriptHtml } from '../../../utils/scriptRich';
-import { ScriptPrintDocument } from '../../../components/ui/ScriptPrint';
+import { ScriptPrintDocument, waitForPrintImages } from '../../../components/ui/ScriptPrint';
 
 const CALM_MESSAGES = {
   invalid: 'এই লিংকটি সঠিক নয়। আমন্ত্রণকারীর সাথে যোগাযোগ করুন।',
@@ -74,15 +74,22 @@ export default function BookingPage() {
     window.addEventListener('afterprint', handleAfterPrint);
 
     let hasRun = false;
+    let cancelled = false;
     let rafId2 = null;
+
     const rafId1 = requestAnimationFrame(() => {
-      rafId2 = requestAnimationFrame(() => {
+      rafId2 = requestAnimationFrame(async () => {
+        if (cancelled) return;
+        const rootEl = document.getElementById('script-print-root');
+        await waitForPrintImages(rootEl, 2000);
+        if (cancelled) return;
         hasRun = true;
         window.print();
       });
     });
 
     return () => {
+      cancelled = true;
       if (!hasRun) {
         printedRef.current = false;
       }
