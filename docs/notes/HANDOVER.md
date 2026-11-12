@@ -45,8 +45,8 @@ Also: the old Claude Project "WaveDesk" and its memory belong to the first accou
 - Design mockups: `docs/design/` (20 board files from the Claude Design canvas "WaveDesk Drawer redesign"; see its README).
 - Live app: https://wavedesk-manager.vercel.app
 
-## 8. Where we are (9 Nov 2026)
-Last verified commits: see `git log`. Done recently: external crew invite complete (SQL, drawer app part, public /b/<token> page; pending test), script print redesign & fixes (N142/N145; pending test), script print page measuring & auto line-spacing fit (N143/N143b; pending test), page-end markers and summary in script editor (N144; pending test). Next: "Raw Footage" content category discussion, backup follow-ups, Telegram bot (WaveBot), then dock and home page (dock position still undecided; proposal: top on PC, bottom on phone). Parked by the owner: Bulk schedule rethink, Teleprompter menu item. Full list: `docs/notes/roadmap.md`.
+## 8. Where we are (12 Nov 2026)
+Last verified commits: see `git log`. Done recently: external crew invite complete (SQL, drawer app part, public /b/<token> page; pending test), script print redesign & fixes (N142/N145; pending test), script print page measuring & auto line-spacing fit (N143/N143b; pending test), page-end markers and summary in script editor (N144; pending test). Content type decisions recorded (N146, docs only): STORY = PACKAGE cleanup, new type "Uncut" (Multimedia Journalist role, no-script/no-shoot pipeline), new type "Photo Card" (two phases, emergency pinning). Order of work: (1) read-only SQL query of content_type constraint and triggers; (2) content type table refactor in app (no behaviour change); (3) Uncut + Multimedia Journalist + DB; (4) Photo Card phase A; (5) Photo Card phase B. See `docs/notes/content-types-plan.md`. Backup follow-ups, Telegram bot (WaveBot), dock and home page still pending.
 
 ## 9. Safety
 - Never put keys, passwords, server addresses, real content or the private notes into the repo (it is public).

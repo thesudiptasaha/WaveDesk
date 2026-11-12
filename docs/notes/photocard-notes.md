@@ -1,3 +1,16 @@
+# Photocard idea (2026-11-01)
+
+## Update 12 Nov 2026
+Photo Card is now a decided content type. Full decisions recorded in `docs/notes/content-types-plan.md` (section A). Key additions since 1 Nov:
+- Form fields now include: card text, caption, publish date/time (Publish Date in the form), emergency (yes/no), channel, **date shown on the card** (separate from publish date), source, linked content (another content's ID), template (dropdown per channel).
+- New permission required to create/fill a Photo Card (working name: "Make Photo Cards", key `can_make_photo_cards`).
+- Pipeline: `Draft` → `Ready to Publish` → `Scheduled` → `Published`. No script, shoot or editing.
+- Emergency = yes: rundown row pinned to the top of its channel and flashes until Published (same as "Did it go out?" pinned rows).
+- Two phases: Phase A = type, form, steps, permission, emergency behaviour (no image generation). Phase B = browser-side card generation from channel templates (after templates and font files arrive).
+- The decisions below (1 Nov) still apply for phase B.
+
+---
+
 # Photocard idea (2026-11-01), parked: do later
 
 Goal: writers upload text + image, a photocard is generated in the browser from an SVG/PNG template, downloaded and posted to Facebook. Nothing stored on the server except a small record.

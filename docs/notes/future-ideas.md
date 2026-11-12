@@ -56,5 +56,5 @@
 ## ৩. টেলিপ্রম্পটার মেনু (৮ নভেম্বর ২০২৬)
 মেনুতে আলাদা "Teleprompter": কনটেন্ট ছাড়া টেস্ট/অডিশন/প্র্যাকটিস স্ক্রিপ্ট পেস্ট করে চালানো। মালিক: পরে। বিস্তারিত `teleprompter-menu-notes.md`।
 
-## ৪. নতুন কনটেন্ট ক্যাটাগরি "Raw Footage" (৯ নভেম্বর ২০২৬)
-New content category for unedited place/time/person footage that is published with an intro/outro. Working name "Raw Footage" (alternatives discussed: Actuality, Rushes, Unedited/Uncut; "Uncut" can be used in public titles). Still to discuss: pipeline steps, whether a script is needed, which fields. Do after N144.
+## ৪. নতুন কনটেন্ট ক্যাটাগরি "Uncut" (সিদ্ধান্ত হয়েছে, ১০–১২ নভেম্বর ২০২৬)
+This category is decided and named **Uncut**. Full decisions and order of work are in `docs/notes/content-types-plan.md`.

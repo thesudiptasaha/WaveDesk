@@ -5,6 +5,10 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 12 Nov 2026 — Content type decisions recorded (N146)
+
+New file `docs/notes/content-types-plan.md`: records the owner's decisions on content types made 10–12 Nov 2026 (STORY = PACKAGE; new type "Uncut" with Multimedia Journalist role; new type "Photo Card" with two phases and emergency-pinning behaviour) and the agreed order of work. No code or SQL was changed in this task.
+
 ## GitHub-এ শেষ (main, পুরনো → নতুন)
 | কমিট | কাজ |
 |---|---|
