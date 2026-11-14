@@ -16,7 +16,7 @@ import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Person
 import { PersonPicker } from './PersonPicker';
 import { StepBar } from './StepBar';
 import {
-  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, PLATFORMS, PERMISSIONS, ROLE_LABEL,
+  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, typeConfig, PLATFORMS, PERMISSIONS, ROLE_LABEL,
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
@@ -276,26 +276,12 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
   );
 }
 
-const HIDE_BY_TYPE = {
-  PACKAGE: [
-    'camera_operator',
-    'teleprompter_operator',
-    'light_designer',
-    'sound_recordist',
-    'set_designer',
-    'makeup_artist',
-    'data_wrangler',
-    'production_manager',
-  ],
-  LIVE: ['video_editor'],
-};
-
 function visibleFieldsFor(group, row) {
   if (!group || !row) return [];
-  if (group.id === 'live' && !(row.content_type === 'LIVE' || row.live_video_switcher || row.live_audio_mixer)) {
+  if (group.id === 'live' && !(typeConfig(row.content_type).showsLiveCredits || row.live_video_switcher || row.live_audio_mixer)) {
     return [];
   }
-  const showCredit = (field) => !((HIDE_BY_TYPE[row.content_type] || []).includes(field) && !row[field]);
+  const showCredit = (field) => !(typeConfig(row.content_type).hiddenCredits.includes(field) && !row[field]);
   return (group.fields || []).filter((f) => showCredit(f.field));
 }
 
@@ -1345,7 +1331,7 @@ function FilesDeliveredStatus({ row, actor, patch }) {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [showProblemModal, showUndoModal]);
 
-  const isLive = row.content_type === 'LIVE';
+  const hasPostStage = typeConfig(row.content_type).hasPostStage;
   const isDelivered = Boolean(row.files_delivered_at);
   const canMark = canMarkFilesReceived(actor, row);
 
@@ -1411,8 +1397,8 @@ function FilesDeliveredStatus({ row, actor, patch }) {
           Files from Production
         </span>
       </div>
-      {isLive ? (
-        <p className="text-[13px] text-zinc-400">No editing for LIVE content.</p>
+      {!hasPostStage ? (
+        <p className="text-[13px] text-zinc-400">No editing for {row.content_type} content.</p>
       ) : !isDelivered ? (
         <div>
           <p className="text-[13px] text-zinc-300">Not delivered yet</p>

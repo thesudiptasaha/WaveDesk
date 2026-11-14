@@ -3,6 +3,7 @@
 import React from 'react';
 import {
   STATUS_META,
+  typeConfig,
   getActions,
   isRemovedPublished,
   rowTimeIn,
@@ -144,7 +145,7 @@ export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, show
   if (r.status !== 'Published' && r.status !== 'Dropped') {
     if (!r.writer) n++;
     if (!r.presenter_name) n++;
-    if (r.content_type !== 'LIVE' && !r.video_editor) n++;
+    if (typeConfig(r.content_type).usesVideoEditor && !r.video_editor) n++;
   }
 
   const handleKeyDown = (e) => {

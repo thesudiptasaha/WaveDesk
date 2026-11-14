@@ -8,16 +8,6 @@ export const DEFAULT_CHANNELS = [
   'The Wave Glam',
 ];
 
-export const CONTENT_TYPES = ['EXPLAINER', 'LIVE', 'RECORDED LIVE', 'SOT', 'PACKAGE', 'SHOW'];
-export const CONTENT_TYPE_HINT = {
-  EXPLAINER: 'Full pipeline',
-  LIVE: 'Script approved → done (published)',
-  'RECORDED LIVE': 'Full pipeline',
-  SOT: 'Full pipeline',
-  PACKAGE: 'Script + raw footage → straight to the editor (no shoot)',
-  SHOW: 'Full pipeline',
-};
-
 export const PLATFORMS = [
   { id: 'web', label: 'Web Portal' },
   { id: 'youtube', label: 'YouTube' },

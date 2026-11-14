@@ -725,7 +725,7 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
                     <SelectBox
                       value={r.content_type}
                       onChange={(v) => updateItem(r._id, 'content_type', v)}
-                      options={['PACKAGE', 'SOT', 'LIVE', 'EXPLAINER', 'SHOW', 'STORY']}
+                      options={CONTENT_TYPES}
                     />
                   </td>
                   <td className="px-3 py-2">

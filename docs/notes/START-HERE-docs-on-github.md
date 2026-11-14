@@ -48,7 +48,7 @@ Draft → Script Submitted → Ready for Shoot → Shooting → Assign Editor �
 - SQL মালিক Supabase SQL Editor-এ চালান (লাইভ ফাংশনের লাইন CRLF, প্যাচ এক লাইনে); লাইভ চালালে রিপোতে রেকর্ড ফাইল।
 - UI নকশা: আগে টেক্সট/ছবির মকআপ দেখিয়ে পছন্দ নেওয়া।
 - রিপো Public: কোনো key, পাসওয়ার্ড, সার্ভারের ঠিকানা, আসল কনটেন্ট, গোপন নোট (বিজনেস প্ল্যান, নিরাপত্তা রিভিউ) রিপোতে নয়।
-- নম্বর ও কমিটের মিল: `docs/notes/task-number-tracker.md`। পরের নম্বর **N147**।
+- নম্বর ও কমিটের মিল: `docs/notes/task-number-tracker.md`। পরের নম্বর **N148**।
 
 ## এখন বাকি
-`docs/notes/roadmap.md` দেখুন। সংক্ষেপে: বাইরের ক্রু আমন্ত্রণ ফিচার সম্পন্ন (পাবলিক পেজসহ) → স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন (N142, N145, N143, N144; টেস্ট বাকি) → Content type decisions recorded (N146, docs only) → content type table refactor → Uncut + Multimedia Journalist → Photo Card → ব্যাকআপ ফলো-আপসমূহ → Telegram বট → ডক ও হোম পেজ (ডকের জায়গা অনুমোদন বাকি)। ব্যবহারকারীর স্থগিত: Bulk schedule পুনর্ভাবনা। ব্যাকআপ রিস্টোর পরীক্ষা মালিকের পরে করার কাজ।
+`docs/notes/roadmap.md` দেখুন। সংক্ষেপে: বাইরের ক্রু আমন্ত্রণ ফিচার সম্পন্ন (পাবলিক পেজসহ) → স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন (N142, N145, N143, N144; টেস্ট বাকি) → Content type decisions recorded (N146) → content type table refactor (`CONTENT_TYPE_CONFIG`, N147 সম্পন্ন) → Uncut + Multimedia Journalist (পরের কাজ) → Photo Card → ব্যাকআপ ফলো-আপসমূহ → Telegram বট → ডক ও হোম পেজ (ডকের জায়গা অনুমোদন বাকি)। ব্যবহারকারীর স্থগিত: Bulk schedule পুনর্ভাবনা। ব্যাকআপ রিস্টোর পরীক্ষা মালিকের পরে করার কাজ।

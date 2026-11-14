@@ -5,6 +5,10 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 14 Nov 2026 — Content type table (N147)
+
+lib/core.js now has CONTENT_TYPE_CONFIG, one table keyed by content type (EXPLAINER, LIVE, RECORDED LIVE, SOT, PACKAGE, SHOW) with: hint, color, afterScript, skipsShoot, hasPostStage, usesVideoEditor, hiddenCredits, showsLiveCredits. CONTENT_TYPES, CONTENT_TYPE_HINT and CONTENT_TYPE_COLORS are derived from it; helper typeConfig(type) falls back to the PACKAGE entry for an unknown type. Replaced the hard-coded checks in lib/core.js (afterScript, tab visibility), Drawer.js (HIDE_BY_TYPE, Live credit group, "no editing" message), RundownCards.js and StaffAssignSelect.js (video editor). Removed the unused duplicate CONTENT_TYPES/CONTENT_TYPE_HINT from utils/constants.js. Behaviour is unchanged except: the bulk-create content type dropdown now lists all six types in the standard order and no longer offers STORY (the database never accepted STORY). Findings from the live database check (12 Nov): rows per type EXPLAINER 170, PACKAGE 49, LIVE 10, SOT 3, SHOW 1, RECORDED LIVE 1, no STORY; check constraint contents_content_type_valid allows only the six types; two database functions depend on content_type: guard_contents_update and contents_post_production_rules.
+
 ## 12 Nov 2026 — Content type decisions recorded (N146)
 
 New file `docs/notes/content-types-plan.md`: records the owner's decisions on content types made 10–12 Nov 2026 (STORY = PACKAGE; new type "Uncut" with Multimedia Journalist role; new type "Photo Card" with two phases and emergency-pinning behaviour) and the agreed order of work. No code or SQL was changed in this task.

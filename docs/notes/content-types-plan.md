@@ -3,11 +3,11 @@
 ## A. Decisions (owner, 10–12 Nov 2026)
 
 ### STORY = PACKAGE
-The final name is Package. STORY is not and was never an official content type (it has a colour entry in `CONTENT_TYPE_COLORS` but is absent from `CONTENT_TYPES`). Plan:
-- Remove STORY from the bulk-create dropdown (`components/ui/Modals.js`) if it appears there.
-- Remove any mention of STORY from `docs/schema-reference.md`.
-- Run a read-only query on the live database to count rows where `content_type = 'STORY'`, then convert them to PACKAGE.
-- Note: `lib/core.js` `sanitizeRow` already treats any `content_type` not in `CONTENT_TYPES` as PACKAGE (the fallback default), so STORY rows already behave as PACKAGE in the app today.
+The final name is Package. STORY is not and was never an official content type (it had a colour entry in `CONTENT_TYPE_COLORS` but was absent from `CONTENT_TYPES`).
+- STORY cleanup in the app is done (bulk-create dropdown updated in N147 to use `CONTENT_TYPES`).
+- The database check constraint `contents_content_type_valid` never allowed STORY, and the live query (12 Nov) found 0 rows with `content_type = 'STORY'`.
+- Mention of STORY removed from `docs/schema-reference.md`.
+- Unknown content types now behave as PACKAGE everywhere (sanitiser in `lib/core.js` and `typeConfig(type)` table fallback).
 
 ### New content type: "Uncut"
 Footage shot by a reporter — place/time/person — brought in, graphics added, cut, branded and uploaded. The reporter's title is **Multimedia Journalist**, a new role (the **22nd**):
@@ -80,8 +80,8 @@ Every content type's full pipeline and credit list will be revised as part of th
 ## C. Order of work (decided)
 
 0. **These notes** (N146 — docs only, no code or SQL change).
-1. **Read-only SQL query** of the live database: check the `content_type` constraint, the trigger functions that use `content_type` (especially `guard_contents_update` and `contents_post_production_rules`), and the row count per type. The owner runs the query and pastes the result.
-2. **Content type table in app code** — replace the scattered per-type conditionals (`afterScript`, `HIDE_BY_TYPE`, `stepProgress` branches) with a single data structure per type (pipeline steps, whether a script is needed, which credits are shown, colour, hint). **No behaviour change.** This makes adding new types mechanical.
+1. ✅ **DONE (12 Nov): Read-only SQL query** of the live database: checked the `content_type` constraint (`contents_content_type_valid` allows only the six types), the trigger functions that use `content_type` (`guard_contents_update` and `contents_post_production_rules`), and row count per type (EXPLAINER 170, PACKAGE 49, LIVE 10, SOT 3, SHOW 1, RECORDED LIVE 1, no STORY).
+2. ✅ **DONE (14 Nov, N147): Content type table in app code (`CONTENT_TYPE_CONFIG` in `lib/core.js`)** — replaced the scattered per-type conditionals (`afterScript`, `HIDE_BY_TYPE`, `stepProgress` branches, video editor checks) with a single table keyed by content type (`EXPLAINER`, `LIVE`, `RECORDED LIVE`, `SOT`, `PACKAGE`, `SHOW`). Field list: `hint`, `color` ({ bg, text, tagText }), `afterScript`, `skipsShoot`, `hasPostStage`, `usesVideoEditor`, `hiddenCredits`, `showsLiveCredits`. Derived `CONTENT_TYPES`, `CONTENT_TYPE_HINT`, and `CONTENT_TYPE_COLORS`. Helper `typeConfig(type)` falls back to `PACKAGE` for unknown types. No behaviour change. Bulk-create dropdown uses `CONTENT_TYPES` (all six types in standard order, STORY removed). Unused duplicate in `utils/constants.js` deleted.
 3. **Uncut + Multimedia Journalist role + database changes** (SQL for the new column, role tick, pipeline guard).
 4. **Photo Card phase A** (type, form, steps, permission, emergency behaviour).
 5. **Photo Card phase B** (browser-side card generation) — when the designer's templates and font files arrive.

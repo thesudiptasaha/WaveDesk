@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { can, FIELD_PERM, eligibleMembers, presenterMembers } from '../../lib/core';
+import { can, FIELD_PERM, eligibleMembers, presenterMembers, typeConfig } from '../../lib/core';
 import { Avatar, PersonName } from './Shared';
 import { PersonPicker } from './PersonPicker';
 
@@ -199,7 +199,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
       <div className="flex gap-2.5">
         {renderLine('writer', 'Script Writer:', writers, 'SCRIPT WRITER')}
         {renderLine('presenter_name', 'Presenter:', presenters, 'PRESENTER')}
-        {r.content_type === 'LIVE' ? null : renderLine('video_editor', 'Video Editor:', editors, 'VIDEO EDITOR')}
+        {!typeConfig(r.content_type).usesVideoEditor ? null : renderLine('video_editor', 'Video Editor:', editors, 'VIDEO EDITOR')}
       </div>
     );
   }
@@ -209,7 +209,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
       <div className="flex flex-col gap-1 text-[11px]">
         {renderLine('writer', 'Script Writer:', writers, null, true)}
         {renderLine('presenter_name', 'Presenter:', presenters, null, true)}
-        {r.content_type === 'LIVE' ? null : renderLine('video_editor', 'Video Editor:', editors, null, true)}
+        {!typeConfig(r.content_type).usesVideoEditor ? null : renderLine('video_editor', 'Video Editor:', editors, null, true)}
       </div>
     );
   }
@@ -239,7 +239,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
           patchRow={patchRow}
           notify={notify}
         />
-        {r.content_type === 'LIVE' ? null : (
+        {!typeConfig(r.content_type).usesVideoEditor ? null : (
           <StaffTileItem
             field="video_editor"
             label="Video Editor"

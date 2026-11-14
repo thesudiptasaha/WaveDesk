@@ -81,7 +81,7 @@ Central table holding all daily video rundown items.
 * `content_uid` (`text`) — Human-readable identifier (e.g., `WAVECON-20261029_0002`). Formatted as `WAVECON-YYYYMMDD_XXXX`, assigned on insert based on content creation day in Asia/Dhaka. Daily counter restarts at 0001 (`content_uid_counters: org_key, day, last_n`). IDs are never reused and immutable once set (`guard_contents_update` checks `WAVECON-` prefix). Shorts are identified as `<content ID>-short_0001` and so on, numbered inside their main content. The folder on the storage drive is named exactly the content ID (no slug), with shorts as subfolders. Converted from legacy `CON-` format on 29 Oct 2026 via `sql/2026-10-29_wavecon_content_id.sql`.
 * `slug_name` (`text`) — Unique slug title (max 24 characters, normalized).
 * `title` (`text`) — Full story title/headline.
-* `content_type` (`text`) — One of: `'EXPLAINER'`, `'LIVE'`, `'RECORDED LIVE'`, `'SOT'`, `'PACKAGE'`, `'SHOW'`, `'STORY'`.
+* `content_type` (`text`) — One of: `'EXPLAINER'`, `'LIVE'`, `'RECORDED LIVE'`, `'SOT'`, `'PACKAGE'`, `'SHOW'` (check constraint `contents_content_type_valid`).
 * `channel` (`text`) — Channel name assignment.
 * `status` (`text`) — Pipeline status, strictly one of:
   * `'Draft'`

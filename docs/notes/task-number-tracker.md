@@ -1,6 +1,6 @@
-# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১২ নভেম্বর ২০২৬)
+# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৪ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N147** (N146 ব্যবহৃত)। শেষ যাচাই-করা কমিট: `65c9415` (N144)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N148** (N147 ব্যবহৃত)। শেষ যাচাই-করা কমিট: `65c9415` (N144)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -55,6 +55,7 @@
 | N144 (c, d) | page-end markers and page summary in the script editor | 65c9415 |
 | N145 (c, d) | script print fixes (double rule, logo wait, serif font, left ID right page counter) | 7cfcc58 |
 | N146 (d) | record content type decisions (Uncut, Photo Card, STORY = PACKAGE) and order of work | this commit |
+| N147 (N147, N147c, N147d) | one content type table (CONTENT_TYPE_CONFIG) so pipeline and credit rules live in one place | this commit |
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।
 
