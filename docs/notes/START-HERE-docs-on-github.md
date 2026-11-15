@@ -23,7 +23,7 @@ Next.js 16.4.2 (App Router) + React 19 + Supabase (RLS, ট্রিগার, R
 
 ## পদ, রোল ও অ্যাক্সেস
 - **Authority:** Owner / Manager / General। **Access:** ৮টা অনুমতি (`can_write_edit_scripts`, `can_approve_scripts`, `can_edit_content_details`, `can_change_channel`, `can_reschedule_content`, `can_assign_video_editor`, `can_assign_presenter`, `can_review_videos`)।
-- **Roles:** ২১টা `role_…` টিক; অনুমতি নয়, শুধু ঠিক করে কে কোন ক্রেডিট তালিকায় আসবেন। `lib/core.js` `ROLE_LIST` একক উৎস। **Owner ও Manager কোনো রোল-তালিকায় আসেন শুধু ওই রোলের টিক থাকলে** (৭ নভেম্বর থেকে; ৮ নভেম্বর ২১টি টিক ইতিহাস থেকে বসানো হয়েছে, `sql/2026-11-08_backfill_owner_manager_role_ticks.sql`)। নতুন Owner/Manager-এর টিক Team মডালে হাতে দিতে হবে।
+- **Roles:** ২২টা `role_…` টিক; অনুমতি নয়, শুধু ঠিক করে কে কোন ক্রেডিট তালিকায় আসবেন। `lib/core.js` `ROLE_LIST` একক উৎস। **Owner ও Manager কোনো রোল-তালিকায় আসেন শুধু ওই রোলের টিক থাকলে** (৭ নভেম্বর থেকে; ৮ নভেম্বর ২১টি টিক ইতিহাস থেকে বসানো হয়েছে, `sql/2026-11-08_backfill_owner_manager_role_ticks.sql`)। নতুন Owner/Manager-এর টিক Team মডালে হাতে দিতে হবে।
 - অ্যাপ এখনও **নাম** (full_name) দিয়ে ক্রেডিট ধরে। "সবকিছু আইডি দিয়ে" পরের প্রজেক্ট; নতুন টেবিল শুরু থেকেই আইডি দিয়ে।
 - `contents`: `published_by` = কে Publish চেপেছেন, `publisher` = প্রকাশের কাজ যিনি করেন, `published_at` = বোতাম চাপার সময়, `went_live_at` = আসল লাইভের সময়।
 
@@ -48,7 +48,7 @@ Draft → Script Submitted → Ready for Shoot → Shooting → Assign Editor �
 - SQL মালিক Supabase SQL Editor-এ চালান (লাইভ ফাংশনের লাইন CRLF, প্যাচ এক লাইনে); লাইভ চালালে রিপোতে রেকর্ড ফাইল।
 - UI নকশা: আগে টেক্সট/ছবির মকআপ দেখিয়ে পছন্দ নেওয়া।
 - রিপো Public: কোনো key, পাসওয়ার্ড, সার্ভারের ঠিকানা, আসল কনটেন্ট, গোপন নোট (বিজনেস প্ল্যান, নিরাপত্তা রিভিউ) রিপোতে নয়।
-- নম্বর ও কমিটের মিল: `docs/notes/task-number-tracker.md`। পরের নম্বর **N149** (N149 = Uncut app side, N150 = shoot_location সংরক্ষিত)।
+- নম্বর ও কমিটের মিল: `docs/notes/task-number-tracker.md`। পরের নম্বর **N150** (N150 = shoot_location সংরক্ষিত)।
 
 ## এখন বাকি
-`docs/notes/roadmap.md` দেখুন। সংক্ষেপে: বাইরের ক্রু আমন্ত্রণ ফিচার সম্পন্ন (পাবলিক পেজসহ) → স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন (N142, N145, N143, N144; টেস্ট বাকি) → Content type decisions recorded (N146) → content type table refactor (`CONTENT_TYPE_CONFIG`, N147 সম্পন্ন) → DB groundwork records (14 Nov) & Manage Sponsors tick + Sponsors section in drawer left column (N148/N148b সম্পন্ন) → Uncut app side (N149, পরের কাজ) → shoot_location field (N150) → Photo Card workflow (discussion first) → ব্যাকআপ ফলো-আপসমূহ → Telegram বট → ডক ও হোম পেজ (ডকের জায়গা অনুমোদন বাকি)। ব্যবহারকারীর স্থগিত: Bulk schedule পুনর্ভাবনা। ব্যাকআপ রিস্টোর পরীক্ষা মালিকের পরে করার কাজ।
+`docs/notes/roadmap.md` দেখুন। সংক্ষেপে: বাইরের ক্রু আমন্ত্রণ ফিচার সম্পন্ন (পাবলিক পেজসহ) → স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন (N142, N145, N143, N144; টেস্ট বাকি) → Content type decisions recorded (N146) → content type table refactor (`CONTENT_TYPE_CONFIG`, N147 সম্পন্ন) → DB groundwork records (14 Nov) & Manage Sponsors tick + Sponsors section in drawer left column (N148/N148b সম্পন্ন) → Uncut app side (N149/N149b/N149b2 সম্পন্ন, টেস্ট বাকি) → shoot_location field (N150, পরের কাজ) → Photo Card workflow (discussion first) → ব্যাকআপ ফলো-আপসমূহ → Telegram বট → ডক ও হোম পেজ (ডকের জায়গা অনুমোদন বাকি)। ব্যবহারকারীর স্থগিত: Bulk schedule পুনর্ভাবনা। ব্যাকআপ রিস্টোর পরীক্ষা মালিকের পরে করার কাজ।

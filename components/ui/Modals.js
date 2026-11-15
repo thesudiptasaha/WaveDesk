@@ -9,7 +9,7 @@ import {
   DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, PLATFORMS, PERMISSIONS, ROLE_LIST, ACCESS_LIST, ROLE_LABEL,
   isManager, isOwner, can, toLocalInput, fromLocalInput, formatDay, formatTime, 
   SLUG_MAX, normalizeSlugInput, pad, formatStamp, startOfDay, addDays, sameDay, shortsInRange,
-  normalizeRow, presenterMembers, eligibleMembers,
+  normalizeRow, presenterMembers, eligibleMembers, typeHasScript,
   isExternal, canManageExternals, normalizePhone
 } from '../../lib/core';
 
@@ -21,6 +21,7 @@ import { fetchAllPages } from '../../utils/fetchAll';
 function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate }) {
   const conceptMembers = eligibleMembers(team, 'role_concept_creator');
   const writerMembers = eligibleMembers(team, 'role_research_script_writer');
+  const multimediaMembers = eligibleMembers(team, 'role_multimedia_journalist');
   const presenterMembersList = presenterMembers(team);
   const okPres = can(actor, 'can_assign_presenter');
   const initialTime = () => {
@@ -39,6 +40,7 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
     concept_creator: (actor && conceptMembers.some((m) => m.full_name === actor.full_name)) ? actor.full_name : '',
     writer: (actor && writerMembers.some((m) => m.full_name === actor.full_name)) ? actor.full_name : '',
     presenter_name: '',
+    multimedia_journalist: (actor && actor.role_multimedia_journalist === true) ? actor.full_name : '',
     script: '',
   });
   const [tried, setTried] = useState(false);
@@ -64,6 +66,7 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
     setTried(true);
     if (!valid || busy) return;
     setBusy(true);
+    const hasScript = typeHasScript(f.content_type);
     const ok = await onCreate({
       content_type: f.content_type,
       channel: f.channel,
@@ -71,10 +74,11 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
       slug_name: f.slug_name.trim(),
       title: f.title.trim(),
       thumbnail_text: f.thumbnail_text.trim(),
-      concept_creator: f.concept_creator,
-      writer: f.writer,
-      presenter_name: f.presenter_name,
-      script: f.script,
+      concept_creator: hasScript ? f.concept_creator : '',
+      writer: hasScript ? f.writer : '',
+      presenter_name: hasScript ? f.presenter_name : '',
+      multimedia_journalist: hasScript ? '' : (f.multimedia_journalist || ''),
+      script: hasScript ? f.script : '',
     });
     setBusy(false);
     if (ok) onClose();
@@ -139,17 +143,25 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
           <div className="order-3">
             <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">People</div>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
-                <Field label="Concept Creator" hint="same as the writer until you change it">
-                  <PersonSelect value={f.concept_creator} onChange={(name) => { setConceptTouched(true); set('concept_creator', name); }} members={conceptMembers} team={team} placeholder="Select concept creator" />
+              {f.content_type === 'UNCUT' ? (
+                <Field label="Multimedia Journalist">
+                  <PersonSelect value={f.multimedia_journalist} onChange={(name) => set('multimedia_journalist', name)} members={multimediaMembers} team={team} placeholder="Select multimedia journalist" />
                 </Field>
-                <Field label="Research & Script Writer">
-                  <PersonSelect value={f.writer} onChange={(name) => setF((p) => ({ ...p, writer: name, concept_creator: conceptTouched ? p.concept_creator : name }))} members={writerMembers} team={team} placeholder="Select research & script" />
-                </Field>
-              </div>
-              <Field label="Presenter" hint="optional" locked={!okPres} lockMessage={'You need the "Assign Presenter" permission'}>
-                <PersonSelect value={f.presenter_name} onChange={(name) => set('presenter_name', name)} members={presenterMembersList} team={team} placeholder="Select presenter" disabled={!okPres} />
-              </Field>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                    <Field label="Concept Creator" hint="same as the writer until you change it">
+                      <PersonSelect value={f.concept_creator} onChange={(name) => { setConceptTouched(true); set('concept_creator', name); }} members={conceptMembers} team={team} placeholder="Select concept creator" />
+                    </Field>
+                    <Field label="Research & Script Writer">
+                      <PersonSelect value={f.writer} onChange={(name) => setF((p) => ({ ...p, writer: name, concept_creator: conceptTouched ? p.concept_creator : name }))} members={writerMembers} team={team} placeholder="Select research & script" />
+                    </Field>
+                  </div>
+                  <Field label="Presenter" hint="optional" locked={!okPres} lockMessage={'You need the "Assign Presenter" permission'}>
+                    <PersonSelect value={f.presenter_name} onChange={(name) => set('presenter_name', name)} members={presenterMembersList} team={team} placeholder="Select presenter" disabled={!okPres} />
+                  </Field>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -186,26 +198,30 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
             <input value={f.thumbnail_text} onChange={(e) => set('thumbnail_text', e.target.value)} placeholder="Short hook shown on the thumbnail" className={inputBase} />
           </Field>
 
-          <div className="lg:hidden">
-            {showScript || f.script ? (
-              <Field label="Script">
-                <textarea value={f.script} onChange={(e) => set('script', e.target.value)} rows={6} placeholder="Paste or write the script…" className={`${inputBase} resize-y leading-relaxed`} />
-              </Field>
-            ) : (
-              <button type="button" onClick={() => setShowScript(true)} className="text-[13px] font-medium text-sky-400 transition hover:text-sky-300">
-                + Add script (optional)
-              </button>
-            )}
-          </div>
+          {(!f.content_type || typeHasScript(f.content_type)) ? (
+            <>
+              <div className="lg:hidden">
+                {showScript || f.script ? (
+                  <Field label="Script">
+                    <textarea value={f.script} onChange={(e) => set('script', e.target.value)} rows={6} placeholder="Paste or write the script…" className={`${inputBase} resize-y leading-relaxed`} />
+                  </Field>
+                ) : (
+                  <button type="button" onClick={() => setShowScript(true)} className="text-[13px] font-medium text-sky-400 transition hover:text-sky-300">
+                    + Add script (optional)
+                  </button>
+                )}
+              </div>
 
-          <Field label="Script" hint="Paste or write the script here. You can also add it later." className="hidden lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-            <textarea
-              value={f.script}
-              onChange={(e) => set('script', e.target.value)}
-              placeholder="Paste or write the script…"
-              className={`${inputBase} w-full leading-relaxed lg:min-h-[160px] lg:flex-1 lg:resize-none`}
-            />
-          </Field>
+              <Field label="Script" hint="Paste or write the script here. You can also add it later." className="hidden lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+                <textarea
+                  value={f.script}
+                  onChange={(e) => set('script', e.target.value)}
+                  placeholder="Paste or write the script…"
+                  className={`${inputBase} w-full leading-relaxed lg:min-h-[160px] lg:flex-1 lg:resize-none`}
+                />
+              </Field>
+            </>
+          ) : null}
         </div>
       </div>
     </ModalShell>
@@ -597,6 +613,7 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
       writer: '',
       presenter_name: '',
       video_editor: '',
+      multimedia_journalist: '',
       error: null
     };
   }
@@ -641,15 +658,17 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
     const failedRows = [];
 
     for (const r of validated) {
+      const hasScript = typeHasScript(r.content_type);
       const data = {
         scheduled_publish_time: new Date(r.scheduled_publish_time).toISOString(),
         channel: r.channel,
         content_type: r.content_type,
         slug_name: r.slug_name.trim(),
         title: r.slug_name.trim(),
-        writer: r.writer || '',
-        presenter_name: r.presenter_name || '',
+        writer: hasScript ? (r.writer || '') : '',
+        presenter_name: hasScript ? (r.presenter_name || '') : '',
         video_editor: r.video_editor || '',
+        multimedia_journalist: hasScript ? '' : (r.multimedia_journalist || ''),
       };
       const saved = await onAdd(data);
       if (saved && saved.content_uid) {

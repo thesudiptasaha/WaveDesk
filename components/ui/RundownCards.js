@@ -4,6 +4,7 @@ import React from 'react';
 import {
   STATUS_META,
   typeConfig,
+  typeHasScript,
   getActions,
   isRemovedPublished,
   rowTimeIn,
@@ -89,7 +90,7 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
           <div className="break-words uppercase text-[19px] font-extrabold leading-tight tracking-wide text-white">
             {r.slug_name || 'NO SLUG...'}
           </div>
-          {r.is_script_locked ? (
+          {r.is_script_locked && typeHasScript(r.content_type) ? (
             <LockIcon message="Script locked" className="h-4 w-4 shrink-0 text-white mt-0.5" />
           ) : null}
         </div>
@@ -143,8 +144,9 @@ export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, show
 
   let n = 0;
   if (r.status !== 'Published' && r.status !== 'Dropped') {
-    if (!r.writer) n++;
-    if (!r.presenter_name) n++;
+    if (typeHasScript(r.content_type) && !r.writer) n++;
+    if (!typeConfig(r.content_type).hiddenCredits.includes('presenter_name') && !r.presenter_name) n++;
+    if (r.content_type === 'UNCUT' && !r.multimedia_journalist) n++;
     if (typeConfig(r.content_type).usesVideoEditor && !r.video_editor) n++;
   }
 

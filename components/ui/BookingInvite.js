@@ -104,6 +104,7 @@ export function BookingBadge({ booking }) {
 export const ROLE_NAMES_BN = {
   concept_creator: 'কনসেপ্ট ক্রিয়েটর',
   writer: 'স্ক্রিপ্ট রাইটার',
+  multimedia_journalist: 'মাল্টিমিডিয়া জার্নালিস্ট',
   production_manager: 'প্রোডাকশন ম্যানেজার',
   producer: 'প্রডিউসার',
   presenter_name: 'প্রেজেন্টার',

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { can, FIELD_PERM, eligibleMembers, presenterMembers, typeConfig } from '../../lib/core';
+import { can, FIELD_PERM, eligibleMembers, presenterMembers, typeConfig, typeHasScript, isUncutReporter } from '../../lib/core';
 import { Avatar, PersonName } from './Shared';
 import { PersonPicker } from './PersonPicker';
 
@@ -48,8 +48,14 @@ export function StaffAssignSelect({ value, names, placeholder, onChange, team, t
 function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow, notify }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const actorCan = actor && actor.active !== false;
-  const isEditable = actorCan && can(actor, FIELD_PERM[field]);
+  const isEditor = field === 'video_editor';
+  const isUncutReporterUser = isUncutReporter(actor, r);
   const val = r[field];
+  const isAssigned = !!val;
+  const isSelf = val === actor?.full_name;
+  const okPerm = can(actor, FIELD_PERM[field]);
+  const canSelf = isEditor && isUncutReporterUser && (!isAssigned || isSelf);
+  const isEditable = actorCan && (okPerm || canSelf || (field === 'multimedia_journalist' && actorCan));
   const member = val ? (team || []).find((m) => m.full_name === val) : null;
   const nickname = (member && member.nickname) || val;
 
@@ -57,13 +63,18 @@ function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow
     ? (member && member.designation ? `${member.full_name} (${member.designation})` : (member ? member.full_name : val))
     : isEditable
     ? `Assign ${label}`
+    : isEditor && r?.content_type === 'UNCUT'
+    ? 'You need the “Assign Video Editor” permission. A Multimedia Journalist can put themselves into an empty slot.'
     : 'Not assigned';
 
   const stop = (e) => e.stopPropagation();
 
   const members = useMemo(() => {
+    if (isEditor && !okPerm && isUncutReporterUser) {
+      return actor ? [actor] : [];
+    }
     return (names || []).map((n) => (team || []).find((m) => m.full_name === n) || { full_name: n });
-  }, [names, team]);
+  }, [names, team, isEditor, okPerm, isUncutReporterUser, actor]);
 
   return (
     <div
@@ -133,7 +144,7 @@ function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow
                 notify(v ? `${label.replace(/:$/, '')} → ${v}` : `${label.replace(/:$/, '')} cleared`, 'success');
               }
             }}
-            allowClear={true}
+            allowClear={isEditor && !okPerm && isUncutReporterUser ? isSelf : true}
             team={team}
           />
         </>
@@ -148,17 +159,25 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
   const writers = eligibleMembers(team, 'role_research_script_writer').map((m) => m.full_name);
   const presenters = presenterMembers(team).map((m) => m.full_name);
   const editors = eligibleMembers(team, 'role_video_editor').map((m) => m.full_name);
+  const journalists = eligibleMembers(team, 'role_multimedia_journalist').map((m) => m.full_name);
 
   const renderLine = (field, label, names, colLabel = null, showEmpty = false) => {
-    const isEditable = actorCan && can(actor, FIELD_PERM[field]);
+    const isEditor = field === 'video_editor';
+    const isUncutReporterUser = isUncutReporter(actor, r);
     const val = r[field];
+    const isAssigned = !!val;
+    const isSelf = val === actor?.full_name;
+    const okPerm = can(actor, FIELD_PERM[field]);
+    const canSelf = isEditor && isUncutReporterUser && (!isAssigned || isSelf);
+    const isEditable = actorCan && (okPerm || canSelf || (field === 'multimedia_journalist' && actorCan));
+    const effectiveNames = (isEditor && !okPerm && isUncutReporterUser) ? (actor?.full_name ? [actor.full_name] : []) : names;
 
     let control = null;
     if (isEditable) {
       control = (
         <StaffAssignSelect
           value={val}
-          names={names}
+          names={effectiveNames}
           placeholder="+ Assign"
           title={`Select ${label.replace(/:$/, '')}`}
           onChange={async (v) => { const ok = await patchRow(r.id, { [field]: v }); if (ok && notify) notify(v ? `${label.replace(/:$/, '')} → ${v}` : `${label.replace(/:$/, '')} cleared`, 'success'); }}
@@ -197,8 +216,9 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
   if (layout === 'columns') {
     return (
       <div className="flex gap-2.5">
-        {renderLine('writer', 'Script Writer:', writers, 'SCRIPT WRITER')}
-        {renderLine('presenter_name', 'Presenter:', presenters, 'PRESENTER')}
+        {typeHasScript(r.content_type) ? renderLine('writer', 'Script Writer:', writers, 'SCRIPT WRITER') : null}
+        {!typeConfig(r.content_type).hiddenCredits.includes('presenter_name') ? renderLine('presenter_name', 'Presenter:', presenters, 'PRESENTER') : null}
+        {r.content_type === 'UNCUT' ? renderLine('multimedia_journalist', 'Multimedia Journalist:', journalists, 'MULTIMEDIA JOURNALIST') : null}
         {!typeConfig(r.content_type).usesVideoEditor ? null : renderLine('video_editor', 'Video Editor:', editors, 'VIDEO EDITOR')}
       </div>
     );
@@ -207,8 +227,9 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
   if (layout === 'rows') {
     return (
       <div className="flex flex-col gap-1 text-[11px]">
-        {renderLine('writer', 'Script Writer:', writers, null, true)}
-        {renderLine('presenter_name', 'Presenter:', presenters, null, true)}
+        {typeHasScript(r.content_type) ? renderLine('writer', 'Script Writer:', writers, null, true) : null}
+        {!typeConfig(r.content_type).hiddenCredits.includes('presenter_name') ? renderLine('presenter_name', 'Presenter:', presenters, null, true) : null}
+        {r.content_type === 'UNCUT' ? renderLine('multimedia_journalist', 'Multimedia Journalist:', journalists, null, true) : null}
         {!typeConfig(r.content_type).usesVideoEditor ? null : renderLine('video_editor', 'Video Editor:', editors, null, true)}
       </div>
     );
@@ -217,28 +238,45 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
   if (layout === 'tiles') {
     return (
       <div className="flex items-start gap-1">
-        <StaffTileItem
-          field="writer"
-          label="Script Writer"
-          colLabel="SCRIPT WRITER"
-          names={writers}
-          r={r}
-          team={team}
-          actor={actor}
-          patchRow={patchRow}
-          notify={notify}
-        />
-        <StaffTileItem
-          field="presenter_name"
-          label="Presenter"
-          colLabel="PRESENTER"
-          names={presenters}
-          r={r}
-          team={team}
-          actor={actor}
-          patchRow={patchRow}
-          notify={notify}
-        />
+        {typeHasScript(r.content_type) ? (
+          <StaffTileItem
+            field="writer"
+            label="Script Writer"
+            colLabel="SCRIPT WRITER"
+            names={writers}
+            r={r}
+            team={team}
+            actor={actor}
+            patchRow={patchRow}
+            notify={notify}
+          />
+        ) : null}
+        {!typeConfig(r.content_type).hiddenCredits.includes('presenter_name') ? (
+          <StaffTileItem
+            field="presenter_name"
+            label="Presenter"
+            colLabel="PRESENTER"
+            names={presenters}
+            r={r}
+            team={team}
+            actor={actor}
+            patchRow={patchRow}
+            notify={notify}
+          />
+        ) : null}
+        {r.content_type === 'UNCUT' ? (
+          <StaffTileItem
+            field="multimedia_journalist"
+            label="Multimedia Journalist"
+            colLabel="MULTIMEDIA JOURNALIST"
+            names={journalists}
+            r={r}
+            team={team}
+            actor={actor}
+            patchRow={patchRow}
+            notify={notify}
+          />
+        ) : null}
         {!typeConfig(r.content_type).usesVideoEditor ? null : (
           <StaffTileItem
             field="video_editor"
@@ -256,11 +294,12 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
     );
   }
 
-  const lineWriter = renderLine('writer', 'Script Writer:', writers);
-  const linePresenter = renderLine('presenter_name', 'Presenter:', presenters);
-  const lineEditor = renderLine('video_editor', 'Video Editor:', editors);
+  const lineWriter = typeHasScript(r.content_type) ? renderLine('writer', 'Script Writer:', writers) : null;
+  const linePresenter = !typeConfig(r.content_type).hiddenCredits.includes('presenter_name') ? renderLine('presenter_name', 'Presenter:', presenters) : null;
+  const lineJournalist = r.content_type === 'UNCUT' ? renderLine('multimedia_journalist', 'Multimedia Journalist:', journalists) : null;
+  const lineEditor = !typeConfig(r.content_type).usesVideoEditor ? null : renderLine('video_editor', 'Video Editor:', editors);
 
-  if (!lineWriter && !linePresenter && !lineEditor) {
+  if (!lineWriter && !linePresenter && !lineJournalist && !lineEditor) {
     return <span className="text-zinc-600 italic">Unassigned</span>;
   }
 
@@ -268,6 +307,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
     <div className="flex flex-col gap-1 text-[11px]">
       {lineWriter}
       {linePresenter}
+      {lineJournalist}
       {lineEditor}
     </div>
   );

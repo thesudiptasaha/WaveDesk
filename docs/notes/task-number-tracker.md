@@ -1,6 +1,6 @@
 # WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৫ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N149** (N148, N148b, N148c, N148d ব্যবহৃত; N149 = Uncut app side, N150 = shoot_location ক্রমানুসারে সংরক্ষিত)। শেষ যাচাই-করা কমিট: `65c9415` (N144)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N150** (N149, N149b, N149b2, N149c, N149d ব্যবহৃত; N150 = shoot_location ক্রমানুসারে সংরক্ষিত)। শেষ যাচাই-করা কমিট: `65c9415` (N144)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -57,6 +57,7 @@
 | N146 (d) | record content type decisions (Uncut, Photo Card, STORY = PACKAGE) and order of work | this commit |
 | N147 (N147, N147c, N147d) | one content type table (CONTENT_TYPE_CONFIG) so pipeline and credit rules live in one place | this commit |
 | N148 (b, c, d) | Manage Sponsors tick and Sponsors section in drawer left column (+ DB groundwork records) | this commit |
+| N149 (b, b2, c, d) | Uncut content type and Multimedia Journalist role in the app | this commit |
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।
 

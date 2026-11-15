@@ -16,13 +16,13 @@ import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Person
 import { PersonPicker } from './PersonPicker';
 import { StepBar } from './StepBar';
 import {
-  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, typeConfig, PLATFORMS, PERMISSIONS, ROLE_LABEL,
+  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, typeConfig, typeHasScript, PLATFORMS, PERMISSIONS, ROLE_LABEL,
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, eligibleMembers, presenterMembers, rolesInDrawerGroup, ROLE_LIST,
-  GUARDED_ASSIGN_FIELDS, canAssignProductionCrew, canEditShootTimes,
+  GUARDED_ASSIGN_FIELDS, isUncutReporter, canAssignProductionCrew, canEditShootTimes,
   canTickFilesDelivered, canEditProductionNotes, FILES_DELIVERED_STATUSES,
   AD_TYPES, AD_STATUSES, canEditAds, stepProgress,
   canMarkFilesReceived, canFixFilesProblem,
@@ -90,8 +90,9 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
   const [statusOpen, setStatusOpen] = useState(false);
   const active = !!actor && actor.active !== false;
   const isPresenter = field === 'presenter_name';
+  const isEditor = field === 'video_editor';
   const isCrew = GUARDED_ASSIGN_FIELDS.includes(field);
-  const isCrewAdmin = isCrew && canAssignProductionCrew(actor);
+  const isCrewAdmin = isCrew && canAssignProductionCrew(actor, row);
   const assignedName = row[field];
   const isAssigned = !!assignedName;
   const isSelf = assignedName === actor?.full_name;
@@ -105,6 +106,15 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
     lockTitle = isPresenter
       ? 'You need the “Assign Presenter” permission'
       : 'You do not have permission to assign staff';
+  } else if (isEditor) {
+    const okEditor = can(actor, 'can_assign_video_editor');
+    const isUncutReporterUser = isUncutReporter(actor, row);
+    const canSelfAdd = isUncutReporterUser && !isAssigned;
+    const canSelfRemove = isUncutReporterUser && isSelf;
+    isLocked = !active || (!okEditor && !canSelfAdd && !canSelfRemove);
+    lockTitle = row?.content_type === 'UNCUT'
+      ? 'You need the “Assign Video Editor” permission. A Multimedia Journalist can put themselves into an empty slot.'
+      : 'You need the “Assign Video Editor” permission';
   } else if (isCrew) {
     const canSelfAdd = !!actor && actor[skillKey] === true && !isAssigned;
     const canSelfRemove = isSelf;
@@ -132,6 +142,9 @@ function StaffTile({ field, label, skillKey, row, patch, team, actor }) {
   let allowClear = true;
 
   if (isCrew && !isCrewAdmin) {
+    allowClear = isSelf;
+    pickerMembers = actor ? [actor] : [];
+  } else if (isEditor && !can(actor, 'can_assign_video_editor')) {
     allowClear = isSelf;
     pickerMembers = actor ? [actor] : [];
   } else {
@@ -973,8 +986,10 @@ function ShootDateTimeInput({ label, value, disabled, lockMessage, onCommit }) {
 }
 
 function ShootCard({ row, actor, patch }) {
-  const canEdit = canEditShootTimes(actor);
-  const lockMsg = 'Only the Camera Operator, Producer, Production Manager or a Manager can change shoot times';
+  const canEdit = canEditShootTimes(actor, row);
+  const lockMsg = row?.content_type === 'UNCUT'
+    ? 'Only the Multimedia Journalist, Camera Operator, Producer, Production Manager or a Manager can change shoot times'
+    : 'Only the Camera Operator, Producer, Production Manager or a Manager can change shoot times';
   const durationText = formatShootDuration(row.shoot_started_at, row.shoot_finished_at);
   const showDuration = !row.shoot_started_at || !!durationText;
 
@@ -1032,15 +1047,17 @@ function FilesDeliveredCard({ row, actor, patch }) {
   const [undoBusy, setUndoBusy] = useState(false);
 
   const isDelivered = Boolean(row.files_delivered_at);
-  const canTick = canTickFilesDelivered(actor);
-  const statusAllowed = FILES_DELIVERED_STATUSES.includes(row.status);
+  const canTick = canTickFilesDelivered(actor, row);
+  const statusAllowed = FILES_DELIVERED_STATUSES.includes(row.status) || (row.content_type === 'UNCUT' && row.status === 'Draft');
   const canDeliver = canTick && statusAllowed;
 
   let disabledReason = '';
   if (!statusAllowed) {
-    disabledReason = 'Available from Shooting onwards';
+    disabledReason = row.content_type === 'UNCUT' ? 'Available from Draft onwards' : 'Available from Shooting onwards';
   } else if (!canTick) {
-    disabledReason = 'Only the Camera Operator, Data Wrangler, Producer, Production Manager or a Manager can tick this';
+    disabledReason = row.content_type === 'UNCUT'
+      ? 'Only the Multimedia Journalist, Camera Operator, Data Wrangler, Producer, Production Manager or a Manager can tick this'
+      : 'Only the Camera Operator, Data Wrangler, Producer, Production Manager or a Manager can tick this';
   }
 
   const handleTick = async () => {
@@ -1107,8 +1124,10 @@ function FilesDeliveredCard({ row, actor, patch }) {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [showUndoModal]);
 
-  const canEditNotes = canEditProductionNotes(actor);
-  const lockMsgNotes = 'Only the Camera Operator, Data Wrangler, Producer, Production Manager or a Manager can edit production notes';
+  const canEditNotes = canEditProductionNotes(actor, row);
+  const lockMsgNotes = row?.content_type === 'UNCUT'
+    ? 'Only the Multimedia Journalist, Camera Operator, Data Wrangler, Producer, Production Manager or a Manager can edit production notes'
+    : 'Only the Camera Operator, Data Wrangler, Producer, Production Manager or a Manager can edit production notes';
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
@@ -2750,7 +2769,7 @@ function PublishCheckBanner({ row, actor, onAnswer }) {
 function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd, onPublishCheck }) {
   const bookings = useContentBookings(row?.id);
   const savedScriptStats = scriptStats(row.script);
-    const [tab, setTab] = useState('editorial');
+  const [tab, setTab] = useState(typeHasScript(row.content_type) ? 'editorial' : 'production');
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [saveState, setSaveState] = useState({ status: 'idle', at: null });
   const pendingRef = useRef(0);
@@ -2775,13 +2794,13 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   }, []);
 
   useEffect(() => {
-    setTab('editorial');
+    setTab(typeHasScript(row.content_type) ? 'editorial' : 'production');
     setDetailsOpen(true);
     pendingRef.current = 0;
     setSaveState({ status: 'idle', at: null });
     if (copyIdTimerRef.current) clearTimeout(copyIdTimerRef.current);
     setCopiedId(false);
-  }, [row.id, row.content_uid]);
+  }, [row.id, row.content_uid, row.content_type]);
 
   const handleCopyId = async () => {
     if (!row.content_uid) return;
@@ -2817,9 +2836,10 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   const dangerActions = ['hold', 'drop']
     .map((id) => actions.find((a) => a.id === id))
     .filter(Boolean);
+  const currentTab = (!typeHasScript(row.content_type) && tab === 'editorial') ? 'production' : tab;
   const prog = stepProgress(row);
   const tabs = [
-    { id: 'editorial', label: 'Editorial', done: prog.editorial },
+    ...(typeHasScript(row.content_type) ? [{ id: 'editorial', label: 'Editorial', done: prog.editorial }] : []),
     { id: 'production', label: 'Production', done: prog.production },
     { id: 'postproduction', label: 'Post-production', done: prog.post },
     { id: 'packaging', label: 'Publish', done: prog.publish },
@@ -2872,7 +2892,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             <div className="flex flex-wrap items-center gap-2 min-w-0">
               <TypeBadge type={row.content_type} />
               <StatusBadge status={row.status} removed={isRemovedPublished(row)} />
-              {savedScriptStats.words > 0 && (
+              {typeHasScript(row.content_type) && savedScriptStats.words > 0 && (
                 <span className="script-duration-badge inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded border border-white/10 bg-zinc-800 text-zinc-200">
                   Script {savedScriptStats.label}
                 </span>
@@ -2933,7 +2953,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
           <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
             <StepBar
               tabs={tabs}
-              active={tab}
+              active={currentTab}
               onSelect={(id) => {
                 setTab(id);
                 setDetailsOpen(id === 'editorial');
@@ -2979,14 +2999,14 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
           </div>
           <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
             <PublishCheckBanner row={row} actor={actor} onAnswer={onPublishCheck} />
-            {tab === 'editorial' ? (
+            {currentTab === 'editorial' ? (
               <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} />
             ) : null}
-            {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
-            {tab === 'postproduction' ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
-            {tab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
-            {tab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
-            {tab === 'credits' ? <CreditsTab row={row} actor={actor} team={team} patch={patch} /> : null}
+            {currentTab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
+            {currentTab === 'postproduction' ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
+            {currentTab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
+            {currentTab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
+            {currentTab === 'credits' ? <CreditsTab row={row} actor={actor} team={team} patch={patch} /> : null}
           </div>
         </div>
         <footer className="border-t border-white/[0.08] bg-black/70 backdrop-blur-xl flex flex-col lg:flex-row">

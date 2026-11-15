@@ -27,7 +27,8 @@ import {
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isComplete, isBin, isRemovedPublished, missingFields, normalizeRow, normalizeMember,
   FIELD_PERM, TRACKED_FIELDS, wentLiveDefault,
   canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
-  canRescheduleRow, publishCheckState, canAnswerPublishCheckNow
+  canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
+  typeHasScript, isUncutReporter
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -1035,6 +1036,11 @@ function NewsroomApp({ authUser, onSignOut }) {
         }
         const denied = Object.keys(patch).find((k) => {
           if (k === 'scheduled_publish_time' && canRescheduleRow(actor, prev)) return false;
+          if (k === 'video_editor' && prev.content_type === 'UNCUT' && isUncutReporter(actor, prev)) {
+            if (patch.video_editor === actor.full_name || (prev.video_editor === actor.full_name && !patch.video_editor)) {
+              return false;
+            }
+          }
           return FIELD_PERM[k] && !can(actor, FIELD_PERM[k]);
         });
         if (denied) {
@@ -1182,6 +1188,12 @@ function NewsroomApp({ authUser, onSignOut }) {
       return false;
     }
     const now = new Date().toISOString();
+    const hasScript = typeHasScript(data.content_type);
+    const sanitized = {
+      ...data,
+      multimedia_journalist: hasScript ? '' : (data.multimedia_journalist || ''),
+      ...(hasScript ? {} : { concept_creator: '', writer: '', presenter_name: '', script: '' }),
+    };
     const payload = {
       organization_id: org ? org.id : null,
       status: 'Draft',
@@ -1189,7 +1201,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       shorts: [],
       revisions: [],
       audit_log: [{ kind: 'status', actor: actor.full_name, role: actor.role, from: '', to: 'Draft', time: now, note: 'Created' }],
-      ...data,
+      ...sanitized,
     };
     let saved;
     if (supabase) {
@@ -1208,7 +1220,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     if (!inRange) setRange({ start: startOfDay(when), end: startOfDay(when) });
     setRows((rs) => [...rs.filter((r) => r.id !== saved.id), saved]);
     notify('Content created', 'success');
-    return true;
+    return saved;
   };
   const deleteContent = async (row) => {
     if (!isManager(actor)) {
@@ -2232,7 +2244,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                               <div className="uppercase text-[17px] font-bold tracking-wide text-white px-1 -ml-1 truncate w-full min-w-[150px]">
                                 {r.slug_name || 'NO SLUG...'}
                               </div>
-                              {r.is_script_locked ? <LockIcon message="Script locked" className="h-4 w-4 shrink-0 text-white" /> : null}
+                              {r.is_script_locked && typeHasScript(r.content_type) ? <LockIcon message="Script locked" className="h-4 w-4 shrink-0 text-white" /> : null}
                             </div>
                             <div><AdBadge ads={adsByContent[String(r.id)] || []} /></div>
                             <ShortNote r={r} range={range} />
@@ -2563,7 +2575,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                           <td className="px-3 py-3 align-top w-[60%] relative">
                              <div className="flex flex-col justify-between h-full min-h-[90px]">
                                 <div className="flex items-start justify-end gap-1.5 text-right w-full">
-                                     {r.is_script_locked && <LockIcon message="Script locked" className="h-3.5 w-3.5 text-zinc-500 shrink-0 mt-1" />}
+                                     {r.is_script_locked && typeHasScript(r.content_type) && <LockIcon message="Script locked" className="h-3.5 w-3.5 text-zinc-500 shrink-0 mt-1" />}
                                      <div className="uppercase text-right text-[16px] font-black text-white p-1 -mr-1 w-full leading-tight truncate">
                                        {r.slug_name || 'ENTER SLUG...'}
                                      </div>
