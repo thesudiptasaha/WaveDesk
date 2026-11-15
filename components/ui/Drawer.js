@@ -2320,299 +2320,355 @@ function SponsorsSection({ row, actor, advertisers = [], ads = [], onAdd, onUpda
     }
   };
 
-  return (
-    <div className="mt-6 flex flex-col gap-3">
+  // Rule 2d: User may not edit (canEditAds false) and the content has no ads: render NOTHING
+  if (!canEdit && (!ads || ads.length === 0)) {
+    return null;
+  }
+
+  const hasAgreed = (ads || []).some((a) => a.status === 'agreed');
+
+  const addForm = (
+    <div className="rounded-2xl border border-white/[0.1] bg-white/[0.03] p-3.5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-          Sponsors
+        <span className="text-[13px] font-semibold text-white">Add sponsor ad</span>
+        <button
+          type="button"
+          className="inline-flex items-center text-[12px] text-zinc-400 hover:text-white min-h-[44px] lg:min-h-0"
+          onClick={() => {
+            setShowAddForm(false);
+            resetAddForm();
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+      <div className="flex flex-col gap-2.5">
+        <div>
+          <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+            Advertiser
+          </label>
+          <SelectBox
+            value={addAdvId}
+            onChange={setAddAdvId}
+            options={activeAdvertisers.map((a) => ({ value: a.id, label: a.name }))}
+            placeholder="Select advertiser..."
+          />
         </div>
-        {canEdit ? (
-          <button
-            type="button"
-            className={`${btnGhost} min-h-[44px] text-[13px]`}
-            disabled={activeAdvertisers.length === 0}
-            title={activeAdvertisers.length === 0 ? 'No active advertisers' : undefined}
-            onClick={() => {
-              if (showAddForm) {
-                setShowAddForm(false);
-                resetAddForm();
-              } else {
-                setShowAddForm(true);
-              }
-            }}
-          >
-            {!showAddForm ? <Icon name="plus" className="h-4 w-4" /> : null}
-            {showAddForm ? 'Cancel' : 'Add ad'}
-          </button>
-        ) : null}
+
+        <div>
+          <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+            Ad Type
+          </label>
+          <SelectBox
+            value={addType}
+            onChange={setAddType}
+            options={AD_TYPES}
+            placeholder="Select ad type..."
+          />
+        </div>
+
+        <div>
+          <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+            Status
+          </label>
+          <SelectBox
+            value={addStatus}
+            onChange={setAddStatus}
+            options={AD_STATUSES}
+            placeholder="Select status..."
+          />
+        </div>
+
+        <div>
+          <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+            File Note (optional)
+          </label>
+          <input
+            type="text"
+            className={inputBase}
+            placeholder="Drive link, filename..."
+            value={addFileNote}
+            onChange={(e) => setAddFileNote(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+            Instruction (optional)
+          </label>
+          <textarea
+            rows={2}
+            className={`${inputBase} resize-y text-[13px]`}
+            placeholder="Instructions for presenter, editor, or crew..."
+            value={addInstruction}
+            onChange={(e) => setAddInstruction(e.target.value)}
+          />
+        </div>
       </div>
 
-      {!canEdit ? (
-        <p className="flex items-center gap-1.5 text-[12px] text-zinc-500">
-          <LockIcon className="h-3.5 w-3.5 shrink-0" />
-          <span>Only the Owner, Managers and Producers can change ads</span>
-        </p>
-      ) : null}
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <button
+          type="button"
+          className={`${btnGhost} text-[12px] min-h-[44px] lg:min-h-0 lg:!py-1.5 lg:!px-3`}
+          onClick={() => {
+            setShowAddForm(false);
+            resetAddForm();
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className={`${btnPrimary} text-[12px] min-h-[44px] lg:min-h-0 lg:!py-1.5 lg:!px-3`}
+          disabled={!addAdvId || !addType || adding}
+          onClick={handleAdd}
+        >
+          {adding ? 'Adding...' : 'Add ad'}
+        </button>
+      </div>
+    </div>
+  );
 
-      {canEdit && activeAdvertisers.length === 0 ? (
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-[13px] text-zinc-400">
-          No advertisers yet. A Manager can add them from the Manage menu.
-        </div>
-      ) : null}
-
-      {canEdit && showAddForm && activeAdvertisers.length > 0 ? (
-        <div className="rounded-2xl border border-white/[0.1] bg-white/[0.03] p-4 flex flex-col gap-3">
-          <div className="text-[13px] font-semibold text-white">Add sponsor ad</div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                Advertiser
-              </label>
-              <SelectBox
-                value={addAdvId}
-                onChange={setAddAdvId}
-                options={activeAdvertisers.map((a) => ({ value: a.id, label: a.name }))}
-                placeholder="Select advertiser..."
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                Ad Type
-              </label>
-              <SelectBox
-                value={addType}
-                onChange={setAddType}
-                options={AD_TYPES}
-                placeholder="Select ad type..."
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                Status
-              </label>
-              <SelectBox
-                value={addStatus}
-                onChange={setAddStatus}
-                options={AD_STATUSES}
-                placeholder="Select status..."
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                File Note (optional)
-              </label>
-              <input
-                type="text"
-                className={inputBase}
-                placeholder="Drive link, filename..."
-                value={addFileNote}
-                onChange={(e) => setAddFileNote(e.target.value)}
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                Instruction (optional)
-              </label>
-              <textarea
-                rows={2}
-                className={`${inputBase} resize-y text-[13px]`}
-                placeholder="Instructions for presenter, editor, or crew..."
-                value={addInstruction}
-                onChange={(e) => setAddInstruction(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <button
-              type="button"
-              className={`${btnGhost} min-h-[44px]`}
-              onClick={() => {
-                setShowAddForm(false);
-                resetAddForm();
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className={`${btnPrimary} min-h-[44px]`}
-              disabled={!addAdvId || !addType || adding}
-              onClick={handleAdd}
-            >
-              {adding ? 'Adding...' : 'Add ad'}
-            </button>
-          </div>
-        </div>
-      ) : null}
-
+  return (
+    <div className="mt-5 pt-5 border-t border-white/[0.08] flex flex-col gap-3">
       {ads.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/[0.1] px-6 py-8 text-center text-[13px] text-zinc-500">
-          No ads on this content.
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {ads.map((ad) => {
-            const isEditing = editingId === ad.id;
-            if (isEditing) {
-              const editAdvOptions = advertisers
-                .filter((a) => a.active !== false || a.id === ad.advertiser_id)
-                .map((a) => ({ value: a.id, label: a.name }));
-              return (
-                <div key={ad.id} className="rounded-2xl border border-white/[0.12] bg-white/[0.04] p-4 flex flex-col gap-3">
-                  <div className="text-[13px] font-semibold text-white">Edit sponsor ad</div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                        Advertiser
-                      </label>
-                      <SelectBox
-                        value={editAdvId}
-                        onChange={setEditAdvId}
-                        options={editAdvOptions}
-                        placeholder="Select advertiser..."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                        Ad Type
-                      </label>
-                      <SelectBox
-                        value={editType}
-                        onChange={setEditType}
-                        options={AD_TYPES}
-                        placeholder="Select ad type..."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                        Status
-                      </label>
-                      <SelectBox
-                        value={editStatus}
-                        onChange={setEditStatus}
-                        options={AD_STATUSES}
-                        placeholder="Select status..."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                        File Note (optional)
-                      </label>
-                      <input
-                        type="text"
-                        className={inputBase}
-                        placeholder="Drive link, filename..."
-                        value={editFileNote}
-                        onChange={(e) => setEditFileNote(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
-                        Instruction (optional)
-                      </label>
-                      <textarea
-                        rows={2}
-                        className={`${inputBase} resize-y text-[13px]`}
-                        placeholder="Instructions for presenter, editor, or crew..."
-                        value={editInstruction}
-                        onChange={(e) => setEditInstruction(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-1">
-                    <button
-                      type="button"
-                      className={`${btnGhost} min-h-[44px]`}
-                      onClick={() => setEditingId(null)}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className={`${btnPrimary} min-h-[44px]`}
-                      disabled={!editAdvId || !editType || updating}
-                      onClick={() => handleUpdate(ad.id)}
-                    >
-                      {updating ? 'Saving...' : 'Save'}
-                    </button>
-                  </div>
+        // User may edit and the content has no ads: show one clear dashed "＋ Add sponsor" button
+        <>
+          {showAddForm ? (
+            addForm
+          ) : (
+            <div>
+              <button
+                type="button"
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/[0.15] bg-white/[0.02] px-4 py-3 text-[13px] font-medium text-zinc-300 transition hover:border-violet-400/40 hover:bg-violet-500/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={activeAdvertisers.length === 0}
+                title={activeAdvertisers.length === 0 ? 'No active advertisers' : undefined}
+                onClick={() => {
+                  setShowAddForm(true);
+                  resetAddForm();
+                }}
+              >
+                <span>＋ Add sponsor</span>
+              </button>
+              {activeAdvertisers.length === 0 ? (
+                <div className="mt-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-[12px] text-zinc-400">
+                  No advertisers yet. A Manager can add them from the Manage menu.
                 </div>
-              );
-            }
+              ) : null}
+            </div>
+          )}
+        </>
+      ) : (
+        // Content has ads
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold ring-1 ring-inset text-violet-300 bg-violet-500/15 ring-violet-400/25 ${
+                hasAgreed ? 'sponsor-glow' : ''
+              }`}
+            >
+              <Icon name="megaphone" className="h-4 w-4 shrink-0" />
+              <span>Sponsored · {ads.length}</span>
+            </span>
+            {canEdit ? (
+              <button
+                type="button"
+                className={`${btnGhost} text-[12px] min-h-[44px] lg:min-h-0 lg:!py-1 lg:!px-2.5`}
+                disabled={activeAdvertisers.length === 0}
+                title={activeAdvertisers.length === 0 ? 'No active advertisers' : undefined}
+                onClick={() => {
+                  if (showAddForm) {
+                    setShowAddForm(false);
+                    resetAddForm();
+                  } else {
+                    setShowAddForm(true);
+                  }
+                }}
+              >
+                {showAddForm ? 'Cancel' : '＋ Add'}
+              </button>
+            ) : null}
+          </div>
 
-            const typeLabel = (AD_TYPES.find((t) => t.value === ad.ad_type) || {}).label || ad.ad_type;
-            const statusLabel = (AD_STATUSES.find((s) => s.value === ad.status) || {}).label || ad.status;
-            const statusTone =
-              ad.status === 'aired'
-                ? 'text-emerald-300 bg-emerald-500/15 ring-emerald-400/25'
-                : ad.status === 'added'
-                ? 'text-amber-300 bg-amber-500/15 ring-amber-400/25'
-                : 'text-zinc-300 bg-zinc-500/15 ring-zinc-400/25';
+          {!canEdit ? (
+            <p className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+              <LockIcon className="h-3.5 w-3.5 shrink-0" />
+              <span>Only the Owner, Managers and people with the “Manage Sponsors” permission can change ads</span>
+            </p>
+          ) : null}
 
-            return (
-              <div key={ad.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col gap-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-white text-[14px]">{ad.advertiser_name}</span>
-                    <span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide bg-white/[0.06] text-zinc-300 ring-1 ring-inset ring-white/10">
-                      {typeLabel}
-                    </span>
-                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ring-1 ring-inset ${statusTone}`}>
-                      {statusLabel}
-                    </span>
+          {canEdit && showAddForm && activeAdvertisers.length > 0 ? addForm : null}
+
+          <div className="flex flex-col gap-2">
+            {ads.map((ad) => {
+              const isEditing = editingId === ad.id;
+              if (isEditing) {
+                const editAdvOptions = advertisers
+                  .filter((a) => a.active !== false || a.id === ad.advertiser_id)
+                  .map((a) => ({ value: a.id, label: a.name }));
+                return (
+                  <div key={ad.id} className="rounded-2xl border border-white/[0.12] bg-white/[0.04] p-3.5 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] font-semibold text-white">Edit sponsor ad</span>
+                      <button
+                        type="button"
+                        className="inline-flex items-center text-[12px] text-zinc-400 hover:text-white min-h-[44px] lg:min-h-0"
+                        onClick={() => setEditingId(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-2.5">
+                      <div>
+                        <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                          Advertiser
+                        </label>
+                        <SelectBox
+                          value={editAdvId}
+                          onChange={setEditAdvId}
+                          options={editAdvOptions}
+                          placeholder="Select advertiser..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                          Ad Type
+                        </label>
+                        <SelectBox
+                          value={editType}
+                          onChange={setEditType}
+                          options={AD_TYPES}
+                          placeholder="Select ad type..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                          Status
+                        </label>
+                        <SelectBox
+                          value={editStatus}
+                          onChange={setEditStatus}
+                          options={AD_STATUSES}
+                          placeholder="Select status..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                          File Note (optional)
+                        </label>
+                        <input
+                          type="text"
+                          className={inputBase}
+                          placeholder="Drive link, filename..."
+                          value={editFileNote}
+                          onChange={(e) => setEditFileNote(e.target.value)}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block mb-1">
+                          Instruction (optional)
+                        </label>
+                        <textarea
+                          rows={2}
+                          className={`${inputBase} resize-y text-[13px]`}
+                          placeholder="Instructions for presenter, editor, or crew..."
+                          value={editInstruction}
+                          onChange={(e) => setEditInstruction(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        className={`${btnGhost} text-[12px] min-h-[44px] lg:min-h-0 lg:!py-1.5 lg:!px-3`}
+                        onClick={() => setEditingId(null)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className={`${btnPrimary} text-[12px] min-h-[44px] lg:min-h-0 lg:!py-1.5 lg:!px-3`}
+                        disabled={!editAdvId || !editType || updating}
+                        onClick={() => handleUpdate(ad.id)}
+                      >
+                        {updating ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
                   </div>
-                  {canEdit ? (
-                    <div className="flex items-center gap-1.5 ml-auto">
-                      <button
-                        type="button"
-                        className={`${btnGhost} min-h-[44px] min-w-[44px] text-[12px] px-3`}
-                        onClick={() => {
-                          setEditingId(ad.id);
-                          setEditAdvId(ad.advertiser_id);
-                          setEditType(ad.ad_type || 'spoken');
-                          setEditStatus(ad.status || 'agreed');
-                          setEditInstruction(ad.instruction || '');
-                          setEditFileNote(ad.file_note || '');
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className={`${btnDanger} min-h-[44px] min-w-[44px] text-[12px] px-3`}
-                        onClick={() => setConfirmDeleteAd(ad)}
-                      >
-                        Remove
-                      </button>
+                );
+              }
+
+              const typeLabel = (AD_TYPES.find((t) => t.value === ad.ad_type) || {}).label || ad.ad_type;
+              const statusLabel = (AD_STATUSES.find((s) => s.value === ad.status) || {}).label || ad.status;
+              const statusTone =
+                ad.status === 'aired'
+                  ? 'text-emerald-300 bg-emerald-500/15 ring-emerald-400/25'
+                  : ad.status === 'added'
+                  ? 'text-amber-300 bg-amber-500/15 ring-amber-400/25'
+                  : 'text-zinc-300 bg-zinc-500/15 ring-zinc-400/25';
+
+              return (
+                <div key={ad.id} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-white text-[13px] truncate">{ad.advertiser_name}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide bg-white/[0.06] text-zinc-300 ring-1 ring-inset ring-white/10">
+                          {typeLabel}
+                        </span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide ring-1 ring-inset ${statusTone}`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                    </div>
+                    {canEdit ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          className={`${btnGhost} text-[11px] min-h-[44px] lg:min-h-0 lg:!py-1 lg:!px-2`}
+                          onClick={() => {
+                            setEditingId(ad.id);
+                            setEditAdvId(ad.advertiser_id);
+                            setEditType(ad.ad_type || 'spoken');
+                            setEditStatus(ad.status || 'agreed');
+                            setEditInstruction(ad.instruction || '');
+                            setEditFileNote(ad.file_note || '');
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className={`${btnDanger} text-[11px] min-h-[44px] lg:min-h-0 lg:!py-1 lg:!px-2`}
+                          onClick={() => setConfirmDeleteAd(ad)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {ad.instruction ? (
+                    <div className="text-[12px] text-zinc-300 whitespace-pre-wrap leading-relaxed break-words">
+                      {ad.instruction}
+                    </div>
+                  ) : null}
+
+                  {ad.file_note ? (
+                    <div className="text-[11px] text-zinc-500 break-words">
+                      File: <span className="text-zinc-400">{ad.file_note}</span>
                     </div>
                   ) : null}
                 </div>
-
-                {ad.instruction ? (
-                  <div className="text-[13px] text-zinc-300 whitespace-pre-wrap leading-relaxed">
-                    {ad.instruction}
-                  </div>
-                ) : null}
-
-                {ad.file_note ? (
-                  <div className="text-[12px] text-zinc-500">
-                    File: <span className="text-zinc-400">{ad.file_note}</span>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {confirmDeleteAd ? (
@@ -2910,23 +2966,21 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
                 patch={patch}
                 onAddPlatform={onAddPlatform}
               />
+              <SponsorsSection
+                row={row}
+                actor={actor}
+                advertisers={advertisers}
+                ads={ads}
+                onAdd={onAddAd}
+                onUpdate={onUpdateAd}
+                onDelete={onDeleteAd}
+              />
             </div>
           </div>
           <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
             <PublishCheckBanner row={row} actor={actor} onAnswer={onPublishCheck} />
             {tab === 'editorial' ? (
-              <>
-                <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} />
-                <SponsorsSection
-                  row={row}
-                  actor={actor}
-                  advertisers={advertisers}
-                  ads={ads}
-                  onAdd={onAddAd}
-                  onUpdate={onUpdateAd}
-                  onDelete={onDeleteAd}
-                />
-              </>
+              <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} />
             ) : null}
             {tab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
             {tab === 'postproduction' ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}

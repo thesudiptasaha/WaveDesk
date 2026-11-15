@@ -86,10 +86,25 @@ const globalCss = `
   .pill-alert {
     animation: pillAlert 1.1s ease-in-out infinite;
   }
+  @keyframes sponsorGlow {
+    0%, 100% {
+      box-shadow: 0 0 6px rgba(167, 139, 250, 0.35), 0 0 14px rgba(139, 92, 246, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 14px rgba(167, 139, 250, 0.75), 0 0 24px rgba(139, 92, 246, 0.35);
+    }
+  }
+  .sponsor-glow {
+    animation: sponsorGlow 2.4s ease-in-out infinite;
+  }
   @media (prefers-reduced-motion: reduce) {
     .play-glow {
       animation: none !important;
       box-shadow: 0 0 10px rgba(34, 197, 94, 0.5) !important;
+    }
+    .sponsor-glow {
+      animation: none !important;
+      box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.7) !important;
     }
     .pill-alert {
       animation: none !important;
@@ -572,10 +587,25 @@ const lightCss = `
   html.light .pill-alert {
     animation: pillAlertLight 1.1s ease-in-out infinite;
   }
+  @keyframes sponsorGlowLight {
+    0%, 100% {
+      box-shadow: 0 0 6px rgba(124, 58, 237, 0.3), 0 0 14px rgba(124, 58, 237, 0.15);
+    }
+    50% {
+      box-shadow: 0 0 12px rgba(124, 58, 237, 0.6), 0 0 22px rgba(124, 58, 237, 0.25);
+    }
+  }
+  html.light .sponsor-glow {
+    animation: sponsorGlowLight 2.4s ease-in-out infinite;
+  }
   @media (prefers-reduced-motion: reduce) {
     html.light .play-glow {
       animation: none !important;
       box-shadow: 0 0 10px rgba(70, 90, 34, 0.35) !important;
+    }
+    html.light .sponsor-glow {
+      animation: none !important;
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.6) !important;
     }
     html.light .pill-alert {
       animation: none !important;

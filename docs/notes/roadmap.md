@@ -20,8 +20,8 @@
 - **ডক (ওপরের মাঝের বার) ও হোম পেজ:** ডক কোথায় (ওপরে/নিচে/পাশে) সিদ্ধান্ত বাকি। Claude-এর প্রস্তাব: PC-তে ওপরে (মাঝখানে, পাতলা, হেডারের মেনুর জায়গা নেবে), ফোনে নিচে (বুড়ো আঙুলের নাগালে, ৫টা আইকন); অনুমোদন বাকি। `dock-ui-plan.md`, `home-and-print-notes-2026-11-02.md`।
 - **টেলিপ্রম্পটার মেনু:** মেনুতে আলাদা "Teleprompter" (লেখা পেস্ট করে চালানো, টেস্ট/অডিশন/প্র্যাকটিস)। মালিক: পরে। `teleprompter-menu-notes.md`।
 - **স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন:** N142, N145, N143, N144 সম্পন্ন (টেস্ট বাকি); Credits-এর প্রিন্ট/PDF (বিস্তারিত ক্রেডিট) পরে।
-- **সামনের বড় কাজ (ক্রম অনুযায়ী, `docs/notes/content-types-plan.md` section C):** (1) Read-only SQL query of content_type constraint and trigger functions (✅ সম্পন্ন, ১২ নভেম্বর); (2) Content type table in app (`CONTENT_TYPE_CONFIG`, ✅ সম্পন্ন, ১৪ নভেম্বর, N147); (3) Uncut + Multimedia Journalist role with its SQL (পরবর্তী কাজ); (4) Photo Card phase A; (5) Photo Card phase B (after templates arrive). তারপর: ব্যাকআপ ফলো-আপসমূহ, Telegram বট (WaveBot), এবং ডক ও হোম পেজ।
-- Sponsors সেকশন Editorial ট্যাবের বাঁ কলামে; Sponsors ধাপ ২; ফাইল-লিংক ফিল্ড সরানো।
+- **সামনের বড় কাজ (ক্রম অনুযায়ী, `docs/notes/content-types-plan.md` section C):** (1) Read-only SQL query (✅ সম্পন্ন, ১২ নভেম্বর); (2) Content type table in app (`CONTENT_TYPE_CONFIG`, ✅ সম্পন্ন, ১৪ নভেম্বর, N147); (3) Database groundwork for Uncut, Photo Card & Sponsors (✅ সম্পন্ন, ১৪ নভেম্বর SQL রেকর্ড); (4) Manage Sponsors tick + Sponsors section in drawer left column (✅ সম্পন্ন, ১৫ নভেম্বর, N148/N148b); (5) Uncut app side (N149, পরবর্তী কাজ); (6) shoot_location field (N150); (7) Photo Card workflow (discussion first). তারপর: ব্যাকআপ ফলো-আপসমূহ, Telegram বট (WaveBot), এবং ডক ও হোম পেজ।
+- Sponsors ধাপ ২; ফাইল-লিংক ফিল্ড সরানো।
 - End-credit অ্যানিমেটেড ক্লিপ; চ্যানেল লোগো; ফটোকার্ড।
 - "সবকিছু আইডি দিয়ে" প্রজেক্ট (নাম এখন, আইডি পরে; নতুন টেবিল সবসময় আইডি দিয়ে)।
 - নিরাপত্তার বাকি: `notice_uid_counters` SELECT policy `true`, `team_members` UPDATE policy ট্রিগারের উপর নির্ভর, storage policy, SECURITY DEFINER grant, Supabase confirm-email, ২-ধাপ লগইন, ব্যাকআপ রিস্টোর পরীক্ষা।

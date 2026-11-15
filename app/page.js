@@ -1357,7 +1357,7 @@ function NewsroomApp({ authUser, onSignOut }) {
 
   const addContentAd = async (contentId, { advertiser_id, ad_type, instruction, file_note, status }) => {
     if (!canEditAds(actor)) {
-      notify('Only the Owner, Managers and Producers can change ads', 'error');
+      notify('Only the Owner, Managers and people with the “Manage Sponsors” permission can change ads', 'error');
       return false;
     }
     if (!advertiser_id) {
@@ -1395,7 +1395,7 @@ function NewsroomApp({ authUser, onSignOut }) {
 
   const updateContentAd = async (id, patch) => {
     if (!canEditAds(actor)) {
-      notify('Only the Owner, Managers and Producers can change ads', 'error');
+      notify('Only the Owner, Managers and people with the “Manage Sponsors” permission can change ads', 'error');
       return false;
     }
     const cleaned = {};
@@ -1422,7 +1422,7 @@ function NewsroomApp({ authUser, onSignOut }) {
 
   const deleteContentAd = async (id) => {
     if (!canEditAds(actor)) {
-      notify('Only the Owner, Managers and Producers can change ads', 'error');
+      notify('Only the Owner, Managers and people with the “Manage Sponsors” permission can change ads', 'error');
       return false;
     }
     if (supabase) {

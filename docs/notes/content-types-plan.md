@@ -11,18 +11,26 @@ The final name is Package. STORY is not and was never an official content type (
 
 ### New content type: "Uncut"
 Footage shot by a reporter — place/time/person — brought in, graphics added, cut, branded and uploaded. The reporter's title is **Multimedia Journalist**, a new role (the **22nd**):
-- New credit field on `contents` (column name to be decided when the SQL is written).
+- New credit field on `contents` (column name: `multimedia_journalist`).
 - New `role_multimedia_journalist` tick in Team & Access, following the same pattern as the other 21 role ticks in `ROLE_LIST` (lib/core.js is the single source).
 - The role appears in the same kind of assignee list as the other roles (Presenter-style: `eligibleMembers` filtered by the tick).
-- `bookings.role_field` has a check list of credit columns; this column must be added when external invites for a Multimedia Journalist are wanted.
+- `bookings.role_field` has a check list of credit columns; includes `multimedia_journalist` for external invites.
 - The reporter edits the piece himself, or an assigned Video Editor does.
 
-**Pipeline:**
-`Draft` (desk fills what / where / when / who) → `Footage received` → `Assign Editor` → `Editing` → `Video Review` → `Ready to Publish` → `Scheduled` → `Published`
+#### Uncut, final decisions 14-15 Nov
+- **Pipeline:** `Draft` → `Assign Editor` → `Editing` → `Video Review` → `Ready to Publish` → `Scheduled` → `Published` (no `Script Submitted`, no `Ready for Shoot` / `Shooting`).
+- **Drawer tabs:** Script tab is hidden. The Production tab stays and is visible from `Draft` with hand-entered shoot times, camera operator, crew, notes, Files delivered/received.
+- **Visible credits:** Multimedia Journalist, Camera Operator, Video Editor, Motion Graphics Designer, Graphic Designer, Colorist, Sound Recordist, Publisher (others hidden when empty).
+- **Placement:** Multimedia Journalist credit sits in the Editorial card (`drawerGroup` idea).
+- **Permissions:** On an Uncut the Multimedia Journalist can edit shoot times by hand, add/remove crew names and tick Files delivered. The reporter can also assign himself as Video Editor (`Draft` → `Assign Editor` and `Assign Editor` → `Editing`).
+- **No "Footage note" field:** Shoot place goes into the new dedicated `shoot_location` column instead.
+- **Database groundwork:** Completed live on 14 Nov 2026; record in `sql/2026-11-14_uncut_photocard_groundwork.sql`.
 
-No `Script Submitted`, `Ready for Shoot`, or `Shooting`. Script tab hidden in the drawer.
-
-**Still to confirm with the owner:** a small notes field for place / time / person (working name: "Scene notes").
+### shoot_location field (final decision 14-15 Nov)
+A separate text column (`shoot_location` on `contents`) for **ALL** content types (database column already created via `sql/2026-11-14_uncut_photocard_groundwork.sql`).
+- Shown in the Production tab next to the shoot times.
+- Later will support autocomplete / suggestions from earlier entries. No separate search screen yet.
+- **Purpose:** Find raw footage in the archive by location and date.
 
 ### New content type: "Photo Card"
 A short card (image with text overlay) created in the browser from a channel template and posted to social platforms.
@@ -82,8 +90,10 @@ Every content type's full pipeline and credit list will be revised as part of th
 0. **These notes** (N146 — docs only, no code or SQL change).
 1. ✅ **DONE (12 Nov): Read-only SQL query** of the live database: checked the `content_type` constraint (`contents_content_type_valid` allows only the six types), the trigger functions that use `content_type` (`guard_contents_update` and `contents_post_production_rules`), and row count per type (EXPLAINER 170, PACKAGE 49, LIVE 10, SOT 3, SHOW 1, RECORDED LIVE 1, no STORY).
 2. ✅ **DONE (14 Nov, N147): Content type table in app code (`CONTENT_TYPE_CONFIG` in `lib/core.js`)** — replaced the scattered per-type conditionals (`afterScript`, `HIDE_BY_TYPE`, `stepProgress` branches, video editor checks) with a single table keyed by content type (`EXPLAINER`, `LIVE`, `RECORDED LIVE`, `SOT`, `PACKAGE`, `SHOW`). Field list: `hint`, `color` ({ bg, text, tagText }), `afterScript`, `skipsShoot`, `hasPostStage`, `usesVideoEditor`, `hiddenCredits`, `showsLiveCredits`. Derived `CONTENT_TYPES`, `CONTENT_TYPE_HINT`, and `CONTENT_TYPE_COLORS`. Helper `typeConfig(type)` falls back to `PACKAGE` for unknown types. No behaviour change. Bulk-create dropdown uses `CONTENT_TYPES` (all six types in standard order, STORY removed). Unused duplicate in `utils/constants.js` deleted.
-3. **Uncut + Multimedia Journalist role + database changes** (SQL for the new column, role tick, pipeline guard).
-4. **Photo Card phase A** (type, form, steps, permission, emergency behaviour).
-5. **Photo Card phase B** (browser-side card generation) — when the designer's templates and font files arrive.
+3. ✅ **DONE (14 Nov): Database groundwork** — `sql/2026-11-14_uncut_photocard_groundwork.sql` (UNCUT and PHOTO CARD allowed; `role_multimedia_journalist`, `multimedia_journalist`, `shoot_location` columns; Uncut workflow rules) and `sql/2026-11-14_manage_sponsors.sql` (`can_manage_sponsors` tick and policies).
+4. ✅ **DONE (15 Nov, N148/N148b): Manage Sponsors tick + Sponsors section in drawer left column** — `can_manage_sponsors` permission in app code, Sponsors moved to drawer left column under ContentDetailsFields with glowing badge, responsive layout and 44px touch targets.
+5. **Next: Uncut app side (N149)** — implement UNCUT type in `CONTENT_TYPE_CONFIG`, 22nd role Multimedia Journalist in `ROLE_LIST`, drawer/tabs and workflow.
+6. **shoot_location field (N150)** — UI input in Production tab next to shoot times for all content types.
+7. **Photo Card workflow** (discussion first, then phase A & B).
 
 Each step is its own task, one at a time.

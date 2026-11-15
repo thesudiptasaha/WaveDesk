@@ -1,5 +1,14 @@
 # Photocard idea (2026-11-01)
 
+## Update 14 Nov 2026
+The workflow is now:
+- Writers submit a request (channel, template, publish time, breaking yes/no, card texts, source of the information, notes).
+- Designers (role Graphic Designer) see it, make the card outside the app, then mark "made" and "published" in the app.
+- Tracking wanted: who gave the text and when, who designed, when uploaded/published, which page got which cards through the day, how many cards each designer made.
+- In-browser generation becomes a later optional phase.
+- The type name `PHOTO CARD` is already allowed in the database (`sql/2026-11-14_uncut_photocard_groundwork.sql`).
+- Discussion of steps, permissions and reports still to be held before building.
+
 ## Update 12 Nov 2026
 Photo Card is now a decided content type. Full decisions recorded in `docs/notes/content-types-plan.md` (section A). Key additions since 1 Nov:
 - Form fields now include: card text, caption, publish date/time (Publish Date in the form), emergency (yes/no), channel, **date shown on the card** (separate from publish date), source, linked content (another content's ID), template (dropdown per channel).

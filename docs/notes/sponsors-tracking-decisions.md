@@ -2,6 +2,12 @@
 
 Goal: know which contents carry which advertiser's ad, so shoot and edit people can add it in time. Own channels only. A sponsor is a company that pays to advertise on our channels.
 
+## Update 15 Nov 2026
+- **Who may change ads:** Owner, Managers and people with the new "Manage Sponsors" tick (`can_manage_sponsors`). Producers no longer have this right automatically (the 5 active Producers were back-filled with the tick in the database so nothing broke for them).
+- **Location:** The Sponsors section moved from under the script to the drawer's LEFT column, directly under the content details (`ContentDetailsFields`). It is now visible on every tab (and sits inside the "Details" fold on mobile/small screens). Responsive compact layout with 44px touch targets below `lg`.
+- **Badge glow rule:** The violet megaphone badge ("Sponsored · N") gets a soft slow violet glow animation (`sponsor-glow`) ONLY while at least one ad has status `agreed` (still to be added). If every ad is `added` or `aired`, the badge is static (same look, no animation). Under `prefers-reduced-motion: reduce`, it stays static with a ring. Matching light theme styles are supported.
+- **Database record:** `sql/2026-11-14_manage_sponsors.sql`.
+
 ## Decided with the owner
 - A content can carry several ads. Types are mixed:
   - spoken or on-screen mention

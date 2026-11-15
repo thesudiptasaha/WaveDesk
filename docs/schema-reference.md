@@ -38,20 +38,21 @@ Staff members belonging to an organization.
 * `role` (`text`) — Role tier: `'owner'`, `'manager'`, or `'general'`.
 * `active` (`boolean`, default `true`) — Active staff status.
 * `avatar_url` (`text`) — Public URL to avatar image in Supabase `avatars` storage bucket.
-* **Access (8 booleans, not null, default false; always true in effect for owner/manager through perm_of):**
+* **Access (9 booleans, not null, default false; always true in effect for owner/manager through perm_of):**
   * `can_write_edit_scripts` - Write, edit and save scripts; submit for approval.
   * `can_approve_scripts` - Approve or send back submitted scripts.
   * `can_edit_content_details` - Title, thumbnail text, platforms, captions, hashtags, camera operator, writer.
   * `can_change_channel` - Change the channel of a content.
   * `can_reschedule_content` - Change scheduled date and publish time (in `guard_contents_update`, a member with `role_publisher` may change `scheduled_publish_time` of a content whose publisher is his own full name, besides everyone with `can_reschedule_content`).
+  * `can_manage_sponsors` - Add sponsors to contents and set their type and status (added 14 Nov 2026, record: `sql/2026-11-14_manage_sponsors.sql`).
   * `can_assign_video_editor` - Assign or change the video editor.
   * `can_assign_presenter` - Change the presenter.
   * `can_review_videos` - Approve edited videos or send them back for changes.
-* **Roles (21 booleans, default false; they only decide who appears in each credit list - they are NOT permissions):** `role_concept_creator`, `role_research_script_writer`, `role_production_manager`, `role_producer`, `role_presenter`, `role_set_designer`, `role_camera_operator`, `role_teleprompter_operator`, `role_light_designer`, `role_sound_recordist`, `role_data_wrangler`, `role_makeup_artist`, `role_voice_over_artist`, `role_video_editor`, `role_motion_graphics_designer`, `role_graphic_designer`, `role_colorist`, `role_audio_mixer`, `role_publisher`, `role_live_video_switcher`, `role_live_audio_mixer`. Each role matches one credit column of the same name without the `role_` prefix in `contents` (for example `role_presenter` matches `presenter_name`, `role_research_script_writer` matches `writer`). Owners and Managers appear in a role's list only when they hold that role's tick. Only Owner and Managers can change these (the guard trigger blocks a member from changing their own).
+* **Roles (22 booleans in DB, default false; they only decide who appears in each credit list - they are NOT permissions):** `role_concept_creator`, `role_research_script_writer`, `role_production_manager`, `role_producer`, `role_presenter`, `role_set_designer`, `role_camera_operator`, `role_teleprompter_operator`, `role_light_designer`, `role_sound_recordist`, `role_data_wrangler`, `role_makeup_artist`, `role_voice_over_artist`, `role_video_editor`, `role_motion_graphics_designer`, `role_graphic_designer`, `role_colorist`, `role_audio_mixer`, `role_publisher`, `role_live_video_switcher`, `role_live_audio_mixer`, `role_multimedia_journalist` (22nd role added in DB on 14 Nov 2026, record: `sql/2026-11-14_uncut_photocard_groundwork.sql`). Each role matches one credit column of the same name without the `role_` prefix in `contents` (for example `role_presenter` matches `presenter_name`, `role_research_script_writer` matches `writer`). Owners and Managers appear in a role's list only when they hold that role's tick. Only Owner and Managers can change these (the guard trigger blocks a member from changing their own).
 * **External people added on 1 Nov 2026** (record: `sql/2026-11-01_external_members.sql`):
   * `member_type` (`text`, default `'staff'`, CHECK `member_type in ('staff','external')`) and `external_note` (`text`, nullable).
   * `email` column altered to drop NOT NULL constraint (external rows have null email).
-  * Constraint `team_members_external_rules`: external rows require `auth_user_id is null`, `email is null`, `role = 'general'`, `nickname is not null`, phone in international format like +8801XXXXXXXXX (matching `^\+[1-9][0-9]{7,14}$`), and all 8 `can_*` flags false.
+  * Constraint `team_members_external_rules`: external rows require `auth_user_id is null`, `email is null`, `role = 'general'`, `nickname is not null`, phone in international format like +8801XXXXXXXXX (matching `^\+[1-9][0-9]{7,14}$`), and all `can_*` flags false (including `can_manage_sponsors`).
   * Unique index `team_members_name_unique` on `(organization_id, lower(btrim(full_name)))` prevents duplicate names across the team.
   * Function `can_manage_externals()` returns true for active Owner, Manager, or members with `role_producer` or `role_production_manager`.
   * Policy `team_members_insert_external` allows authenticated insertion of external general members if `can_manage_externals()` is true.
@@ -81,7 +82,7 @@ Central table holding all daily video rundown items.
 * `content_uid` (`text`) — Human-readable identifier (e.g., `WAVECON-20261029_0002`). Formatted as `WAVECON-YYYYMMDD_XXXX`, assigned on insert based on content creation day in Asia/Dhaka. Daily counter restarts at 0001 (`content_uid_counters: org_key, day, last_n`). IDs are never reused and immutable once set (`guard_contents_update` checks `WAVECON-` prefix). Shorts are identified as `<content ID>-short_0001` and so on, numbered inside their main content. The folder on the storage drive is named exactly the content ID (no slug), with shorts as subfolders. Converted from legacy `CON-` format on 29 Oct 2026 via `sql/2026-10-29_wavecon_content_id.sql`.
 * `slug_name` (`text`) — Unique slug title (max 24 characters, normalized).
 * `title` (`text`) — Full story title/headline.
-* `content_type` (`text`) — One of: `'EXPLAINER'`, `'LIVE'`, `'RECORDED LIVE'`, `'SOT'`, `'PACKAGE'`, `'SHOW'` (check constraint `contents_content_type_valid`).
+* `content_type` (`text`) — One of: `'EXPLAINER'`, `'LIVE'`, `'RECORDED LIVE'`, `'SOT'`, `'PACKAGE'`, `'SHOW'`, `'UNCUT'`, `'PHOTO CARD'` (check constraint `contents_content_type_valid`, updated 14 Nov 2026 via `sql/2026-11-14_uncut_photocard_groundwork.sql`).
 * `channel` (`text`) — Channel name assignment.
 * `status` (`text`) — Pipeline status, strictly one of:
   * `'Draft'`
@@ -101,9 +102,11 @@ Central table holding all daily video rundown items.
 * `went_live_at` (`timestamptz`, nullable) — Real time the content went live (reports and Rundown Export use this; falls back to `published_at` for old rows).
 * `writer` (`text`) — Assigned Research & Script author.
 * `presenter_name` (`text`) — Assigned on-camera presenter.
+* `multimedia_journalist` (`text`, nullable) - Assigned Multimedia Journalist (reporter who shoots uncut footage; added 14 Nov 2026 via `sql/2026-11-14_uncut_photocard_groundwork.sql`).
 * `camera_operator` (`text`) - Assigned Camera Operator (was `camera_person`). Governed by contents_production_rules (sql/2026-10-29_production_rules.sql).
-* `shoot_started_at` (`timestamptz`, nullable) - Timestamp when the shoot started. Populated automatically on Start Shoot. Editable manually only by Manager/Owner, Producer, Production Manager, or Camera Operator.
-* `shoot_finished_at` (`timestamptz`, nullable) - Timestamp when the shoot finished. Populated automatically on Finish Shoot, cleared on Start Shoot. Editable manually only by Manager/Owner, Producer, Production Manager, or Camera Operator.
+* `shoot_location` (`text`, nullable) - Shoot location / place of shooting for all content types, used to find raw footage in archive by location and date (added 14 Nov 2026 via `sql/2026-11-14_uncut_photocard_groundwork.sql`).
+* `shoot_started_at` (`timestamptz`, nullable) - Timestamp when the shoot started. Populated automatically on Start Shoot. Editable manually only by Manager/Owner, Producer, Production Manager, or Camera Operator (also Multimedia Journalist on an UNCUT).
+* `shoot_finished_at` (`timestamptz`, nullable) - Timestamp when the shoot finished. Populated automatically on Finish Shoot, cleared on Start Shoot. Editable manually only by Manager/Owner, Producer, Production Manager, or Camera Operator (also Multimedia Journalist on an UNCUT).
 * `production_notes` (`text`, nullable) - On-set and shoot production notes.
 * `files_delivered_at` (`timestamptz`, nullable) - Timestamp when raw footage and project files were delivered. Can be ticked once by Camera Operator, Data Wrangler, Producer, Production Manager, or Manager; notifies the assigned video editor. Undone only by Managers.
 * `files_delivered_by` (`text`, nullable) - Full name of the team member who ticked Files delivered.
@@ -193,7 +196,7 @@ Advertisements and sponsorships placed on specific rundown contents. Added on 1 
 * `created_by` (`text`, nullable) — Name of actor who scheduled/created the ad.
 * `created_at` (`timestamptz`, default `now()`)
 * `updated_at` (`timestamptz`, default `now()`) — Maintained automatically by `content_ads_touch_trg` trigger.
-* **RLS**: SELECT allowed for all active organization members; INSERT, UPDATE, DELETE allowed for Managers, Owners, and Producers (`is_manager() or i_am_producer()`). Helper function `i_am_producer()` checks if the active member holds `role_producer`.
+* **RLS**: SELECT allowed for all active organization members; INSERT, UPDATE, DELETE allowed for Owners, Managers, and people with the `can_manage_sponsors` tick (`i_can_manage_sponsors()`). Function `i_can_manage_sponsors()` checks whether the active member is Owner/Manager or has `can_manage_sponsors` true (updated 14 Nov 2026 via `sql/2026-11-14_manage_sponsors.sql`; `i_am_producer()` is no longer used by `content_ads`).
 
 ---
 
@@ -203,7 +206,7 @@ External crew invites, bookings, and public answer links. Added on 8 Nov 2026 (r
 * `organization_id` (`uuid`, NOT NULL, FK to `organizations.id` on delete cascade)
 * `content_id` (`bigint`, nullable, FK to `contents.id` on delete cascade)
 * `member_id` (`uuid`, NOT NULL, FK to `team_members.id` on delete restrict)
-* `role_field` (`text`, NOT NULL) — Role in credit fields (one of 21 roles, matching `bookings_role_field_check`).
+* `role_field` (`text`, NOT NULL) — Role in credit fields (one of 22 roles including `multimedia_journalist`, matching `bookings_role_field_check`, updated 14 Nov 2026 via `sql/2026-11-14_uncut_photocard_groundwork.sql`).
 * `starts_at` (`timestamptz`, NOT NULL) — Call time / booking start time.
 * `place` (`text`, nullable, max 300 chars) — Location or studio.
 * `note` (`text`, nullable, max 2000 chars) — Instructions or notes for the invitee.
