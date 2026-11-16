@@ -60,7 +60,7 @@ There are three roles, and eight switchable permissions that matter only for the
 | General | Any number | Only what the Owner or a Manager switched on for them. Can always edit their own name, designation and photo. |
 |  |  |  |
 
-**The 9 permissions** (stored as boolean columns on `team_members`):
+**The 12 permissions** (stored as boolean columns on `team_members`):
 
 | Permission | Label in the UI | What it unlocks | Fields it guards |
 | --- | --- | --- | --- |
@@ -73,6 +73,9 @@ There are three roles, and eight switchable permissions that matter only for the
 | `can_change_channel` | Change Channel | Switch channel | `channel` |
 | `can_approve_scripts` | Approve Scripts | Approve a submitted script or send it back | status step |
 | `can_review_videos` | Review Videos | Approve an edited video or request a revision | status step |
+| `can_request_photo_cards` | Request Photo Cards | Open and submit a Photo Card request, and edit details until approved | Photo Cards |
+| `can_approve_photo_cards` | Approve Photo Cards | Approve a finished Photo Card or send it back for correction | Photo Cards |
+| `can_manage_photo_templates` | Manage Photo Card Templates | Create and change templates writers use for Photo Cards | Photo Card templates |
 
 **The 22 roles** (also boolean columns on `team_members`, named `role_...`): roles are not permissions. A role only decides in which credit list a person appears (for example Presenter, Video Editor, Camera Operator). Owners and Managers appear in a role's list only when they hold that role's tick. Every Presenter list (drawer Production tab, the inline picker in the rundown list and cards, the New Content form, and the Bulk add table) shows only active members who have the "Presenter" role tick (`role_presenter`); a Presenter already assigned who no longer qualifies stays visible on that content. The same rule is implemented once, in the helper `presenterMembers` in `lib/core.js`. The roles are: Concept Creator, Research & Script Writer, Multimedia Journalist, Production Manager, Producer, Presenter, Set Designer, Camera Operator, Teleprompter Operator, Light Designer, Sound Recordist, Data Wrangler, Makeup Artist, Voice Over Artist, Video Editor, Motion Graphics Designer, Graphic Designer, Colorist, Audio Mixer, Publisher, Live Video Switcher, Live Audio Mixer. `lib/core.js` `ROLE_LIST` is the single source of the role list (each entry has `key`, `label`, `field`, `group` for the Team modal and `drawerGroup` for the drawer: `idea`, `crew`, `post`, `publish`, `live`). The drawer's Staff groups, the printed Staff table, search, Excel export (one column per role), reports and demo data all read `ROLE_LIST`. Only the Owner and Managers can change a member's roles and permissions. The full column list is in `docs/schema-reference.md`.
 
@@ -133,7 +136,7 @@ The app is one page (`app/page.js`) with a sticky header, the rundown, a second 
 | New Content | Opens the New Content modal |
 | Bell | Lists notifications with an unread badge. Clicking one opens that content, or tells you to change the date range if it is not loaded. |
 | Avatar and name | Opens My profile: name, designation, photo, new password, your access list, sign out |
-| ☰ Menu | Dropdown for theme, Directory, How it works, and for Managers/Owner the Manage section (Team & permissions, External people, Add channel, Add publish platform, Advertisers, Bulk schedule entry) and Reports & data. Non-manager Producers and Production Managers also see the Manage section with External people. The External people item opens the modal to manage external crew and presenters who have no login and cannot access the app. |
+| ☰ Menu | Dropdown for theme, Directory, How it works, and for Managers/Owner the Manage section (Team & permissions, External people, Add channel, Add publish platform, Advertisers, Photo Card Templates, Bulk schedule entry) and Reports & data. Non-managers with the Manage Photo Card Templates tick or Producers/Production Managers also see the Manage section with their permitted items. The External people item opens the modal to manage external crew and presenters who have no login and cannot access the app. |
 
 **Header, row 2 (filters)**
 
@@ -191,6 +194,7 @@ The drawer footer is ONE row on PC, made shorter on laptops (class `drawer-foote
 - **Team & permissions**: add a member, expand a member to set designation, photo link, the 8 permission toggles, role (Owner only), Deactivate or Reactivate, and Remove.
 - **External people**: manage external crew and presenters (no login, no app access; accessible to Owner, Managers, Producers, and Production Managers), add and inline-edit details and skills, and switch active/inactive status. In name pickers, external members are marked with "(External)".
 - **Advertisers**: manage sponsors and advertising partners (Manager/Owner only), add and inline-edit details, and switch active/inactive status.
+- **Photo Card Templates**: manage channel templates for Photo Cards (accessible to Owner, Managers, and members with the "Manage Photo Card Templates" tick). Templates define number, name, sample link, and custom field definitions (short text, long text, image link, date, with required and max length options). The Photo Card content type itself comes with the next task (N152).
 - **KPI report**: tiles Total, Published, Scheduled, In progress, Past due, then counts by status, channel, content type, presenter, writer and video editor.
 - **Toast**: green, red or neutral messages at the bottom for every save or refusal.
 

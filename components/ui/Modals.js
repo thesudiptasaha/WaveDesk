@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon, LockIcon } from './Icons';
-import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Field, SelectBox, ModalShell, Toggle, FullScreenCard, BlurInput } from './Shared';
+import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Field, SelectBox, ModalShell, Toggle, FullScreenCard, BlurInput, ConfirmDialog } from './Shared';
 import { RoleBadge, DesignationPill } from './Badges';
 import { PersonSelect } from './PersonPicker';
 import {
@@ -10,7 +10,8 @@ import {
   isManager, isOwner, can, toLocalInput, fromLocalInput, formatDay, formatTime, 
   SLUG_MAX, normalizeSlugInput, pad, formatStamp, startOfDay, addDays, sameDay, shortsInRange,
   normalizeRow, presenterMembers, eligibleMembers, typeHasScript,
-  isExternal, canManageExternals, normalizePhone
+  isExternal, canManageExternals, normalizePhone,
+  canManagePhotoTemplates, PHOTO_FIELD_TYPES
 } from '../../lib/core';
 
 import { downloadUserReport } from '../../services/exportService';
@@ -2380,6 +2381,642 @@ export function ExternalPeopleModal({ team = [], actor, onClose, onAdd, onUpdate
           })
         )}
       </div>
+    </ModalShell>
+  );
+}
+
+function makeFieldKey() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let res = 'f';
+  for (let i = 0; i < 6; i++) {
+    res += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return res;
+}
+
+export function PhotoTemplatesModal({
+  templates = [],
+  channels = [],
+  actor,
+  onClose,
+  onAdd,
+  onUpdate,
+  onDelete,
+}) {
+  const canManage = canManagePhotoTemplates(actor);
+
+  const [selectedChannel, setSelectedChannel] = useState('all');
+  const [editing, setEditing] = useState(null);
+  const [editorError, setEditorError] = useState('');
+  const [editorBusy, setEditorBusy] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const startNewTemplate = () => {
+    if (!canManage) return;
+    const defaultChan = selectedChannel !== 'all' ? selectedChannel : (channels[0] || 'Default');
+    const channelTemplates = (templates || []).filter((t) => t.channel === defaultChan);
+    const maxNum = channelTemplates.reduce((max, t) => Math.max(max, Number(t.number) || 0), 0);
+    setEditorError('');
+    setEditing({
+      isNew: true,
+      channel: defaultChan,
+      number: String(maxNum + 1),
+      name: '',
+      sample_url: '',
+      fields: [
+        { key: makeFieldKey(), label: '', type: 'short', required: true, max_length: '' },
+      ],
+    });
+  };
+
+  const startEditTemplate = (t) => {
+    if (!canManage) return;
+    setEditorError('');
+    setEditing({
+      isNew: false,
+      id: t.id,
+      channel: t.channel || (channels[0] || 'Default'),
+      number: String(t.number),
+      name: t.name || '',
+      sample_url: t.sample_url || '',
+      fields: Array.isArray(t.fields) && t.fields.length > 0
+        ? t.fields.map((f) => ({
+            key: f.key || makeFieldKey(),
+            label: f.label || '',
+            type: f.type || 'short',
+            required: f.required !== false,
+            max_length: f.max_length != null ? String(f.max_length) : '',
+          }))
+        : [{ key: makeFieldKey(), label: '', type: 'short', required: true, max_length: '' }],
+    });
+  };
+
+  const handleChannelChange = (newChan) => {
+    if (editing.isNew) {
+      const channelTemplates = (templates || []).filter((t) => t.channel === newChan);
+      const maxNum = channelTemplates.reduce((max, t) => Math.max(max, Number(t.number) || 0), 0);
+      setEditing((prev) => ({ ...prev, channel: newChan, number: String(maxNum + 1) }));
+    } else {
+      setEditing((prev) => ({ ...prev, channel: newChan }));
+    }
+  };
+
+  const addField = () => {
+    if (!canManage) return;
+    setEditing((prev) => ({
+      ...prev,
+      fields: [
+        ...prev.fields,
+        { key: makeFieldKey(), label: '', type: 'short', required: true, max_length: '' },
+      ],
+    }));
+  };
+
+  const updateField = (idx, patch) => {
+    if (!canManage) return;
+    setEditing((prev) => {
+      const next = [...prev.fields];
+      next[idx] = { ...next[idx], ...patch };
+      return { ...prev, fields: next };
+    });
+  };
+
+  const moveFieldUp = (idx) => {
+    if (!canManage || idx <= 0) return;
+    setEditing((prev) => {
+      const next = [...prev.fields];
+      const temp = next[idx - 1];
+      next[idx - 1] = next[idx];
+      next[idx] = temp;
+      return { ...prev, fields: next };
+    });
+  };
+
+  const moveFieldDown = (idx) => {
+    if (!canManage || idx >= editing.fields.length - 1) return;
+    setEditing((prev) => {
+      const next = [...prev.fields];
+      const temp = next[idx + 1];
+      next[idx + 1] = next[idx];
+      next[idx] = temp;
+      return { ...prev, fields: next };
+    });
+  };
+
+  const removeField = (idx) => {
+    if (!canManage || editing.fields.length <= 1) return;
+    setEditing((prev) => ({
+      ...prev,
+      fields: prev.fields.filter((_, i) => i !== idx),
+    }));
+  };
+
+  const handleSaveEditor = async (e) => {
+    if (e) e.preventDefault();
+    if (editorBusy || !canManage) return;
+    setEditorError('');
+
+    const cleanName = (editing.name || '').trim();
+    if (!cleanName) {
+      setEditorError('Template name is required');
+      return;
+    }
+    const num = parseInt(editing.number, 10);
+    if (!num || num < 1) {
+      setEditorError('Template number must be at least 1');
+      return;
+    }
+    if (!editing.channel) {
+      setEditorError('Channel is required');
+      return;
+    }
+    const cleanSample = (editing.sample_url || '').trim();
+    if (cleanSample && !/^https?:\/\//i.test(cleanSample)) {
+      setEditorError('Sample picture link must start with http:// or https://');
+      return;
+    }
+    if (!editing.fields || editing.fields.length === 0) {
+      setEditorError('At least one field is required');
+      return;
+    }
+    for (let i = 0; i < editing.fields.length; i++) {
+      const f = editing.fields[i];
+      if (!f.label || !f.label.trim()) {
+        setEditorError(`Field #${i + 1} label cannot be empty`);
+        return;
+      }
+      if ((f.type === 'short' || f.type === 'long') && f.max_length) {
+        const ml = parseInt(f.max_length, 10);
+        if (isNaN(ml) || ml < 1 || ml > 2000) {
+          setEditorError(`Field "${f.label}" max length must be between 1 and 2000`);
+          return;
+        }
+      }
+    }
+
+    // Unique field labels check (case-insensitive)
+    const labels = editing.fields.map((f) => f.label.trim().toLowerCase());
+    const seen = new Set();
+    for (const l of labels) {
+      if (seen.has(l)) {
+        setEditorError(`Duplicate field label: "${l}". Labels inside a template must be unique.`);
+        return;
+      }
+      seen.add(l);
+    }
+
+    const cleanedFields = editing.fields.map((f) => {
+      const isText = f.type === 'short' || f.type === 'long';
+      const ml = isText && f.max_length ? parseInt(f.max_length, 10) : null;
+      return {
+        key: f.key,
+        label: f.label.trim(),
+        type: f.type,
+        required: !!f.required,
+        max_length: ml,
+      };
+    });
+
+    setEditorBusy(true);
+    try {
+      let ok = false;
+      if (editing.isNew) {
+        ok = await onAdd({
+          channel: editing.channel,
+          number: num,
+          name: cleanName,
+          sample_url: cleanSample || null,
+          fields: cleanedFields,
+        });
+      } else {
+        ok = await onUpdate(editing.id, {
+          channel: editing.channel,
+          number: num,
+          name: cleanName,
+          sample_url: cleanSample || null,
+          fields: cleanedFields,
+        });
+      }
+      if (ok) {
+        setEditing(null);
+      }
+    } finally {
+      setEditorBusy(false);
+    }
+  };
+
+  const channelGroups = useMemo(() => {
+    const activeChans = selectedChannel === 'all' ? channels : [selectedChannel];
+    const groups = [];
+    activeChans.forEach((ch) => {
+      const match = (templates || []).filter((t) => t.channel === ch);
+      if (match.length > 0 || selectedChannel !== 'all') {
+        const active = match
+          .filter((t) => t.active !== false)
+          .sort((a, b) => (Number(a.number) || 0) - (Number(b.number) || 0));
+        const inactive = match
+          .filter((t) => t.active === false)
+          .sort((a, b) => (Number(a.number) || 0) - (Number(b.number) || 0));
+        groups.push({
+          channel: ch,
+          templates: [...active, ...inactive],
+        });
+      }
+    });
+    return groups;
+  }, [templates, channels, selectedChannel]);
+
+  return (
+    <ModalShell
+      title="Photo Card Templates"
+      subtitle={editing ? (editing.isNew ? 'Create a template for writers' : `Editing template #${editing.number}`) : 'Templates used by writers to request photo cards.'}
+      onClose={onClose}
+      wide
+    >
+      {editing ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+            <button
+              type="button"
+              onClick={() => setEditing(null)}
+              className={`${btnGhost} min-h-[44px] px-3 text-[13px] text-zinc-400 hover:text-white flex items-center gap-1.5`}
+            >
+              ← Back to templates
+            </button>
+            <span className="text-[13px] font-semibold text-zinc-300">
+              {editing.isNew ? 'New Template' : `Template #${editing.number} · ${editing.channel}`}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                Channel *
+              </label>
+              <select
+                className={`${inputBase} min-h-[44px]`}
+                value={editing.channel}
+                onChange={(e) => handleChannelChange(e.target.value)}
+                disabled={!canManage}
+              >
+                {channels.map((ch) => (
+                  <option key={ch} value={ch} className="bg-zinc-900 text-white">
+                    {ch}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                Number *
+              </label>
+              <input
+                type="number"
+                min="1"
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="1"
+                value={editing.number}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9]/g, '');
+                  setEditing((prev) => ({ ...prev, number: v }));
+                }}
+                disabled={!canManage}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                Name *
+              </label>
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="e.g. Breaking News, Quote Card"
+                value={editing.name}
+                onChange={(e) => setEditing((prev) => ({ ...prev, name: e.target.value }))}
+                disabled={!canManage}
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                  Sample picture link (optional)
+                </label>
+                {/^https?:\/\//i.test((editing.sample_url || '').trim()) && (
+                  <a
+                    href={editing.sample_url.trim()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[12px] text-sky-400 hover:text-sky-300 font-medium"
+                  >
+                    Open ↗
+                  </a>
+                )}
+              </div>
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="https://..."
+                value={editing.sample_url}
+                onChange={(e) => setEditing((prev) => ({ ...prev, sample_url: e.target.value }))}
+                disabled={!canManage}
+              />
+            </div>
+          </div>
+
+          <p className="text-[12px] text-zinc-500">
+            Writers will fill these fields when they request a Photo Card. Image fields take a link, not a file.
+          </p>
+
+          <div className="pt-2">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[12px] font-semibold uppercase tracking-wider text-zinc-400">
+                Fields ({editing.fields.length})
+              </span>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={addField}
+                  className={`${btnGhost} min-h-[44px] px-3 text-[12px] text-sky-400 hover:text-sky-300 font-medium`}
+                >
+                  + Add field
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {editing.fields.map((f, idx) => (
+                <div
+                  key={f.key}
+                  className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 space-y-3"
+                >
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-center">
+                    <div className="sm:col-span-5">
+                      <input
+                        className={`${inputBase} min-h-[44px]`}
+                        placeholder="Field label *"
+                        value={f.label}
+                        onChange={(e) => updateField(idx, { label: e.target.value })}
+                        disabled={!canManage}
+                      />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <select
+                        className={`${inputBase} min-h-[44px]`}
+                        value={f.type}
+                        onChange={(e) => updateField(idx, { type: e.target.value })}
+                        disabled={!canManage}
+                      >
+                        {PHOTO_FIELD_TYPES.map((pt) => (
+                          <option key={pt.id} value={pt.id} className="bg-zinc-900 text-white">
+                            {pt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-3 flex items-center gap-1 justify-end">
+                      <button
+                        type="button"
+                        title="Move up"
+                        disabled={idx === 0 || !canManage}
+                        onClick={() => moveFieldUp(idx)}
+                        className={`${btnGhost} min-h-[44px] min-w-[38px] px-2 text-[13px] disabled:opacity-30`}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        title="Move down"
+                        disabled={idx === editing.fields.length - 1 || !canManage}
+                        onClick={() => moveFieldDown(idx)}
+                        className={`${btnGhost} min-h-[44px] min-w-[38px] px-2 text-[13px] disabled:opacity-30`}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        title="Remove field"
+                        disabled={editing.fields.length <= 1 || !canManage}
+                        onClick={() => removeField(idx)}
+                        className={`${btnDanger} min-h-[44px] min-w-[38px] px-2 text-[13px] disabled:opacity-30`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 pt-1 border-t border-white/[0.04]">
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-[12px] text-zinc-300 min-h-[44px]">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-sky-500 focus:ring-0"
+                        checked={f.required}
+                        onChange={(e) => updateField(idx, { required: e.target.checked })}
+                        disabled={!canManage}
+                      />
+                      Required
+                    </label>
+
+                    {(f.type === 'short' || f.type === 'long') && (
+                      <div className="flex items-center gap-2 text-[12px] text-zinc-400">
+                        <span>Max length:</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="2000"
+                          placeholder="e.g. 100"
+                          className={`${inputBase} w-28 min-h-[38px] text-[12px]`}
+                          value={f.max_length}
+                          onChange={(e) => updateField(idx, { max_length: e.target.value.replace(/[^0-9]/g, '') })}
+                          disabled={!canManage}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {editorError && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-[13px] text-red-300">
+              {editorError}
+            </div>
+          )}
+
+          {canManage && (
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className={`${btnGhost} min-h-[44px] px-4 text-[13px]`}
+                disabled={editorBusy}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditor}
+                className={`${btnPrimary} min-h-[44px] px-5 text-[13px]`}
+                disabled={editorBusy}
+              >
+                {editorBusy ? 'Saving…' : editing.isNew ? 'Create template' : 'Save changes'}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setSelectedChannel('all')}
+                className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition min-h-[44px] sm:min-h-[36px] ${
+                  selectedChannel === 'all'
+                    ? 'bg-white text-black font-semibold'
+                    : 'bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] hover:text-white'
+                }`}
+              >
+                All channels
+              </button>
+              {channels.map((ch) => (
+                <button
+                  key={ch}
+                  type="button"
+                  onClick={() => setSelectedChannel(ch)}
+                  className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition min-h-[44px] sm:min-h-[36px] ${
+                    selectedChannel === ch
+                      ? 'bg-white text-black font-semibold'
+                      : 'bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] hover:text-white'
+                  }`}
+                >
+                  {ch}
+                </button>
+              ))}
+            </div>
+
+            {canManage && (
+              <button
+                type="button"
+                onClick={startNewTemplate}
+                className={`${btnPrimary} min-h-[44px] px-4 text-[13px] shrink-0`}
+              >
+                + New template
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-6 pt-2">
+            {channelGroups.length === 0 || channelGroups.every((g) => g.templates.length === 0) ? (
+              <div className="rounded-2xl border border-dashed border-white/[0.1] p-8 text-center text-zinc-500 text-[13px]">
+                No templates found.
+              </div>
+            ) : (
+              channelGroups.map((g) => {
+                if (g.templates.length === 0) return null;
+                return (
+                  <div key={g.channel} className="space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[12px] font-semibold uppercase tracking-wider text-zinc-400">
+                        {g.channel}
+                      </span>
+                      <span className="text-[11px] text-zinc-500">
+                        {g.templates.length} {g.templates.length === 1 ? 'template' : 'templates'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {g.templates.map((t) => (
+                        <div
+                          key={t.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 hover:border-white/[0.12] transition"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-[12px] font-bold text-zinc-300">
+                              #{t.number}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate text-[14px] font-semibold text-white">
+                                  {t.name}
+                                </span>
+                                {t.active === false && (
+                                  <span className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-zinc-800 text-zinc-400">
+                                    Inactive
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[12px] text-zinc-500">
+                                {(t.fields || []).length} {(t.fields || []).length === 1 ? 'field' : 'fields'}
+                                {t.sample_url && (
+                                  <>
+                                    {' · '}
+                                    <a
+                                      href={t.sample_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sky-400 hover:text-sky-300 inline-flex items-center gap-0.5"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      Sample ↗
+                                    </a>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {canManage && (
+                            <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => startEditTemplate(t)}
+                                className={`${btnGhost} min-h-[44px] px-3 text-[12px]`}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onUpdate(t.id, { active: t.active === false })}
+                                className={`${btnGhost} min-h-[44px] px-3 text-[12px] ${t.active === false ? 'text-emerald-400' : 'text-zinc-400'}`}
+                              >
+                                {t.active === false ? 'Activate' : 'Deactivate'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(t.id)}
+                                className={`${btnDanger} min-h-[44px] px-3 text-[12px]`}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteId && (
+        <ConfirmDialog
+          title="Delete template?"
+          message="Delete this template? This cannot be undone."
+          confirmLabel="Delete"
+          danger={true}
+          onCancel={() => setConfirmDeleteId(null)}
+          onConfirm={async () => {
+            const id = confirmDeleteId;
+            setConfirmDeleteId(null);
+            await onDelete(id);
+          }}
+        />
+      )}
     </ModalShell>
   );
 }

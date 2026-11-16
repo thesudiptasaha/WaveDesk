@@ -5,6 +5,16 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 16 Nov 2026 — Photo Card DB groundwork & Photo Card Templates page (N151)
+
+- **Photo Card database groundwork**: record `sql/2026-11-16_photocard_database.sql` (already run live on 16 Nov 2026; 3 ticks on `team_members`, `photo_card_templates` table with RLS, 16 new columns on `contents`, rules in 4 functions: `guard_contents_insert`, `guard_team_members`, `guard_contents_update`, `notify_content_update`, and external rule constraint; check query returned 9 rows matching expectations).
+- **Three new ticks (N151)**: added `can_request_photo_cards` ("Request Photo Cards"), `can_approve_photo_cards` ("Approve Photo Cards"), and `can_manage_photo_templates` ("Manage Photo Card Templates") under a new "Photo Cards" group in `ACCESS_LIST`. `TeamModal` and `AddMemberModal` display the new group and allow saving ticks. New exported helpers: `canManagePhotoTemplates(m)`, `canRequestPhotoCards(m)`, `canApprovePhotoCards(m)`.
+- **Menu item**: added "Photo Card Templates" (clipboard/board icon) to the `Manage` menu section for Owner/Managers (after Advertisers), and for non-managers who hold the Manage Photo Card Templates tick.
+- **Photo Card Templates page (`PhotoTemplatesModal`)**: list view with channel filter (All + each channel), templates grouped by channel and sorted by number (inactive ones last with an "Inactive" tag), showing field counts and sample links. Editor supports channel selection, number prefill (highest + 1), name, optional sample picture link with "Open ↗" button, and field list with reordering (↑/↓), removal, and "+ Add field".
+- **Fields**: field types from `PHOTO_FIELD_TYPES` (`short`, `long`, `image`, `date`), required toggle, optional max length (1–2000 for text). Each field gets a stable random key (`f` + 6 chars) preserved across renames and moves. Case-insensitive duplicate labels are blocked. Deactivate/Activate toggle and Delete (with confirmation dialog; blocked with friendly message if used by Photo Cards).
+- The `PHOTO CARD` content type is not yet in the app (coming in N152).
+- The N150 live test (shoot location) was done by the user and passed.
+
 ## 16 Nov 2026 — Shoot location field in Production tab (N150)
 
 - **Shoot location field**: new free-text "Location" field (`contents.shoot_location`, column already added on 14 Nov 2026) in the Shoot card of the Production tab for every content type.

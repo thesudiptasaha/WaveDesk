@@ -13,7 +13,7 @@ import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Person
 import { fetchAllPages } from '../utils/fetchAll';
 import { Drawer, DeleteModal } from '../components/ui/Drawer';
 import { StaffCell } from '../components/ui/StaffAssignSelect';
-import { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, BackupModal, DirectoryModal, PublishTimeModal, AdvertisersModal, ExternalPeopleModal, PublishCheckModal } from '../components/ui/Modals';
+import { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, BackupModal, DirectoryModal, PublishTimeModal, AdvertisersModal, ExternalPeopleModal, PublishCheckModal, PhotoTemplatesModal } from '../components/ui/Modals';
 import { NoticeModal } from '../components/ui/NoticeModal';
 import { HowItWorksModal } from '../components/ui/HowItWorksModal';
 import { PhoneCard, PhoneRow, ShortNote } from '../components/ui/RundownCards';
@@ -28,7 +28,7 @@ import {
   FIELD_PERM, TRACKED_FIELDS, wentLiveDefault,
   canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
   canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
-  typeHasScript, isUncutReporter
+  typeHasScript, isUncutReporter, canManagePhotoTemplates
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -504,6 +504,8 @@ const errText = (e) => {
   if (msg.includes('team_members_name_unique')) return 'Someone with this name already exists. Add a small difference to the name.';
   if (msg.includes('team_members_external_rules')) return 'External people need a nickname and a valid phone number, and cannot have a login or access permissions';
   if (msg.includes('advertisers_org_name_uq')) return 'An advertiser with this name already exists';
+  if (msg.includes('photo_card_templates_org_chan_num_uq') || (msg.includes('photo_card_templates') && (msg.includes('unique') || msg.includes('duplicate')))) return 'A template with this number already exists in this channel';
+  if (msg.includes('contents_template_id_fkey') || (msg.includes('photo_card_templates') && msg.includes('foreign key'))) return 'This template is used by Photo Cards. Deactivate it instead of deleting';
   if (raw === 'Not allowed') return 'You are not allowed to do this.';
   if (has('failed to fetch', 'networkerror', 'load failed', 'network request failed')) return 'No internet connection. Check your network and try again.';
   if (has('jwt expired', 'invalid jwt', 'invalid refresh token', 'refresh token not found')) return 'Your session has expired. Please sign in again.';
@@ -629,6 +631,7 @@ function NewsroomApp({ authUser, onSignOut }) {
   const [platforms, setPlatforms] = useState(PLATFORMS);
   const [advertisers, setAdvertisers] = useState([]);
   const [contentAds, setContentAds] = useState([]);
+  const [photoTemplates, setPhotoTemplates] = useState([]);
   const [rows, setRows] = useState([]);
   const [actorId, setActorId] = useState(null);
   const [range, setRange] = useState({ start: today, end: today });
@@ -641,6 +644,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     const [showEmpReport, setShowEmpReport] = useState(false);
     const [showBackup, setShowBackup] = useState(false);
   const [showAdvertisers, setShowAdvertisers] = useState(false);
+  const [showPhotoTemplates, setShowPhotoTemplates] = useState(false);
   const [showExternals, setShowExternals] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
@@ -785,6 +789,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       setPlatforms(PLATFORMS);
       setAdvertisers([]);
       setContentAds([]);
+      setPhotoTemplates([]);
       setRows(d.rows);
       setActorId(d.team[0].id);
       setBoot({ phase: 'ready', message: '' });
@@ -804,12 +809,13 @@ function NewsroomApp({ authUser, onSignOut }) {
       return;
     }
     const o = orgs[0];
-    const [t, c, p, adv, adsRes] = await Promise.all([
+    const [t, c, p, adv, adsRes, ptRes] = await Promise.all([
       supabase.from('team_members').select('*').eq('organization_id', o.id).order('created_at', { ascending: true }),
       supabase.from('channels').select('name').or(`organization_id.eq.${o.id},organization_id.is.null`),
       supabase.from('platforms').select('*').or(`organization_id.eq.${o.id},organization_id.is.null`),
       supabase.from('advertisers').select('*').eq('organization_id', o.id).order('name', { ascending: true }),
       fetchAllPages(() => supabase.from('content_ads').select('*').eq('organization_id', o.id).order('created_at', { ascending: true })),
+      supabase.from('photo_card_templates').select('*').eq('organization_id', o.id).order('channel', { ascending: true }).order('number', { ascending: true }),
     ]);
     if (t.error) {
       setBoot({ phase: 'error', message: `${errText(t.error)} — did you run the SQL migration in Supabase?` });
@@ -822,6 +828,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     setPlatforms(mergePlatforms(p?.error ? [] : p?.data));
     setAdvertisers(adv?.error ? [] : (adv?.data || []));
     setContentAds(adsRes?.error ? [] : (adsRes?.data || []));
+    setPhotoTemplates(ptRes?.error ? [] : (ptRes?.data || []));
         const owner = members.find((m) => m.role === 'owner') || members[0];
     const auth = authRef.current;
     if (auth.id) {
@@ -1350,6 +1357,135 @@ function NewsroomApp({ authUser, onSignOut }) {
     } else {
       setAdvertisers((list) => list.map((a) => (a.id === id ? { ...a, ...cleaned } : a)).sort((a, b) => a.name.localeCompare(b.name)));
     }
+    return true;
+  };
+
+  const sortPhotoTemplates = (list) =>
+    [...list].sort((a, b) => {
+      const c = (a.channel || '').localeCompare(b.channel || '');
+      if (c !== 0) return c;
+      return (Number(a.number) || 0) - (Number(b.number) || 0);
+    });
+
+  const addPhotoTemplate = async ({ channel, number, name, sample_url, fields }) => {
+    if (!canManagePhotoTemplates(actor)) {
+      notify('Only the Owner, Managers and members with permission can manage templates', 'error');
+      return false;
+    }
+    const cleanName = (name || '').trim();
+    if (!cleanName) {
+      notify('Template name cannot be empty', 'error');
+      return false;
+    }
+    const num = parseInt(number, 10);
+    if (!num || num < 1) {
+      notify('Template number must be at least 1', 'error');
+      return false;
+    }
+    if (!channel) {
+      notify('Channel is required', 'error');
+      return false;
+    }
+    if (!Array.isArray(fields) || fields.length === 0) {
+      notify('At least one field is required', 'error');
+      return false;
+    }
+    if (photoTemplates.some((t) => t.channel === channel && Number(t.number) === num)) {
+      notify('A template with this number already exists in this channel', 'error');
+      return false;
+    }
+    const payload = {
+      organization_id: org.id,
+      channel,
+      number: num,
+      name: cleanName,
+      fields,
+      sample_url: (sample_url || '').trim() || null,
+      active: true,
+      created_by: actor?.full_name || 'System',
+    };
+    if (supabase) {
+      const { data, error } = await supabase.from('photo_card_templates').insert(payload).select().single();
+      if (error) {
+        const isUq = (error.message || '').toLowerCase().includes('unique') || error.code === '23505';
+        notify(isUq ? 'A template with this number already exists in this channel' : `Could not add template: ${errText(error)}`, 'error');
+        return false;
+      }
+      setPhotoTemplates((list) => sortPhotoTemplates([...list, data]));
+    } else {
+      const mock = { id: `demo-pt-${Date.now()}`, ...payload, created_at: new Date().toISOString() };
+      setPhotoTemplates((list) => sortPhotoTemplates([...list, mock]));
+    }
+    notify(`Template “${cleanName}” added`, 'success');
+    return true;
+  };
+
+  const updatePhotoTemplate = async (id, patch) => {
+    if (!canManagePhotoTemplates(actor)) {
+      notify('Only the Owner, Managers and members with permission can manage templates', 'error');
+      return false;
+    }
+    const target = photoTemplates.find((t) => t.id === id);
+    if (!target) {
+      notify('Template not found', 'error');
+      return false;
+    }
+    const cleaned = { ...patch };
+    if ('name' in cleaned) {
+      cleaned.name = (cleaned.name || '').trim();
+      if (!cleaned.name) {
+        notify('Template name cannot be empty', 'error');
+        return false;
+      }
+    }
+    if ('number' in cleaned) {
+      cleaned.number = parseInt(cleaned.number, 10);
+      if (!cleaned.number || cleaned.number < 1) {
+        notify('Template number must be at least 1', 'error');
+        return false;
+      }
+    }
+    if ('sample_url' in cleaned) {
+      cleaned.sample_url = (cleaned.sample_url || '').trim() || null;
+    }
+    const ch = cleaned.channel || target.channel;
+    const nm = cleaned.number !== undefined ? cleaned.number : target.number;
+    if (photoTemplates.some((t) => t.id !== id && t.channel === ch && Number(t.number) === Number(nm))) {
+      notify('A template with this number already exists in this channel', 'error');
+      return false;
+    }
+
+    if (supabase) {
+      const { data, error } = await supabase.from('photo_card_templates').update(cleaned).eq('id', id).select().single();
+      if (error) {
+        const isUq = (error.message || '').toLowerCase().includes('unique') || error.code === '23505';
+        notify(isUq ? 'A template with this number already exists in this channel' : `Could not update template: ${errText(error)}`, 'error');
+        return false;
+      }
+      setPhotoTemplates((list) => sortPhotoTemplates(list.map((t) => (t.id === id ? data : t))));
+    } else {
+      setPhotoTemplates((list) => sortPhotoTemplates(list.map((t) => (t.id === id ? { ...t, ...cleaned } : t))));
+    }
+    return true;
+  };
+
+  const deletePhotoTemplate = async (id) => {
+    if (!canManagePhotoTemplates(actor)) {
+      notify('Only the Owner, Managers and members with permission can manage templates', 'error');
+      return false;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('photo_card_templates').delete().eq('id', id);
+      if (error) {
+        const isFk = (error.message || '').toLowerCase().includes('foreign key') || error.code === '23503' || (error.details || '').toLowerCase().includes('foreign key');
+        notify(isFk ? 'This template is used by Photo Cards. Deactivate it instead of deleting' : `Could not delete template: ${errText(error)}`, 'error');
+        return false;
+      }
+      setPhotoTemplates((list) => list.filter((t) => t.id !== id));
+    } else {
+      setPhotoTemplates((list) => list.filter((t) => t.id !== id));
+    }
+    notify('Template deleted', 'success');
     return true;
   };
 
@@ -1896,6 +2032,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       else if (showAddChannel) setShowAddChannel(false);
       else if (showAddPlatform) setShowAddPlatform(false);
       else if (showAdvertisers) setShowAdvertisers(false);
+      else if (showPhotoTemplates) setShowPhotoTemplates(false);
       else if (showExternals) setShowExternals(false);
       else if (showTeam) setShowTeam(false);
       else if (showDirectory) setShowDirectory(false);
@@ -1907,7 +2044,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [publishCheckFor, publishFor, reasonFor, showNew, showAddChannel, showAddPlatform, showAdvertisers, showExternals, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices, selectedId]);
+  }, [publishCheckFor, publishFor, reasonFor, showNew, showAddChannel, showAddPlatform, showAdvertisers, showPhotoTemplates, showExternals, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices, selectedId]);
   /* ---------------- my profile ---------------- */
   const saveProfile = async ({ full_name, designation, avatar_url, phone, whatsapp, employee_id, nickname }) => {
     if (!me) return false;
@@ -1975,6 +2112,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       { icon: 'plus', label: 'Add channel', onClick: () => setShowAddChannel(true) },
       { icon: 'plus', label: 'Add publish platform', onClick: () => setShowAddPlatform(true) },
       { icon: 'megaphone', label: 'Advertisers', onClick: () => setShowAdvertisers(true) },
+      { icon: 'board', label: 'Photo Card Templates', onClick: () => setShowPhotoTemplates(true) },
       { icon: 'calendar', label: 'Bulk schedule entry', onClick: () => setBulkOpen(true) },
     ] });
     const dataItems = [];
@@ -1983,10 +2121,17 @@ function NewsroomApp({ authUser, onSignOut }) {
     dataItems.push({ icon: 'download', label: 'Rundown Export', onClick: () => exportXlsx() });
     dataItems.push({ icon: 'download', label: 'Database Backup', onClick: () => setShowBackup(true) });
     menuSections.push({ title: 'Reports & data', items: dataItems });
-  } else if (canManageExternals(actor)) {
-    menuSections.push({ title: 'Manage', items: [
-      { icon: 'users', label: 'External people', onClick: () => setShowExternals(true) },
-    ] });
+  } else {
+    const nonManagerManageItems = [];
+    if (canManageExternals(actor)) {
+      nonManagerManageItems.push({ icon: 'users', label: 'External people', onClick: () => setShowExternals(true) });
+    }
+    if (canManagePhotoTemplates(actor)) {
+      nonManagerManageItems.push({ icon: 'board', label: 'Photo Card Templates', onClick: () => setShowPhotoTemplates(true) });
+    }
+    if (nonManagerManageItems.length > 0) {
+      menuSections.push({ title: 'Manage', items: nonManagerManageItems });
+    }
   }
 
   /* ---------------- main UI ---------------- */
@@ -2678,6 +2823,17 @@ function NewsroomApp({ authUser, onSignOut }) {
       {showAddChannel ? <AddChannelModal existing={channels} onClose={() => setShowAddChannel(false)} onAdd={addChannel} /> : null}
       {showAddPlatform ? <AddPlatformModal existing={platforms} onClose={() => setShowAddPlatform(false)} onAdd={addPlatform} /> : null}
       {showAdvertisers ? <AdvertisersModal advertisers={advertisers} onClose={() => setShowAdvertisers(false)} onAdd={addAdvertiser} onUpdate={updateAdvertiser} /> : null}
+      {showPhotoTemplates ? (
+        <PhotoTemplatesModal
+          templates={photoTemplates}
+          channels={channels}
+          actor={actor}
+          onClose={() => setShowPhotoTemplates(false)}
+          onAdd={addPhotoTemplate}
+          onUpdate={updatePhotoTemplate}
+          onDelete={deletePhotoTemplate}
+        />
+      ) : null}
       {showExternals ? <ExternalPeopleModal team={team} actor={actor} onClose={() => setShowExternals(false)} onAdd={addExternal} onUpdate={updateExternal} /> : null}
       {showTeam ? <TeamModal team={staffTeam} actor={actor} orgName={org ? org.name : ''} onClose={() => setShowTeam(false)} onAdd={addMember} onUpdate={updateMember} onRemove={removeMember} /> : null}
       {showDirectory ? <DirectoryModal team={team} onClose={() => setShowDirectory(false)} /> : null}

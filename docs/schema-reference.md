@@ -38,7 +38,7 @@ Staff members belonging to an organization.
 * `role` (`text`) — Role tier: `'owner'`, `'manager'`, or `'general'`.
 * `active` (`boolean`, default `true`) — Active staff status.
 * `avatar_url` (`text`) — Public URL to avatar image in Supabase `avatars` storage bucket.
-* **Access (9 booleans, not null, default false; always true in effect for owner/manager through perm_of):**
+* **Access (12 booleans, not null, default false; always true in effect for owner/manager through perm_of):**
   * `can_write_edit_scripts` - Write, edit and save scripts; submit for approval.
   * `can_approve_scripts` - Approve or send back submitted scripts.
   * `can_edit_content_details` - Title, thumbnail text, platforms, captions, hashtags, camera operator, writer.
@@ -48,11 +48,14 @@ Staff members belonging to an organization.
   * `can_assign_video_editor` - Assign or change the video editor.
   * `can_assign_presenter` - Change the presenter.
   * `can_review_videos` - Approve edited videos or send them back for changes.
+  * `can_request_photo_cards` - Open and submit a Photo Card request, and edit details until approved (added 16 Nov 2026, record: `sql/2026-11-16_photocard_database.sql`).
+  * `can_approve_photo_cards` - Approve a finished Photo Card or send it back for correction (added 16 Nov 2026, record: `sql/2026-11-16_photocard_database.sql`).
+  * `can_manage_photo_templates` - Create, edit, and manage channel templates for Photo Cards (added 16 Nov 2026, record: `sql/2026-11-16_photocard_database.sql`).
 * **Roles (22 booleans in DB, default false; they only decide who appears in each credit list - they are NOT permissions):** `role_concept_creator`, `role_research_script_writer`, `role_production_manager`, `role_producer`, `role_presenter`, `role_set_designer`, `role_camera_operator`, `role_teleprompter_operator`, `role_light_designer`, `role_sound_recordist`, `role_data_wrangler`, `role_makeup_artist`, `role_voice_over_artist`, `role_video_editor`, `role_motion_graphics_designer`, `role_graphic_designer`, `role_colorist`, `role_audio_mixer`, `role_publisher`, `role_live_video_switcher`, `role_live_audio_mixer`, `role_multimedia_journalist` (22nd role added in DB on 14 Nov 2026, record: `sql/2026-11-14_uncut_photocard_groundwork.sql`). Each role matches one credit column of the same name without the `role_` prefix in `contents` (for example `role_presenter` matches `presenter_name`, `role_research_script_writer` matches `writer`). Owners and Managers appear in a role's list only when they hold that role's tick. Only Owner and Managers can change these (the guard trigger blocks a member from changing their own).
 * **External people added on 1 Nov 2026** (record: `sql/2026-11-01_external_members.sql`):
   * `member_type` (`text`, default `'staff'`, CHECK `member_type in ('staff','external')`) and `external_note` (`text`, nullable).
   * `email` column altered to drop NOT NULL constraint (external rows have null email).
-  * Constraint `team_members_external_rules`: external rows require `auth_user_id is null`, `email is null`, `role = 'general'`, `nickname is not null`, phone in international format like +8801XXXXXXXXX (matching `^\+[1-9][0-9]{7,14}$`), and all `can_*` flags false (including `can_manage_sponsors`).
+  * Constraint `team_members_external_rules`: external rows require `auth_user_id is null`, `email is null`, `role = 'general'`, `nickname is not null`, phone in international format like +8801XXXXXXXXX (matching `^\+[1-9][0-9]{7,14}$`), and all `can_*` flags false (including `can_manage_sponsors`, `can_request_photo_cards`, `can_approve_photo_cards`, `can_manage_photo_templates`).
   * Unique index `team_members_name_unique` on `(organization_id, lower(btrim(full_name)))` prevents duplicate names across the team.
   * Function `can_manage_externals()` returns true for active Owner, Manager, or members with `role_producer` or `role_production_manager`.
   * Policy `team_members_insert_external` allows authenticated insertion of external general members if `can_manage_externals()` is true.
@@ -98,6 +101,7 @@ Central table holding all daily video rundown items.
   * `'On Hold'`
   * `'Dropped'`
   * `'Re-Shoot'`
+  * *(Photo Card pipeline uses: Draft, Requested, Designing, In Review, Ready to Publish [= Approved], Scheduled, Published, plus On Hold, Dropped; record: `sql/2026-11-16_photocard_database.sql`)*
 * `scheduled_publish_time` (`timestamptz`, nullable) — Target publish date and time.
 * `went_live_at` (`timestamptz`, nullable) — Real time the content went live (reports and Rundown Export use this; falls back to `published_at` for old rows).
 * `writer` (`text`) — Assigned Research & Script author.
@@ -128,6 +132,23 @@ Central table holding all daily video rundown items.
 * `reference_files` (`jsonb`, default `'[]'`) — Array of reference document links/metadata.
 * `history` (`jsonb`, default `'[]'`) — Audit log of assignments, status transitions, and timestamps.
 * `revisions` (`jsonb`) — Previous script versions.
+* **Photo Card columns on `contents`** (added 16 Nov 2026, record: `sql/2026-11-16_photocard_database.sql`):
+  * `template_id` (`bigint`, nullable, FK to `photo_card_templates.id` on delete restrict) — Selected photo card template.
+  * `card_fields` (`jsonb`, not null, default `'{}'::jsonb`) — Field values for the card stored under each template field's stable key.
+  * `is_emergency` (`boolean`, not null, default `false`) — Emergency breaking card flag; skips review and pins/flashes in rundown.
+  * `card_source` (`text`, nullable) — Information source or credit for the photo card.
+  * `designer_instructions` (`text`, nullable) — Special layout or design instructions for the Graphic Designer.
+  * `card_folder` (`text`, nullable) — Shared drive folder path where the designer saved the finished card files.
+  * `linked_content_uid` (`text`, nullable) — Content UID or link of related story/video content.
+  * `requested_by` (`text`, nullable) — Full name of the writer who submitted the request (stamped by database).
+  * `requested_at` (`timestamptz`, nullable) — Timestamp when the card was submitted to design.
+  * `designer_taken_at` (`timestamptz`, nullable) — Timestamp when a Graphic Designer took the card ("I'm taking it").
+  * `made_at` (`timestamptz`, nullable) — Timestamp when the designer marked the card "Made".
+  * `approved_by` (`text`, nullable) — Full name of the reviewer who approved the card.
+  * `approved_at` (`timestamptz`, nullable) — Timestamp when the card was approved.
+  * `review_skipped` (`boolean`, not null, default `false`) — Indicates review was bypassed (emergency cards).
+  * `correction_count` (`int`, not null, default `0`) — Number of times the card was sent back for corrections.
+  * `correction_note` (`text`, nullable) — Note explaining what needs correction when sending back to Designing.
 * **Trigger `contents_post_production`** (BEFORE UPDATE on `contents`, function `contents_post_production_rules`): Files received (Video Editor or Manager, only after Files delivered, once, Manager undoes), Files problem (Video Editor or Manager, note required, clears received, notifies the files-delivered person, the Producer and the Production Manager), Problem fixed (Production or Manager, notifies the Video Editor), a Manager undoing Files delivered clears received and problem, and the default fill: when a Video Editor is assigned or changed on a non-LIVE content, EMPTY `motion_graphics_designer`, `graphic_designer`, `colorist`, `audio_mixer` slots get the same name, slots holding the OLD editor's name move to the new editor, slots changed by hand in the same save are untouched. Not applied when contents are created (INSERT). Record: `sql/2026-11-07_post_production.sql`.
 * **Trigger `contents_publish_check`** (BEFORE UPDATE on `contents`, function `contents_publish_check_rules`): request allowed only for the assigned Publisher or a Manager, only when status is Scheduled or Ready to Publish and 10 minutes have passed after scheduled_publish_time, note required, notifies Owner and Managers, writes an Activity-log entry, clears itself on a status or publish-time change. Record: `sql/2026-11-07_publish_check.sql`.
 * `created_at` (`timestamptz`)
@@ -225,6 +246,23 @@ External crew invites, bookings, and public answer links. Added on 8 Nov 2026 (r
   * `answer_booking(token, 'confirmed'|'declined')` — Public function (open to anon and authenticated); can be changed until expiry; notifies the inviter.
 
 Record: `sql/2026-11-08_bookings.sql`.
+
+---
+
+### 11. `photo_card_templates`
+Templates used by writers to request photo cards per channel. Added on 16 Nov 2026 (record: `sql/2026-11-16_photocard_database.sql`).
+* `id` (`bigint`, PRIMARY KEY, generated by default as identity)
+* `organization_id` (`uuid`, NOT NULL)
+* `channel` (`text`, NOT NULL) — Channel the template belongs to.
+* `number` (`int`, NOT NULL, CHECK `number > 0`) — Template number within the channel.
+* `name` (`text`, NOT NULL) — Template name (e.g. Breaking News, Quote Card).
+* `fields` (`jsonb`, NOT NULL, default `'[]'::jsonb`, CHECK `jsonb_typeof(fields) = 'array'`) — List of template field definitions (`{ key, label, type, required, max_length }`).
+* `sample_url` (`text`, nullable) — Optional link to a sample image of the template.
+* `active` (`boolean`, NOT NULL, default `true`) — Inactive templates cannot be chosen for new cards.
+* `created_at` (`timestamptz`, NOT NULL, default `now()`)
+* `created_by` (`text`, nullable) — Full name of creator.
+* **Unique constraint**: `unique (organization_id, channel, number)` (`photo_card_templates_org_chan_num_uq`).
+* **RLS**: SELECT allowed for all active organization members (`organization_id = my_org_id() and i_am_active()`); INSERT, UPDATE, DELETE allowed for Owners, Managers, and members with the `can_manage_photo_templates` tick via `i_can_manage_photo_templates()`.
 
 ---
 

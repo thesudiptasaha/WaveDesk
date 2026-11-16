@@ -1,6 +1,6 @@
 # WaveDesk — পরিকল্পনা ও কাজের তালিকা (হালনাগাদ: ১৬ নভেম্বর ২০২৬)
 
-শেষ যাচাই-করা কমিট: `b3cd1b3` (N149)। বিস্তারিত অগ্রগতি রিপোর `docs/progress-log.md`, বাকি কাজ `docs/open-tasks.md`, নম্বর-কমিট মিল `task-number-tracker.md`। এখানে শুধু দিক ও ক্রম।
+শেষ যাচাই-করা কমিট: `7d62abb` (N150)। বিস্তারিত অগ্রগতি রিপোর `docs/progress-log.md`, বাকি কাজ `docs/open-tasks.md`, নম্বর-কমিট মিল `task-number-tracker.md`। এখানে শুধু দিক ও ক্রম।
 
 ## ২৭ অক্টোবরের পর যা হয়ে গেছে
 - ড্রয়ার: বড় আইডি + Copy ID, Details প্যানেল (উচ্চতা অনুযায়ী), ৬ ট্যাব (Editorial, Production, Post-production, Publish, QC & Audit, Credits), StepBar-এ সবুজ গ্লো (ধাপ পেরোলে)।
@@ -20,7 +20,7 @@
 - **ডক (ওপরের মাঝের বার) ও হোম পেজ:** ডক কোথায় (ওপরে/নিচে/পাশে) সিদ্ধান্ত বাকি। Claude-এর প্রস্তাব: PC-তে ওপরে (মাঝখানে, পাতলা, হেডারের মেনুর জায়গা নেবে), ফোনে নিচে (বুড়ো আঙুলের নাগালে, ৫টা আইকন); অনুমোদন বাকি। `dock-ui-plan.md`, `home-and-print-notes-2026-11-02.md`।
 - **টেলিপ্রম্পটার মেনু:** মেনুতে আলাদা "Teleprompter" (লেখা পেস্ট করে চালানো, টেস্ট/অডিশন/প্র্যাকটিস)। মালিক: পরে। `teleprompter-menu-notes.md`।
 - **স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন:** N142, N145, N143, N144 সম্পন্ন (টেস্ট বাকি); Credits-এর প্রিন্ট/PDF (বিস্তারিত ক্রেডিট) পরে।
-- **সামনের বড় কাজ (ক্রম অনুযায়ী, `docs/notes/content-types-plan.md` section C):** (1) Read-only SQL query (✅ সম্পন্ন, ১২ নভেম্বর); (2) Content type table in app (`CONTENT_TYPE_CONFIG`, ✅ সম্পন্ন, ১৪ নভেম্বর, N147); (3) Database groundwork for Uncut, Photo Card & Sponsors (✅ সম্পন্ন, ১৪ নভেম্বর SQL রেকর্ড); (4) Manage Sponsors tick + Sponsors section in drawer left column (✅ সম্পন্ন ও টেস্ট পাস, ১৫ নভেম্বর, N148/N148b); (5) Uncut app side (✅ সম্পন্ন ও টেস্ট পাস, ১৫–১৬ নভেম্বর, N149/N149b/N149b2); (6) shoot_location field (✅ সম্পন্ন, ১৬ নভেম্বর, N150, টেস্ট বাকি); (7) Photo Card workflow (discussion first). তারপর: ব্যাকআপ ফলো-আপসমূহ, Telegram বট (WaveBot), এবং ডক ও হোম পেজ।
+- **সামনের বড় কাজ (ক্রম অনুযায়ী, `docs/notes/content-types-plan.md` section C):** (1) Read-only SQL query (✅ সম্পন্ন, ১২ নভেম্বর); (2) Content type table in app (`CONTENT_TYPE_CONFIG`, ✅ সম্পন্ন, ১৪ নভেম্বর, N147); (3) Database groundwork for Uncut, Photo Card & Sponsors (✅ সম্পন্ন, ১৪ নভেম্বর SQL রেকর্ড); (4) Manage Sponsors tick + Sponsors section in drawer left column (✅ সম্পন্ন ও টেস্ট পাস, ১৫ নভেম্বর, N148/N148b); (5) Uncut app side (✅ সম্পন্ন ও টেস্ট পাস, ১৫–১৬ নভেম্বর, N149/N149b/N149b2); (6) shoot_location field (✅ সম্পন্ন ও টেস্ট পাস, ১৬ নভেম্বর, N150); (7) Photo Card database (✅ সম্পন্ন, ১৬ নভেম্বর); (8) Photo Card step 1: 3 ticks & Photo Card Templates page (✅ সম্পন্ন, ১৬ নভেম্বর, N151, টেস্ট বাকি); (9) Photo Card content type in app (N152: creation, pipeline, Graphic Designer role, photo card drawer tabs, first version of workflow). তারপর: ব্যাকআপ ফলো-আপসমূহ, Telegram বট (WaveBot), এবং ডক ও হোম পেজ।
 - Sponsors ধাপ ২; ফাইল-লিংক ফিল্ড সরানো।
 - End-credit অ্যানিমেটেড ক্লিপ; চ্যানেল লোগো; ফটোকার্ড।
 - "সবকিছু আইডি দিয়ে" প্রজেক্ট (নাম এখন, আইডি পরে; নতুন টেবিল সবসময় আইডি দিয়ে)।

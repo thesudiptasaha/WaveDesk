@@ -1,6 +1,6 @@
 # WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৬ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N151** (N150, N150c, N150d ব্যবহৃত; N151 ক্রমানুসারে সংরক্ষিত)। শেষ যাচাই-করা কমিট: `b3cd1b3` (N149, verified on GitHub on 15 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N152** (N151, N151c, N151d ব্যবহৃত; N152 সংরক্ষিত: Photo Card step 2)। শেষ যাচাই-করা কমিট: `7d62abb` (N150, verified on GitHub on 16 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -58,7 +58,8 @@
 | N147 (N147, N147c, N147d) | one content type table (CONTENT_TYPE_CONFIG) so pipeline and credit rules live in one place | 82c0d85 |
 | N148 (b, c, d) | Manage Sponsors tick and Sponsors section in drawer left column (+ DB groundwork records) | 63268bc |
 | N149 (b, b2, c, d) | Uncut content type and Multimedia Journalist role in the app | b3cd1b3 |
-| N150 (c, d) | Shoot location field in the Production tab (suggestions from earlier entries, searchable, in the Excel export) | this commit |
+| N150 (c, d) | Shoot location field in the Production tab (suggestions from earlier entries, searchable, in the Excel export) | 7d62abb |
+| N151 (c, d) | Photo Card ground work: three new ticks and the Photo Card Templates page (+ DB record for Photo Card tables and rules) | this commit |
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।
 

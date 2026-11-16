@@ -33,28 +33,15 @@ A separate text column (`shoot_location` on `contents`) for **ALL** content type
 - **Purpose:** Find raw footage in the archive by location and date.
 
 ### New content type: "Photo Card"
-A short card (image with text overlay) created in the browser from a channel template and posted to social platforms.
+A short card (image with text overlay) requested by writers from a channel template, crafted by a Graphic Designer, and published to social platforms.
+Full decisions updated 16 Nov 2026: see `docs/notes/photocard-notes.md` ("Update 16 Nov 2026 — decisions").
 
-**Form fields:**
-- Card text (the main overlay copy)
-- Caption (for the post body)
-- Publish date and time ("Publish Date" in the submission form)
-- Emergency (yes / no): must be uploaded right now
-- Channel
-- **Date shown on the card** — a separate field from the publish date
-- Source
-- Linked content (another content's ID, optional)
-- Template (dropdown of that channel's available templates)
-
-**Permission:** Only people with a new permission (working name: "Make Photo Cards", key `can_make_photo_cards`) can create or fill a Photo Card.
-
-**Pipeline:** `Draft` → `Ready to Publish` → `Scheduled` → `Published`. No script, no shoot, no editing.
-
-**Emergency behaviour:** When emergency = yes, the rundown row is pinned to the top of its channel and flashes until it reaches Published — the same behaviour as the "Did it go out?" pinned rows.
-
-**Two phases:**
-- **Phase A:** type, form, pipeline steps, permission, emergency pinning. No image generation yet.
-- **Phase B:** card generated in the browser from the channel's SVG/PNG template (needs the designer's template files and font files). The 1 Nov decisions in `docs/notes/photocard-notes.md` still apply: the uploaded image and the finished card are not stored on the server; a small log row only (content ID, who, when, which template); each template carries a designer credit; a faint content-ID mark in one corner.
+**Key highlights (16 Nov 2026):**
+- **Pipeline:** `Draft` → `Requested` → `Designing` → `In Review` → `Approved` (= status "Ready to Publish") → `Scheduled` (optional) → `Published`.
+- **Permissions:** Three new ticks in `team_members`: Request Photo Cards (`can_request_photo_cards`), Approve Photo Cards (`can_approve_photo_cards`), Manage Photo Card Templates (`can_manage_photo_templates`). Graphic Designer remains the existing role tick.
+- **Templates:** Stored in `photo_card_templates` per channel (unique channel + number). Each template defines custom fields (short, long, image link, date) with stable keys (`contents.card_fields`).
+- **Emergency:** Emergency cards skip review (Designing → Approved with a red "Not approved" mark) and pin/flash at the top of the rundown.
+- **History (12 Nov):** Earlier draft planned a simple 4-step pipeline and two phases (Phase A manual / Phase B in-browser generation); replaced on 16 Nov by the designer workflow above. Browser-side rendering remains a future optional enhancement.
 
 ### General note
 Every content type's full pipeline and credit list will be revised as part of this work.
@@ -94,6 +81,9 @@ Every content type's full pipeline and credit list will be revised as part of th
 4. ✅ **DONE (15 Nov, N148/N148b): Manage Sponsors tick + Sponsors section in drawer left column** — `can_manage_sponsors` permission in app code, Sponsors moved to drawer left column under ContentDetailsFields with glowing badge, responsive layout and 44px touch targets.
 5. ✅ **DONE (15 Nov, N149/N149b/N149b2): Uncut app side** — UNCUT type in `CONTENT_TYPE_CONFIG` (hasScript: false, afterDraft: 'Assign Editor'), 22nd role Multimedia Journalist in `ROLE_LIST`, drawer without Editorial tab opening on Production, Footage Ready action, reporter production-admin powers, self-assign as Video Editor, creation payload filtering.
 6. ✅ **DONE (16 Nov, N150): shoot_location field** — free-text Location input in Production tab Shoot card for all content types with datalist suggestions, case-insensitive match, searchable, and in Excel export. Later: dedicated search screen over the archive.
-7. **Next: Photo Card workflow** (discussion first, then phase A & B).
+7. **Photo Card workflow**:
+   - ✅ **DONE (16 Nov): Database groundwork** — `sql/2026-11-16_photocard_database.sql` (3 ticks on `team_members`, `photo_card_templates` table with RLS, 16 new columns on `contents`, full rules in `guard_contents_insert`, `guard_contents_update`, `guard_team_members`, `notify_content_update`).
+   - ✅ **DONE (16 Nov, N151): Three ticks & Photo Card Templates page** — `can_request_photo_cards`, `can_approve_photo_cards`, `can_manage_photo_templates`, menu item in Manage section, list view & template editor with dynamic fields.
+   - **Next: N152** — PHOTO CARD type in the app (CONTENT_TYPE_CONFIG, new card form with "Save as draft" and "Submit to design", drawer tabs, pipeline action buttons).
 
 Each step is its own task, one at a time.
