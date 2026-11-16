@@ -10,7 +10,7 @@ NewsroomOps (brand name NewsWave) is a web app that runs the daily content rundo
 
 **The core idea.** Replace spreadsheets and chat threads with one rundown table where each content item has an owner, a status, a scheduled publish time and a full history. The status can only move along allowed steps, and only the people with the right permission can move it.
 
-**Target load.** About 50–60 contents a day, each with a script of up to 2 pages. Content types are EXPLAINER, LIVE, RECORDED LIVE, SOT, PACKAGE, SHOW and UNCUT. Items publish to YouTube, Facebook, Instagram, TikTok and the website.
+**Target load.** About 50–60 contents a day, each with a script of up to 2 pages. Content types are EXPLAINER, LIVE, RECORDED LIVE, SOT, PACKAGE, SHOW, UNCUT and PHOTO CARD. Items publish to YouTube, Facebook, Instagram, TikTok and the website.
 
 **What the app does today**
 
@@ -194,7 +194,7 @@ The drawer footer is ONE row on PC, made shorter on laptops (class `drawer-foote
 - **Team & permissions**: add a member, expand a member to set designation, photo link, the 8 permission toggles, role (Owner only), Deactivate or Reactivate, and Remove.
 - **External people**: manage external crew and presenters (no login, no app access; accessible to Owner, Managers, Producers, and Production Managers), add and inline-edit details and skills, and switch active/inactive status. In name pickers, external members are marked with "(External)".
 - **Advertisers**: manage sponsors and advertising partners (Manager/Owner only), add and inline-edit details, and switch active/inactive status.
-- **Photo Card Templates**: manage channel templates for Photo Cards (accessible to Owner, Managers, and members with the "Manage Photo Card Templates" tick). Templates define number, name, sample link, and custom field definitions (short text, long text, image link, date, with required and max length options). The Photo Card content type itself comes with the next task (N152).
+- **Photo Card Templates**: manage channel templates for Photo Cards (accessible to Owner, Managers, and members with the "Manage Photo Card Templates" tick). Templates define number, name, sample link, and custom field definitions (short text, long text, image link, date, with required and max length options).
 - **KPI report**: tiles Total, Published, Scheduled, In progress, Past due, then counts by status, channel, content type, presenter, writer and video editor.
 - **Toast**: green, red or neutral messages at the bottom for every save or refusal.
 
@@ -216,8 +216,11 @@ The top two rows are the full pipeline. The cards underneath list the moves that
 | LIVE | Draft, Script Submitted, then straight to Published when the script is approved (went_live_at = click time) | Goes out live, no shoot and no edit |
 | PACKAGE | Draft, Script Submitted, then straight to Assign Editor | No shoot. Script plus raw footage link go to the editor. |
 | UNCUT | Draft, then "Footage Ready" straight to Assign Editor, Editing, Video Review, Ready to Publish, Scheduled (optional), Published | Reporter-driven: no script, no shoot steps. Raw footage goes straight to editing. |
+| PHOTO CARD | Draft, Requested, Designing, In Review, Ready to Publish, Scheduled (optional), Published | Card from channel template made by a graphic designer. No script, no shoot, no video edit. |
 
 **The UNCUT content type.** Uncut content is reporter-driven raw footage brought in from the field without a script and without studio shoot steps. In Draft, the only forward action is "Footage Ready" (moving to Assign Editor), which can be pressed by the assigned Multimedia Journalist or a Manager once a Multimedia Journalist is selected; there is no Submit Script button. The drawer has no Editorial tab and opens on the Production tab by default. On an Uncut the Multimedia Journalist has production-admin powers: they can edit shoot times, add/remove names in Production Crew fields, edit production notes, and tick "Files delivered" (which is also available directly in Draft). In Assign Editor, the Multimedia Journalist can also assign themselves as Video Editor into an empty slot and advance the content to Editing. Re-Shoot and Copy Script actions are not offered on an Uncut.
+
+**The PHOTO CARD content type.** Card requested by writers from a channel template, crafted by a Graphic Designer, and published to social platforms. In New Content, choosing Photo Card provides a 2-button form ("Save as draft" and "Submit to design") with template fields, Breaking toggle, Source, Caption, and Designer instructions. The drawer features Editorial, Production, and Publish tabs (no Post-production tab). Step buttons come in N153.
 
 **The 13 statuses and every allowed move**
 

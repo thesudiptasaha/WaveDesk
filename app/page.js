@@ -28,7 +28,7 @@ import {
   FIELD_PERM, TRACKED_FIELDS, wentLiveDefault,
   canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
   canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
-  typeHasScript, isUncutReporter, canManagePhotoTemplates
+  typeHasScript, typeIsCard, isUncutReporter, canManagePhotoTemplates
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -1105,10 +1105,10 @@ function NewsroomApp({ authUser, onSignOut }) {
   const transition = useCallback(
     async (row, action, reason = '', extra = null) => {
       const fresh = rowsRef.current.find((r) => r.id === row.id) || row;
-      const current = getActions(fresh, actor).find((a) => a.id === action.id);
+      const current = getActions(fresh, actor, { photoTemplates }).find((a) => a.id === action.id);
       if (!current || !current.allowed || current.blocked) {
         notify(current && current.blocked ? current.blocked : 'You cannot perform this action', 'error');
-        return;
+        return false;
       }
       const now = new Date().toISOString();
       const patch = {
@@ -1141,15 +1141,16 @@ function NewsroomApp({ authUser, onSignOut }) {
       }
       const ok = await patchRow(fresh.id, patch, true);
       if (ok) notify(`${fresh.slug_name || fresh.title || 'Content'} → ${current.to}`, 'success');
+      return ok;
     },
-    [actor, patchRow, notify]
+    [actor, patchRow, notify, photoTemplates]
   );
 
   const runAction = (row, action) => {
-    if (action.id === 'copy_script') { navigator.clipboard.writeText(scriptToPlainText(row.script) || 'No script'); notify('Script copied', 'success'); return; }
-    if (action.id === 'publish') { setPublishFor({ rowId: row.id, action }); return; }
-    if (action.needsReason) setReasonFor({ rowId: row.id, action });
-    else transition(row, action);
+    if (action.id === 'copy_script') { navigator.clipboard.writeText(scriptToPlainText(row.script) || 'No script'); notify('Script copied', 'success'); return true; }
+    if (action.id === 'publish') { setPublishFor({ rowId: row.id, action }); return true; }
+    if (action.needsReason) { setReasonFor({ rowId: row.id, action }); return true; }
+    return transition(row, action);
   };
   /* Give a parked content (On Hold / incomplete) a new publish time. */
   const scheduleParked = async (row, iso) => {
@@ -1195,16 +1196,26 @@ function NewsroomApp({ authUser, onSignOut }) {
       return false;
     }
     const now = new Date().toISOString();
+    const isUncut = data.content_type === 'UNCUT';
+    const isCard = typeIsCard(data.content_type);
     const hasScript = typeHasScript(data.content_type);
     const sanitized = {
       ...data,
-      multimedia_journalist: hasScript ? '' : (data.multimedia_journalist || ''),
+      multimedia_journalist: isUncut ? (data.multimedia_journalist || '') : '',
       ...(hasScript ? {} : { concept_creator: '', writer: '', presenter_name: '', script: '' }),
+      ...(isCard ? {
+        concept_creator: '',
+        writer: '',
+        presenter_name: '',
+        script: '',
+        multimedia_journalist: '',
+        target_platforms: data.target_platforms || ['facebook'],
+      } : {}),
     };
     const payload = {
       organization_id: org ? org.id : null,
       status: 'Draft',
-      target_platforms: ['youtube', 'facebook'],
+      target_platforms: isCard ? ['facebook'] : ['youtube', 'facebook'],
       shorts: [],
       revisions: [],
       audit_log: [{ kind: 'status', actor: actor.full_name, role: actor.role, from: '', to: 'Draft', time: now, note: 'Created' }],
@@ -1225,6 +1236,7 @@ function NewsroomApp({ authUser, onSignOut }) {
     const when = saved.scheduled_publish_time ? new Date(saved.scheduled_publish_time) : null;
     const inRange = !when || (when >= range.start && when < addDays(range.end, 1));
     if (!inRange) setRange({ start: startOfDay(when), end: startOfDay(when) });
+    rowsRef.current = [...rowsRef.current.filter((r) => r.id !== saved.id), saved];
     setRows((rs) => [...rs.filter((r) => r.id !== saved.id), saved]);
     notify('Content created', 'success');
     return saved;
@@ -1806,7 +1818,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       .filter((r) => statusFilter === 'all' || r.status === statusFilter)
       .filter((r) => {
         if (!q) return true;
-        return [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text, r.shoot_location].some((v) => String(v || '').toLowerCase().includes(q));
+        return [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text, r.shoot_location, r.card_source, ...(r.card_fields ? Object.values(r.card_fields).filter((v) => typeof v === 'string') : [])].some((v) => String(v || '').toLowerCase().includes(q));
       })
       .sort((a, b) => {
         if (channelFilter === 'all') {
@@ -1827,7 +1839,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       .filter(isParked)
       .filter((r) => channelFilter === 'all' || r.channel === channelFilter)
       .filter((r) => statusFilter === 'all' || r.status === statusFilter)
-      .filter((r) => !q || [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text, r.shoot_location].some((v) => String(v || '').toLowerCase().includes(q)))
+      .filter((r) => !q || [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text, r.shoot_location, r.card_source, ...(r.card_fields ? Object.values(r.card_fields).filter((v) => typeof v === 'string') : [])].some((v) => String(v || '').toLowerCase().includes(q)))
       .sort((a, b) => {
         if (a.scheduled_publish_time && b.scheduled_publish_time) return new Date(a.scheduled_publish_time) - new Date(b.scheduled_publish_time);
         if (a.scheduled_publish_time) return -1;
@@ -2001,6 +2013,20 @@ function NewsroomApp({ authUser, onSignOut }) {
         item['Shoot Started'] = r.shoot_started_at ? new Date(r.shoot_started_at).toLocaleString() : '';
         item['Shoot Finished'] = r.shoot_finished_at ? new Date(r.shoot_finished_at).toLocaleString() : '';
         item['Production Notes'] = r.production_notes || '';
+        const tpl = (photoTemplates || []).find((t) => t.id === r.template_id);
+        item['Template'] = tpl ? `#${tpl.number} · ${tpl.name}` : (r.template_id ? `Template #${r.template_id}` : '');
+        item['Breaking'] = r.is_emergency ? 'Yes' : (typeIsCard(r.content_type) ? 'No' : '');
+        item['Source'] = r.card_source || '';
+        item['Requested By'] = r.requested_by || '';
+        item['Requested At'] = r.requested_at ? new Date(r.requested_at).toLocaleString() : '';
+        item['Designer Taken At'] = r.designer_taken_at ? new Date(r.designer_taken_at).toLocaleString() : '';
+        item['Made At'] = r.made_at ? new Date(r.made_at).toLocaleString() : '';
+        item['Approved By'] = r.approved_by || '';
+        item['Approved At'] = r.approved_at ? new Date(r.approved_at).toLocaleString() : '';
+        item['Corrections'] = r.correction_count > 0 ? (r.correction_note ? `${r.correction_count} (${r.correction_note})` : String(r.correction_count)) : '';
+        item['Review Skipped'] = r.review_skipped ? 'Yes' : (typeIsCard(r.content_type) ? 'No' : '');
+        item['Card Folder'] = r.card_folder || '';
+        item['Linked Content'] = r.linked_content_uid || '';
         item['Files Delivered At'] = r.files_delivered_at ? new Date(r.files_delivered_at).toLocaleString() : '';
         item['Files Delivered By'] = r.files_delivered_by || '';
         item['Published By'] = r.published_by || '';
@@ -2426,7 +2452,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                 {checkState === 'waiting_manager' ? 'Decide' : 'Answer'}
                               </button>
                             ) : null}
-                            <ActionButtons compact actions={getActions(r, actor)} onRun={(a) => runAction(r, a)} />
+                            <ActionButtons compact actions={getActions(r, actor, { photoTemplates })} onRun={(a) => runAction(r, a)} />
                           </div>
                         </td>
                       </tr>
@@ -2476,6 +2502,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                     canAnswer={canAnswer}
                     onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                     showDate={showDate}
+                    photoTemplates={photoTemplates}
                   />
                 );
               })}
@@ -2568,6 +2595,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                       canAnswer={canAnswer}
                                       onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                                       showDate={showDate}
+                                      photoTemplates={photoTemplates}
                                     />
                                   </div>
                                 );
@@ -2612,6 +2640,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                   canAnswer={canAnswer}
                                   onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                                   showDate={showDate}
+                                  photoTemplates={photoTemplates}
                                 />
                               );
                             })}
@@ -2782,6 +2811,7 @@ function NewsroomApp({ authUser, onSignOut }) {
           onDeleteAd={deleteContentAd}
           onPublishCheck={(r) => setPublishCheckFor(r.id)}
           locationOptions={locationOptions}
+          photoTemplates={photoTemplates}
         />
       ) : null}
       
@@ -2809,7 +2839,7 @@ function NewsroomApp({ authUser, onSignOut }) {
         <Icon name="plus" className="h-6 w-6 sm:h-4 sm:w-4" />
         <span className="hidden sm:inline">New Content</span>
       </button>
-      {showNew ? <NewContentModal channels={channels} team={team} defaultDate={range.start} actor={actor} onClose={() => setShowNew(false)} onCreate={createContent} /> : null}
+      {showNew ? <NewContentModal channels={channels} team={team} defaultDate={range.start} actor={actor} onClose={() => setShowNew(false)} onCreate={createContent} photoTemplates={photoTemplates} platforms={platforms} onRunAction={runAction} notify={notify} /> : null}
       {showNotices ? (
         <NoticeModal
           notices={notices}
@@ -2888,7 +2918,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                     <td colSpan="5" className="px-4 py-8 text-center text-[13px] text-zinc-500 bg-[#0A0A0C]">Bin is empty.</td>
                   </tr>
                 ) : bin.map((r) => {
-                  const restore = getActions(r, actor).find((a) => a.id === 'restore');
+                  const restore = getActions(r, actor, { photoTemplates }).find((a) => a.id === 'restore');
                   return (
                     <tr key={r.id} onClick={() => { setShowBin(false); setSelectedId(r.id); }} className="cursor-pointer transition hover:bg-white/[0.04] border-b border-white/[0.04] last:border-0">
                       <td className="px-4 py-3 font-medium text-white max-w-[300px] truncate">{r.slug_name || r.title || '-'}</td>
@@ -2957,7 +2987,7 @@ function NewsroomApp({ authUser, onSignOut }) {
           onClose={() => setPublishCheckFor(null)}
           onYes={() => {
             setPublishCheckFor(null);
-            const actions = getActions(publishCheckRow, actor);
+            const actions = getActions(publishCheckRow, actor, { photoTemplates });
             const pub = actions.find((a) => a.id === 'publish');
             if (pub && pub.allowed && !pub.blocked) {
               setPublishFor({ rowId: publishCheckRow.id, action: pub });

@@ -16,8 +16,9 @@ import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, Person
 import { PersonPicker } from './PersonPicker';
 import { StepBar } from './StepBar';
 import {
-  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, typeConfig, typeHasScript, PLATFORMS, PERMISSIONS, ROLE_LABEL,
+  DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, typeConfig, typeHasScript, typeIsCard, PLATFORMS, PERMISSIONS, ROLE_LABEL,
   STATUS_META, ALL_STATUSES, isManager, isOwner, can, afterScript, afterShoot, getActions,
+  canRequestPhotoCards, canApprovePhotoCards, canManagePhotoTemplates,
   startOfDay, addDays, sameDay, MONTHS, pad, formatRangeLabel, toLocalInput, fromLocalInput,
   formatTime, formatDay, formatStamp, SLUG_MAX, normalizeSlugInput, uid, generateUserUID,
   makeContentUid, asArray, shortsInRange, rowTimeIn, isParked, isRemovedPublished, normalizeRow, normalizeMember,
@@ -376,6 +377,8 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
   const okSched = canRescheduleRow(actor, row);
   const heldLock = row.status === 'On Hold' && !isManager(actor);
   const okChan = can(actor, 'can_change_channel');
+  const isCard = typeIsCard(row.content_type);
+  const emergencyNoTime = isCard && row.is_emergency && row.status !== 'Published';
 
   return (
     <div className="space-y-6 details-compact">
@@ -384,31 +387,43 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
           <Field label="Channel" locked={!okChan} lockMessage={lockMsg('Change Channel')}>
             <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
           </Field>
-          <Field label="Scheduled publish" locked={!okSched || heldLock} lockMessage={heldLock ? 'Only Managers and the Owner can reschedule held content' : lockMsg('Reschedule Content')}>
-            <input
-              type="datetime-local"
-              disabled={!okSched || heldLock}
-              value={toLocalInput(row.scheduled_publish_time)}
-              onChange={(e) => e.target.value && patch({ scheduled_publish_time: fromLocalInput(e.target.value) })}
-              className={`${(okSched && !heldLock) ? inputBase : inputLocked} [color-scheme:dark]`}
-            />
+          <Field label="Scheduled publish" locked={!emergencyNoTime && (!okSched || heldLock)} lockMessage={heldLock ? 'Only Managers and the Owner can reschedule held content' : lockMsg('Reschedule Content')}>
+            {emergencyNoTime ? (
+              <div className="flex h-9 items-center text-[12px] text-zinc-500 italic">
+                Set when it is published
+              </div>
+            ) : (
+              <input
+                type="datetime-local"
+                disabled={!okSched || heldLock}
+                value={toLocalInput(row.scheduled_publish_time)}
+                onChange={(e) => e.target.value && patch({ scheduled_publish_time: fromLocalInput(e.target.value) })}
+                className={`${(okSched && !heldLock) ? inputBase : inputLocked} [color-scheme:dark]`}
+              />
+            )}
           </Field>
         </div>
         <Field label="Slug name" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')} hint={`${(row.slug_name || '').length}/${SLUG_MAX}`}>
           <BlurInput value={row.slug_name} disabled={!okMeta} maxLength={SLUG_MAX} onCommit={(v) => { const s = normalizeSlugInput(v); if (s) patch({ slug_name: s }); }} placeholder="Slug name" />
         </Field>
-        <Field label="Title" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-          <BlurInput value={row.title} disabled={!okMeta} onCommit={(v) => patch({ title: v })} placeholder="Title" />
-        </Field>
-        <Field label="Thumbnail text (Hook)" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-          <BlurInput value={row.thumbnail_text} disabled={!okMeta} onCommit={(v) => patch({ thumbnail_text: v })} placeholder="Hook on the thumbnail" />
-        </Field>
+        {!isCard ? (
+          <>
+            <Field label="Title" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+              <BlurInput value={row.title} disabled={!okMeta} onCommit={(v) => patch({ title: v })} placeholder="Title" />
+            </Field>
+            <Field label="Thumbnail text (Hook)" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+              <BlurInput value={row.thumbnail_text} disabled={!okMeta} onCommit={(v) => patch({ thumbnail_text: v })} placeholder="Hook on the thumbnail" />
+            </Field>
+          </>
+        ) : null}
       </section>
 
       <section className="grid grid-cols-1 gap-4">
-        <Field label="Archive shelf ID" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
-          <BlurInput value={row.archive_shelf_id} disabled={!okMeta} onCommit={(v) => patch({ archive_shelf_id: v })} placeholder="e.g. SHELF-A12" />
-        </Field>
+        {!isCard ? (
+          <Field label="Archive shelf ID" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
+            <BlurInput value={row.archive_shelf_id} disabled={!okMeta} onCommit={(v) => patch({ archive_shelf_id: v })} placeholder="e.g. SHELF-A12" />
+          </Field>
+        ) : null}
         <Field label="Target platforms" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')}>
           <div className="flex flex-wrap items-center gap-2">
             {(platforms || PLATFORMS).map((p) => {
@@ -2047,6 +2062,547 @@ function PackagingTab({ row, actor, team = [], patch, platforms = PLATFORMS, onA
   );
 }
 
+function canEditCardDetails(actor, row) {
+  if (!actor || actor.active === false) return false;
+  if (isManager(actor)) return true;
+  if (!canRequestPhotoCards(actor)) return false;
+  return ['Draft', 'Requested', 'Designing', 'In Review'].includes(row.status);
+}
+
+function canEditCardCaption(actor) {
+  if (!actor || actor.active === false) return false;
+  if (isManager(actor)) return true;
+  if (canRequestPhotoCards(actor)) return true;
+  if (can(actor, 'can_edit_content_details')) return true;
+  if (actor.role_publisher === true) return true;
+  return false;
+}
+
+function canEditCardProduction(actor, row) {
+  if (!actor || actor.active === false) return false;
+  if (isManager(actor)) return true;
+  if (actor.role_graphic_designer === true) return true;
+  if (row.graphic_designer && row.graphic_designer === actor.full_name) return true;
+  return false;
+}
+
+function canEditLinkedContent(actor, row) {
+  if (!actor || actor.active === false) return false;
+  if (isManager(actor)) return true;
+  if (canRequestPhotoCards(actor)) return true;
+  if (actor.role_publisher === true) return true;
+  if (row.publisher && row.publisher === actor.full_name) return true;
+  return false;
+}
+
+function PhotoCardEditorialTab({ row, actor, patch, photoTemplates = [] }) {
+  const okEdit = canEditCardDetails(actor, row);
+  const cardLockMsg = !canRequestPhotoCards(actor)
+    ? 'You need the “Request Photo Cards” permission'
+    : 'Only editable before approval (or by Managers)';
+  const okCaption = canEditCardCaption(actor);
+  const captionLockMsg = 'You need permission to edit content details, request photo cards, or publish';
+
+  const tpl = (photoTemplates || []).find((t) => t.id === row.template_id);
+
+  return (
+    <div className="space-y-6">
+      {/* a) Requested by */}
+      {row.requested_by ? (
+        <div className="flex items-center gap-2 text-[12px] text-zinc-400">
+          <Icon name="user" className="h-3.5 w-3.5 text-zinc-500" />
+          <span>
+            Requested by <strong className="text-zinc-200">{row.requested_by}</strong>
+            {row.requested_at ? ` on ${formatStamp(row.requested_at)}` : ''}
+          </span>
+        </div>
+      ) : null}
+
+      {/* b) Template line */}
+      <Field label="Template">
+        <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.025] px-3.5 py-2.5">
+          <span className="text-[13px] font-medium text-zinc-200">
+            {tpl ? `#${tpl.number} · ${tpl.name}` : (row.template_id ? `Template #${row.template_id}` : 'None')}
+          </span>
+          {safeHttpUrl(tpl?.sample_url) ? (
+            <a
+              href={safeHttpUrl(tpl.sample_url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-sky-400 hover:text-sky-300 hover:underline"
+            >
+              Sample ↗
+            </a>
+          ) : null}
+        </div>
+      </Field>
+
+      {/* c) Breaking toggle */}
+      <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.025] px-3.5 py-2.5">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium text-zinc-200">Breaking</span>
+            {!okEdit ? <LockIcon message={cardLockMsg} /> : null}
+          </div>
+          <p className="text-[12px] text-zinc-500">Pinned to the top of the rundown until published</p>
+        </div>
+        <Toggle on={!!row.is_emergency} disabled={!okEdit} onChange={(v) => patch({ is_emergency: v })} />
+      </div>
+
+      {/* d) Template fields */}
+      {tpl && Array.isArray(tpl.fields) && tpl.fields.length > 0 ? (
+        <div className="space-y-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Template Fields</div>
+          {tpl.fields.map((f) => {
+            const val = (row.card_fields && row.card_fields[f.key]) || '';
+            const labelWithReq = (
+              <span>
+                {f.label || f.key}
+                {f.required ? <span className="text-red-400 ml-1">*</span> : null}
+              </span>
+            );
+            const counterHint = f.max_length ? `${val.length}/${f.max_length}` : undefined;
+            if (f.type === 'long') {
+              return (
+                <Field key={f.key} label={labelWithReq} hint={counterHint} locked={!okEdit} lockMessage={cardLockMsg}>
+                  <BlurInput
+                    multiline
+                    rows={3}
+                    value={val}
+                    disabled={!okEdit}
+                    maxLength={f.max_length || undefined}
+                    onCommit={(v) => patch({ card_fields: { ...(row.card_fields || {}), [f.key]: v } })}
+                    placeholder={f.hint || f.label}
+                  />
+                </Field>
+              );
+            }
+            if (f.type === 'image') {
+              return (
+                <Field
+                  key={f.key}
+                  label={
+                    <span className="flex items-center justify-between w-full">
+                      <span>{labelWithReq}</span>
+                      {safeHttpUrl(val) ? (
+                        <a
+                          href={safeHttpUrl(val)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-medium text-sky-400 hover:text-sky-300 hover:underline lowercase tracking-normal"
+                        >
+                          Open ↗
+                        </a>
+                      ) : null}
+                    </span>
+                  }
+                  hint="Paste a link the designer can open without asking for permission"
+                  locked={!okEdit}
+                  lockMessage={cardLockMsg}
+                >
+                  <BlurInput
+                    value={val}
+                    disabled={!okEdit}
+                    onCommit={(v) => patch({ card_fields: { ...(row.card_fields || {}), [f.key]: v.trim() } })}
+                    placeholder="https://..."
+                  />
+                </Field>
+              );
+            }
+            if (f.type === 'date') {
+              return (
+                <Field key={f.key} label={labelWithReq} locked={!okEdit} lockMessage={cardLockMsg}>
+                  <input
+                    type="date"
+                    disabled={!okEdit}
+                    value={val}
+                    onChange={(e) => patch({ card_fields: { ...(row.card_fields || {}), [f.key]: e.target.value } })}
+                    className={`${okEdit ? inputBase : inputLocked} [color-scheme:dark]`}
+                  />
+                </Field>
+              );
+            }
+            return (
+              <Field key={f.key} label={labelWithReq} hint={counterHint} locked={!okEdit} lockMessage={cardLockMsg}>
+                <BlurInput
+                  value={val}
+                  disabled={!okEdit}
+                  maxLength={f.max_length || undefined}
+                  onCommit={(v) => patch({ card_fields: { ...(row.card_fields || {}), [f.key]: v } })}
+                  placeholder={f.hint || f.label}
+                />
+              </Field>
+            );
+          })}
+        </div>
+      ) : (
+        row.card_fields && Object.keys(row.card_fields).length > 0 ? (
+          <div className="space-y-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Template Fields</div>
+            {Object.entries(row.card_fields).map(([k, v]) => (
+              <Field key={k} label={k} locked lockMessage="Template not found">
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3.5 py-2 text-[13px] text-zinc-300">
+                  {String(v ?? '')}
+                </div>
+              </Field>
+            ))}
+          </div>
+        ) : null
+      )}
+
+      {/* e) Source */}
+      <Field
+        label={
+          <span className="flex items-center justify-between w-full">
+            <span>
+              Source <span className="text-red-400 ml-0.5">*</span>
+            </span>
+            {safeHttpUrl(row.card_source) ? (
+              <a
+                href={safeHttpUrl(row.card_source)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-medium text-sky-400 hover:text-sky-300 hover:underline lowercase tracking-normal"
+              >
+                Open ↗
+              </a>
+            ) : null}
+          </span>
+        }
+        locked={!okEdit}
+        lockMessage={cardLockMsg}
+      >
+        <BlurInput
+          value={row.card_source}
+          disabled={!okEdit}
+          onCommit={(v) => patch({ card_source: v.trim() })}
+          placeholder="Where the info came from (link or plain text)"
+        />
+      </Field>
+
+      {/* f) Caption */}
+      <div>
+        <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          <span className="flex items-center gap-1.5">
+            Post caption / social copy
+            {!okCaption ? <LockIcon message={captionLockMsg} /> : null}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="normal-case tracking-normal text-zinc-500">{(row.post_caption || '').length} characters</span>
+            <CopyButton text={row.post_caption || ''} />
+          </div>
+        </div>
+        <BlurInput
+          multiline
+          rows={5}
+          value={row.post_caption}
+          disabled={!okCaption}
+          onCommit={(v) => patch({ post_caption: v })}
+          placeholder="Caption that goes out with the post..."
+        />
+      </div>
+
+      {/* g) Instructions for designer */}
+      <Field label="Instructions for designer" locked={!okEdit} lockMessage={cardLockMsg}>
+        <BlurInput
+          multiline
+          rows={3}
+          value={row.designer_instructions}
+          disabled={!okEdit}
+          onCommit={(v) => patch({ designer_instructions: v })}
+          placeholder="Any specific requests, crop preferences, or visual notes..."
+        />
+      </Field>
+    </div>
+  );
+}
+
+function PhotoCardProductionTab({ row, actor, patch }) {
+  const okProd = canEditCardProduction(actor, row);
+  const prodLockMsg = 'Graphic Designer or Managers only';
+
+  const historyItems = [];
+  if (row.requested_by || row.requested_at) {
+    historyItems.push({
+      label: 'Requested',
+      value: `${row.requested_by || 'Unknown'}${row.requested_at ? ` · ${formatStamp(row.requested_at)}` : ''}`,
+    });
+  }
+  if (row.designer_taken_at) {
+    historyItems.push({
+      label: 'Taken by designer',
+      value: formatStamp(row.designer_taken_at),
+    });
+  }
+  if (row.made_at) {
+    historyItems.push({
+      label: 'Made',
+      value: formatStamp(row.made_at),
+    });
+  }
+  if (row.approved_by || row.approved_at) {
+    historyItems.push({
+      label: 'Approved',
+      value: `${row.approved_by || 'Unknown'}${row.approved_at ? ` · ${formatStamp(row.approved_at)}` : ''}`,
+    });
+  }
+  if (row.correction_count > 0 || row.correction_note) {
+    historyItems.push({
+      label: 'Corrections',
+      value: `${row.correction_count || 0}${row.correction_note ? ` (Last: ${row.correction_note})` : ''}`,
+    });
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Graphic Designer Tile */}
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Graphic Designer</div>
+        <div className="flex items-center gap-3">
+          <Avatar name={row.graphic_designer} />
+          <div>
+            <div className={`text-[14px] font-semibold ${row.graphic_designer ? 'text-zinc-100' : 'text-zinc-500 italic'}`}>
+              {row.graphic_designer || 'Not taken yet'}
+            </div>
+            <p className="text-[12px] text-zinc-500 mt-0.5">Set when a designer takes the card</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Card folder */}
+      <Field label="Card folder" locked={!okProd} lockMessage={prodLockMsg} hint="Where is the finished card on the shared drive">
+        <BlurInput
+          value={row.card_folder}
+          disabled={!okProd}
+          onCommit={(v) => patch({ card_folder: v.trim() })}
+          placeholder="e.g. Google Drive link or folder path"
+        />
+      </Field>
+
+      {/* Production notes */}
+      <Field label="Production notes" locked={!okProd} lockMessage={prodLockMsg}>
+        <BlurInput
+          multiline
+          rows={4}
+          value={row.production_notes}
+          disabled={!okProd}
+          onCommit={(v) => patch({ production_notes: v })}
+          placeholder="Notes for production and design..."
+        />
+      </Field>
+
+      {/* History block */}
+      {historyItems.length > 0 || row.review_skipped ? (
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">History & Workflow</span>
+            {row.review_skipped ? (
+              <span className="inline-flex items-center rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-300 ring-1 ring-inset ring-red-500/30">
+                Not approved
+              </span>
+            ) : null}
+          </div>
+          <div className="space-y-2 text-[12px]">
+            {historyItems.map((item, idx) => (
+              <div key={idx} className="flex items-baseline justify-between gap-2 border-b border-white/[0.04] pb-1.5 last:border-0 last:pb-0">
+                <span className="text-zinc-400">{item.label}</span>
+                <span className="font-medium text-zinc-200 text-right">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PhotoCardPublishTab({ row, actor, team, patch, platforms = PLATFORMS }) {
+  const active = !!actor && actor.active !== false;
+  const okCaption = canEditCardCaption(actor);
+  const captionLockMsg = 'You need permission to edit content details, request photo cards, or publish';
+  const okLinked = canEditLinkedContent(actor, row);
+  const linkedLockMsg = 'Publisher, Request Photo Cards holders, or Managers only';
+
+  const pubLinks = getPublishedLinks(row);
+  const allPlatforms = platforms || PLATFORMS;
+  const targetPlatforms = Array.from(new Set([
+    ...(row.target_platforms && row.target_platforms.length > 0 ? row.target_platforms : allPlatforms.map((p) => p.id)),
+    ...Object.keys(pubLinks),
+  ]));
+
+  const onCommitPublishedLink = (platformId, val) => {
+    const updated = { ...pubLinks, [platformId]: (val || '').trim() };
+    if (!updated[platformId]) delete updated[platformId];
+    
+    const hasKeys = Object.keys(updated).length > 0;
+    const payload = {
+      live_video_url: hasKeys ? JSON.stringify(updated) : '',
+    };
+    if ('published_links' in row) {
+      payload.published_links = updated;
+    }
+    patch(payload);
+  };
+
+  const captionCount = `${(row.post_caption || '').length} characters`;
+  const hashtagCount = `${(row.hashtags || '').split(/\s+/).filter(Boolean).length} hashtags`;
+
+  return (
+    <div className="space-y-6">
+      {/* a) Publisher */}
+      <div className="w-full lg:w-1/2">
+        <StaffGroupCard group="publish" row={row} actor={actor} team={team} patch={patch} />
+      </div>
+
+      {/* Real upload time */}
+      <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Real upload time</span>
+        <span className={`text-[13px] ${row.went_live_at ? 'font-medium text-emerald-400' : 'text-zinc-500 italic'}`}>
+          {row.went_live_at ? formatStamp(row.went_live_at) : 'Not published yet'}
+        </span>
+      </div>
+
+      {/* b) Target Platforms (read-only chips) */}
+      <div className="space-y-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Target Platforms</div>
+        <div className="flex flex-wrap items-center gap-2">
+          {(row.target_platforms || []).map((pId) => {
+            const pMeta = allPlatforms.find((p) => p.id === pId) || { id: pId, label: pId };
+            return (
+              <span
+                key={pId}
+                className="rounded-full border border-sky-400/50 bg-sky-500/15 px-3 py-1 text-[12px] font-medium text-sky-200"
+              >
+                {pMeta.label || pMeta.name || pId}
+              </span>
+            );
+          })}
+          {(!row.target_platforms || row.target_platforms.length === 0) ? (
+            <span className="text-[12px] text-zinc-500 italic">No target platforms selected (edit in Details on the left)</span>
+          ) : null}
+        </div>
+      </div>
+
+      {/* c) Published links per platform */}
+      <section className="border-t border-white/[0.08] pt-4">
+        <div className="mb-2">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Published Links</div>
+          <p className="text-[12px] text-zinc-500">Published live URLs for each platform where this card is live.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-3">
+          {targetPlatforms.map((pId) => {
+            const pMeta = allPlatforms.find((p) => p.id === pId) || { id: pId, label: pId };
+            const currentUrl = pubLinks[pId] || '';
+            return (
+              <Field key={pId} label={`${pMeta.label || pId} Published Link`} locked={!active} lockMessage="Inactive members cannot edit">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <BlurInput
+                      value={currentUrl}
+                      disabled={!active}
+                      onCommit={(v) => onCommitPublishedLink(pId, v)}
+                      placeholder={`https://${pId}.com/...`}
+                    />
+                  </div>
+                  {safeHttpUrl(currentUrl) ? (
+                    <a
+                      href={safeHttpUrl(currentUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${btnGhost} !px-3`}
+                      title={`Open ${pMeta.label || pId} link`}
+                    >
+                      <Icon name="link" />
+                    </a>
+                  ) : null}
+                </div>
+              </Field>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* d) Caption & Hashtags */}
+      <section className="space-y-4 border-t border-white/[0.08] pt-4">
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              Post caption / social copy
+              {!okCaption ? <LockIcon message={captionLockMsg} /> : null}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="normal-case tracking-normal text-zinc-500">{captionCount}</span>
+              <CopyButton text={row.post_caption || ''} />
+            </div>
+          </div>
+          <BlurInput
+            multiline
+            rows={5}
+            value={row.post_caption}
+            disabled={!okCaption}
+            onCommit={(v) => patch({ post_caption: v })}
+            placeholder="Caption that goes out with the post..."
+          />
+          <p className="mt-1 text-[12px] text-zinc-500">One caption for all platforms for now.</p>
+        </div>
+
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              Hashtags (#)
+              {!okCaption ? <LockIcon message={captionLockMsg} /> : null}
+              <span className="normal-case tracking-normal text-zinc-600"># is added for you</span>
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="normal-case tracking-normal text-zinc-500">{hashtagCount}</span>
+              <CopyButton text={row.hashtags || ''} />
+            </div>
+          </div>
+          <BlurInput
+            multiline
+            rows={3}
+            value={row.hashtags}
+            disabled={!okCaption}
+            onCommit={(v) => patch({ hashtags: normalizeHashtags(v) })}
+            placeholder="#budget #economy"
+          />
+        </div>
+      </section>
+
+      {/* e) Linked Content */}
+      <section className="border-t border-white/[0.08] pt-4">
+        <Field
+          label={
+            <span className="flex items-center justify-between w-full">
+              <span>Linked content</span>
+              {safeHttpUrl(row.linked_content_uid) ? (
+                <a
+                  href={safeHttpUrl(row.linked_content_uid)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-medium text-sky-400 hover:text-sky-300 hover:underline lowercase tracking-normal"
+                >
+                  Open ↗
+                </a>
+              ) : null}
+            </span>
+          }
+          hint="Content ID or link to a related video or post"
+          locked={!okLinked}
+          lockMessage={linkedLockMsg}
+        >
+          <BlurInput
+            value={row.linked_content_uid}
+            disabled={!okLinked}
+            onCommit={(v) => patch({ linked_content_uid: v.trim() })}
+            placeholder="e.g. WAVECON-0042 or https://..."
+          />
+        </Field>
+      </section>
+    </div>
+  );
+}
+
 const QC_KINDS = [
   { id: 'revision', label: 'Revision note' },
   { id: 'qa', label: 'QA remark' },
@@ -2802,10 +3358,12 @@ function PublishCheckBanner({ row, actor, onAnswer }) {
   return null;
 }
 
-function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd, onPublishCheck, locationOptions = [] }) {
+function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd, onPublishCheck, locationOptions = [], photoTemplates = [] }) {
   const bookings = useContentBookings(row?.id);
   const savedScriptStats = scriptStats(row.script);
-  const [tab, setTab] = useState(typeHasScript(row.content_type) ? 'editorial' : 'production');
+  const isCard = typeIsCard(row.content_type);
+  const hasEditorial = typeHasScript(row.content_type) || isCard;
+  const [tab, setTab] = useState(hasEditorial ? 'editorial' : 'production');
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [saveState, setSaveState] = useState({ status: 'idle', at: null });
   const pendingRef = useRef(0);
@@ -2830,7 +3388,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   }, []);
 
   useEffect(() => {
-    setTab(typeHasScript(row.content_type) ? 'editorial' : 'production');
+    setTab((typeHasScript(row.content_type) || typeIsCard(row.content_type)) ? 'editorial' : 'production');
     setDetailsOpen(true);
     pendingRef.current = 0;
     setSaveState({ status: 'idle', at: null });
@@ -2865,19 +3423,19 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
     }
     return ok;
   };
-  const actions = getActions(row, actor);
+  const actions = getActions(row, actor, { photoTemplates });
   const mainActions = actions.filter(
     (a) => a.id !== 'hold' && a.id !== 'drop' && a.id !== 'download_script' && a.id !== 'copy_script'
   );
   const dangerActions = ['hold', 'drop']
     .map((id) => actions.find((a) => a.id === id))
     .filter(Boolean);
-  const currentTab = (!typeHasScript(row.content_type) && tab === 'editorial') ? 'production' : tab;
+  const currentTab = (!hasEditorial && tab === 'editorial') ? 'production' : tab;
   const prog = stepProgress(row);
   const tabs = [
-    ...(typeHasScript(row.content_type) ? [{ id: 'editorial', label: 'Editorial', done: prog.editorial }] : []),
+    ...(hasEditorial ? [{ id: 'editorial', label: 'Editorial', done: prog.editorial }] : []),
     { id: 'production', label: 'Production', done: prog.production },
-    { id: 'postproduction', label: 'Post-production', done: prog.post },
+    ...(!isCard ? [{ id: 'postproduction', label: 'Post-production', done: prog.post }] : []),
     { id: 'packaging', label: 'Publish', done: prog.publish },
     { id: 'qc', label: 'QC & Audit', done: false },
     { id: 'credits', label: 'Credits', done: false },
@@ -3036,11 +3594,27 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
           <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
             <PublishCheckBanner row={row} actor={actor} onAnswer={onPublishCheck} />
             {currentTab === 'editorial' ? (
-              <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} />
+              isCard ? (
+                <PhotoCardEditorialTab row={row} actor={actor} patch={patch} photoTemplates={photoTemplates} />
+              ) : (
+                <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} />
+              )
             ) : null}
-            {currentTab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} locationOptions={locationOptions} /> : null}
-            {currentTab === 'postproduction' ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
-            {currentTab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
+            {currentTab === 'production' ? (
+              isCard ? (
+                <PhotoCardProductionTab row={row} actor={actor} patch={patch} />
+              ) : (
+                <ProductionTab row={row} actor={actor} team={team} patch={patch} locationOptions={locationOptions} />
+              )
+            ) : null}
+            {currentTab === 'postproduction' && !isCard ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
+            {currentTab === 'packaging' ? (
+              isCard ? (
+                <PhotoCardPublishTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} />
+              ) : (
+                <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} />
+              )
+            ) : null}
             {currentTab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
             {currentTab === 'credits' ? <CreditsTab row={row} actor={actor} team={team} patch={patch} /> : null}
           </div>

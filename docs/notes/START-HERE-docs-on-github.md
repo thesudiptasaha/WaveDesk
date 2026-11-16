@@ -1,6 +1,6 @@
 # WaveDesk — মূল ডকুমেন্ট কোথায় ও কাজের ধরন (হালনাগাদ: ১৬ নভেম্বর ২০২৬)
 
-**মূল ডকুমেন্ট GitHub রিপোর `docs/` ফোল্ডারে** (github.com/thesudiptasaha/wavedesk, ব্রাঞ্চ main; রিপো Public)। ডকুমেন্ট একাধিক জায়গায় রাখা হবে না; বিরোধ হলে GitHub-ই সঠিক। পরিকল্পনার নোট (সিদ্ধান্ত ও ধারণা) `docs/notes/`-এ। শেষ যাচাই-করা কমিট: **7d62abb** (N150)। লাইভ: https://wavedesk-manager.vercel.app
+**মূল ডকুমেন্ট GitHub রিপোর `docs/` ফোল্ডারে** (github.com/thesudiptasaha/wavedesk, ব্রাঞ্চ main; রিপো Public)। ডকুমেন্ট একাধিক জায়গায় রাখা হবে না; বিরোধ হলে GitHub-ই সঠিক। পরিকল্পনার নোট (সিদ্ধান্ত ও ধারণা) `docs/notes/`-এ। শেষ যাচাই-করা কমিট: **42b7c58** (N151)। লাইভ: https://wavedesk-manager.vercel.app
 
 ## কোন কাজের জন্য কোন ফাইল
 | বিষয় | ফাইল |
@@ -48,7 +48,7 @@ Draft → Script Submitted → Ready for Shoot → Shooting → Assign Editor �
 - SQL মালিক Supabase SQL Editor-এ চালান (লাইভ ফাংশনের লাইন CRLF, প্যাচ এক লাইনে); লাইভ চালালে রিপোতে রেকর্ড ফাইল।
 - UI নকশা: আগে টেক্সট/ছবির মকআপ দেখিয়ে পছন্দ নেওয়া।
 - রিপো Public: কোনো key, পাসওয়ার্ড, সার্ভারের ঠিকানা, আসল কনটেন্ট, গোপন নোট (বিজনেস প্ল্যান, নিরাপত্তা রিভিউ) রিপোতে নয়।
-- নম্বর ও কমিটের মিল: `docs/notes/task-number-tracker.md`। পরের নম্বর **N152** (N151 = Photo Card ৩টি টিক ও টেমপ্লেট পেজ সম্পন্ন)।
+- নম্বর ও কমিটের মিল: `docs/notes/task-number-tracker.md`। পরের নম্বর **N153** (N152 = Photo Card step 2 সম্পন্ন)।
 
 ## এখন বাকি
-`docs/notes/roadmap.md` দেখুন। সংক্ষেপে: বাইরের ক্রু আমন্ত্রণ ফিচার সম্পন্ন (পাবলিক পেজসহ) → স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন (N142, N145, N143, N144; টেস্ট বাকি) → Content type decisions recorded (N146) → content type table refactor (`CONTENT_TYPE_CONFIG`, N147 সম্পন্ন) → DB groundwork records (14 Nov) & Manage Sponsors tick + Sponsors section in drawer left column (N148/N148b সম্পন্ন ও টেস্ট পাস) → Uncut app side (N149/N149b/N149b2 সম্পন্ন ও টেস্ট পাস) → shoot_location field (N150 সম্পন্ন ও টেস্ট পাস) → Photo Card database (✅ সম্পন্ন, ১৬ নভেম্বর) → Photo Card step 1: 3 ticks & Templates page (N151 সম্পন্ন, টেস্ট বাকি) → Photo Card content type in app (N152: creation, pipeline, Graphic Designer role, photo card drawer tabs, first version of workflow) → ব্যাকআপ ফলো-আপসমূহ → Telegram বট → ডক ও হোম পেজ (ডকের জায়গা অনুমোদন বাকি)। ব্যবহারকারীর স্থগিত: Bulk schedule পুনর্ভাবনা। ব্যাকআপ রিস্টোর পরীক্ষা মালিকের পরে করার কাজ।
+`docs/notes/roadmap.md` দেখুন। সংক্ষেপে: বাইরের ক্রু আমন্ত্রণ ফিচার সম্পন্ন (পাবলিক পেজসহ) → স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন (N142, N145, N143, N144; টেস্ট বাকি) → Content type decisions recorded (N146) → content type table refactor (`CONTENT_TYPE_CONFIG`, N147 সম্পন্ন) → DB groundwork records (14 Nov) & Manage Sponsors tick + Sponsors section in drawer left column (N148/N148b সম্পন্ন ও টেস্ট পাস) → Uncut app side (N149/N149b/N149b2 সম্পন্ন ও টেস্ট পাস) → shoot_location field (N150 সম্পন্ন ও টেস্ট পাস) → Photo Card database (✅ সম্পন্ন, ১৬ নভেম্বর) → Photo Card step 1: 3 ticks & Templates page (N151 সম্পন্ন) → Photo Card step 2: PHOTO CARD type, 2-button form & drawer tabs (N152 সম্পন্ন) → Photo Card step 3: step buttons (N153) → ব্যাকআপ ফলো-আপসমূহ → Telegram বট → ডক ও হোম পেজ (ডকের জায়গা অনুমোদন বাকি)। ব্যবহারকারীর স্থগিত: Bulk schedule পুনর্ভাবনা। ব্যাকআপ রিস্টোর পরীক্ষা মালিকের পরে করার কাজ।

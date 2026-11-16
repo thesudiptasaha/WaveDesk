@@ -5,6 +5,25 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 16 Nov 2026 — Photo Card step 2: Photo Card type, form & drawer tabs (N152 / N152b / N152b2)
+
+- **PHOTO CARD content type**: Added `PHOTO CARD` to `CONTENT_TYPE_CONFIG` with pink theme, `skipsShoot: true`, `hasPostStage: false`, `usesVideoEditor: false`, `hasScript: false`, `isCard: true`, and all roles hidden in credits except `graphic_designer` and `publisher`. Exported helper `typeIsCard(type)`. Statuses added to `STATUS_META`: `Requested` (violet), `Designing` (fuchsia), `In Review` (orange).
+- **New Content modal for Photo Card**: When choosing Photo Card, replaces the script and people sections with card sections:
+  - Template dropdown: active templates for the selected channel (`#number · name`); switching channel or template resets fields.
+  - Slug auto-generation: automatically mirrors the first `short` text field until manually edited; fallback to `<template name> #<number>`.
+  - Breaking toggle (`is_emergency`): hides the scheduled publish picker and replaces it with "Set when it is published", setting scheduled publish time to now.
+  - Template fields: ordered by template; supports `short` (single line), `long` (textarea), `image` (URL with "Open ↗" link), and `date`. Respects `f.max_length`.
+  - Additional fields: Source (required, with "Open ↗" link when starting with http), Caption (`post_caption`), Instructions for designer (`designer_instructions`), Target platforms chips (default `facebook`).
+  - Two buttons: "Save as draft" (requires channel, template, slug) and "Submit to design" (validates `photoCardMissing`: channel, template, required fields, source, publish time unless Breaking; creates Draft and advances to Requested; if submit fails, warns and keeps card as Draft).
+- **Drawer for Photo Card**:
+  - Five tabs: Editorial (initial tab), Production, Publish, QC & Audit, Credits (no Post-production tab). Uncut content type continues to open on Production.
+  - Editorial tab (`PhotoCardEditorialTab`): read-only "Requested by <name> on <date>", template line with "Sample ↗" link, Breaking toggle, template fields, Source, Caption (with character counter and Copy button), and Instructions for designer. Editable before approval by Request Photo Cards tick holders or Managers.
+  - Production tab (`PhotoCardProductionTab`): read-only Graphic Designer tile with "Not taken yet", Card folder input, Production notes, and workflow history block (Requested, Taken, Made, Approved, Corrections count and note, red "Not approved" mark if review was skipped). Editable by card designer, Graphic Designer tick holders, and Managers.
+  - Publish tab (`PhotoCardPublishTab`): Publisher card (`StaffGroupCard`), real upload time, read-only target platform chips, published links per platform (reusing LinkRow and published links storage), Caption, Hashtags (with counter and Copy button), and Linked content (`linked_content_uid` with "Open ↗" link).
+  - Left column: hides Title, Thumbnail text, and Archive shelf ID. Replaces Scheduled publish input with "Set when it is published" while Breaking is active and status is not Published.
+- **Search & Excel export**: Both rundown and parked search inspect `card_source` and template field values. Excel export adds 13 new columns after Production Notes: Template, Breaking, Source, Requested By, Requested At, Designer Taken At, Made At, Approved By, Approved At, Corrections, Review Skipped, Card Folder, Linked Content.
+- **Race condition & clean-up fixes (N152b / N152b2)**: `createContent` updates `rowsRef.current` synchronously before `setRows`, allowing immediate action dispatch after card creation; field type IDs use canonical `'short'` and `'long'`; character limits use `f.max_length`; removed all accidental whitespace differences.
+
 ## 16 Nov 2026 — Photo Card DB groundwork & Photo Card Templates page (N151)
 
 - **Photo Card database groundwork**: record `sql/2026-11-16_photocard_database.sql` (already run live on 16 Nov 2026; 3 ticks on `team_members`, `photo_card_templates` table with RLS, 16 new columns on `contents`, rules in 4 functions: `guard_contents_insert`, `guard_team_members`, `guard_contents_update`, `notify_content_update`, and external rule constraint; check query returned 9 rows matching expectations).

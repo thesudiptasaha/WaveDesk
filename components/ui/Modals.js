@@ -10,6 +10,7 @@ import {
   isManager, isOwner, can, toLocalInput, fromLocalInput, formatDay, formatTime, 
   SLUG_MAX, normalizeSlugInput, pad, formatStamp, startOfDay, addDays, sameDay, shortsInRange,
   normalizeRow, presenterMembers, eligibleMembers, typeHasScript,
+  typeIsCard, photoCardMissing, photoCardSlugFrom,
   isExternal, canManageExternals, normalizePhone,
   canManagePhotoTemplates, PHOTO_FIELD_TYPES
 } from '../../lib/core';
@@ -19,7 +20,7 @@ import { supabase } from '../../services/supabase';
 import { resizeToJpeg } from '../../utils/helpers';
 import { fetchAllPages } from '../../utils/fetchAll';
 
-function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate }) {
+function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate, photoTemplates = [], platforms = PLATFORMS, onRunAction, notify }) {
   const conceptMembers = eligibleMembers(team, 'role_concept_creator');
   const writerMembers = eligibleMembers(team, 'role_research_script_writer');
   const multimediaMembers = eligibleMembers(team, 'role_multimedia_journalist');
@@ -43,14 +44,85 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
     presenter_name: '',
     multimedia_journalist: (actor && actor.role_multimedia_journalist === true) ? actor.full_name : '',
     script: '',
+    template_id: '',
+    card_fields: {},
+    is_emergency: false,
+    card_source: '',
+    post_caption: '',
+    designer_instructions: '',
+    target_platforms: ['facebook'],
   });
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [conceptTouched, setConceptTouched] = useState(false);
   const [showScript, setShowScript] = useState(false);
+  const [cardMissingText, setCardMissingText] = useState('');
+
+  const isCard = typeIsCard(f.content_type);
+  const currentTemplate = isCard ? (photoTemplates || []).find((t) => String(t.id) === String(f.template_id)) : null;
+
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
   const onTitle = (v) => setF((p) => ({ ...p, title: v, slug_name: slugTouched ? p.slug_name : normalizeSlugInput(v).slice(0, SLUG_MAX) }));
+
+  const onContentTypeChange = (t) => {
+    setF((p) => {
+      const nextIsCard = typeIsCard(t);
+      return {
+        ...p,
+        content_type: t,
+        ...(nextIsCard ? {
+          template_id: '',
+          card_fields: {},
+          target_platforms: p.target_platforms && p.target_platforms.length > 0 ? p.target_platforms : ['facebook'],
+        } : {}),
+      };
+    });
+  };
+
+  const onChannelChange = (ch) => {
+    setF((p) => {
+      const card = typeIsCard(p.content_type);
+      return {
+        ...p,
+        channel: ch,
+        ...(card ? { template_id: '', card_fields: {} } : {}),
+      };
+    });
+  };
+
+  const onTemplateChange = (tplId) => {
+    const selectedTemplate = (photoTemplates || []).find((t) => String(t.id) === String(tplId));
+    setF((p) => {
+      let nextSlug = p.slug_name;
+      if (!slugTouched && selectedTemplate) {
+        nextSlug = photoCardSlugFrom(selectedTemplate, {});
+      }
+      return {
+        ...p,
+        template_id: tplId,
+        card_fields: {},
+        slug_name: nextSlug,
+        title: nextSlug,
+      };
+    });
+  };
+
+  const onCardFieldChange = (key, val) => {
+    const nextFields = { ...(f.card_fields || {}), [key]: val };
+    setF((p) => {
+      let nextSlug = p.slug_name;
+      if (!slugTouched && currentTemplate) {
+        nextSlug = photoCardSlugFrom(currentTemplate, nextFields);
+      }
+      return {
+        ...p,
+        card_fields: nextFields,
+        slug_name: nextSlug,
+        title: nextSlug,
+      };
+    });
+  };
 
   const slugLen = f.slug_name.length;
   const errors = {
@@ -58,7 +130,8 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
     channel: f.channel ? '' : 'Choose a channel',
     when: '',
     slug_name: f.slug_name.trim() ? '' : 'Slug name is required',
-    title: f.title.trim() ? '' : 'Title is required',
+    title: isCard ? '' : (f.title.trim() ? '' : 'Title is required'),
+    template_id: isCard && !f.template_id ? 'Choose a template' : '',
   };
   const valid = Object.values(errors).every((e) => !e);
   const showErr = (k) => (tried && errors[k] ? <p className="mt-1.5 text-[12px] text-red-400">{errors[k]}</p> : null);
@@ -78,12 +151,94 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
       concept_creator: hasScript ? f.concept_creator : '',
       writer: hasScript ? f.writer : '',
       presenter_name: hasScript ? f.presenter_name : '',
-      multimedia_journalist: hasScript ? '' : (f.multimedia_journalist || ''),
+      multimedia_journalist: f.content_type === 'UNCUT' ? (f.multimedia_journalist || '') : '',
       script: hasScript ? f.script : '',
     });
     setBusy(false);
     if (ok) onClose();
   };
+
+  const handleSaveCard = async (mode) => {
+    setTried(true);
+    setCardMissingText('');
+    if (busy) return;
+
+    if (!f.channel || !f.template_id || !f.slug_name.trim()) {
+      if (!f.template_id) setCardMissingText('Choose a template first');
+      return;
+    }
+
+    const cleanFields = {};
+    if (currentTemplate && Array.isArray(currentTemplate.fields)) {
+      for (const fld of currentTemplate.fields) {
+        const val = f.card_fields && f.card_fields[fld.key] != null ? String(f.card_fields[fld.key]).trim() : '';
+        cleanFields[fld.key] = val;
+      }
+    }
+
+    const cardRow = {
+      content_type: 'PHOTO CARD',
+      channel: f.channel,
+      slug_name: f.slug_name.trim(),
+      title: f.slug_name.trim(),
+      scheduled_publish_time: f.is_emergency ? new Date().toISOString() : fromLocalInput(f.when),
+      template_id: Number(f.template_id),
+      card_fields: cleanFields,
+      is_emergency: !!f.is_emergency,
+      card_source: (f.card_source || '').trim(),
+      post_caption: f.post_caption || '',
+      designer_instructions: f.designer_instructions || '',
+      target_platforms: f.target_platforms && f.target_platforms.length > 0 ? f.target_platforms : ['facebook'],
+      concept_creator: '',
+      writer: '',
+      presenter_name: '',
+      multimedia_journalist: '',
+      script: '',
+    };
+
+    if (mode === 'submit') {
+      const missing = photoCardMissing(cardRow, currentTemplate);
+      if (missing.length > 0) {
+        setCardMissingText(`Fill first: ${missing.join(', ')}`);
+        return;
+      }
+    }
+
+    setBusy(true);
+    let saved = null;
+    try {
+      saved = await onCreate(cardRow);
+    } catch (e) {
+      saved = null;
+    }
+    if (!saved) {
+      setBusy(false);
+      return;
+    }
+
+    if (mode === 'submit') {
+      let submitOk = false;
+      try {
+        if (onRunAction) {
+          const res = await onRunAction(saved, { id: 'submit_card', label: 'Submit to Design', to: 'Requested' });
+          submitOk = res !== false;
+        }
+      } catch (e) {
+        submitOk = false;
+      }
+      if (!submitOk) {
+        const msg = 'Card saved as draft, but could not be submitted. Open it and press Submit to design.';
+        if (typeof notify === 'function') notify(msg, 'error');
+        else alert(msg);
+      }
+    }
+
+    setBusy(false);
+    onClose();
+  };
+
+  const channelTemplates = isCard && f.channel ? (photoTemplates || []).filter((t) => t.active && t.channel === f.channel) : [];
+  const templateOptions = channelTemplates.map((t) => ({ value: String(t.id), label: `#${t.number} · ${t.name}` }));
 
   return (
     <ModalShell
@@ -92,14 +247,41 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
       onClose={onClose}
       full
       footer={
-        <>
-          <button className={btnGhost} onClick={onClose}>
-            Cancel
-          </button>
-          <button className={btnPrimary} disabled={busy} onClick={submit}>
-            {busy ? 'Creating…' : 'Create content'}
-          </button>
-        </>
+        isCard ? (
+          <div className="flex flex-col items-end gap-1.5 w-full sm:w-auto">
+            <div className="flex items-center gap-2">
+              <button className={btnGhost} onClick={onClose} disabled={busy}>
+                Cancel
+              </button>
+              <button
+                className={btnGhost}
+                disabled={busy}
+                onClick={() => handleSaveCard('draft')}
+              >
+                {busy ? 'Saving…' : 'Save as draft'}
+              </button>
+              <button
+                className={btnPrimary}
+                disabled={busy}
+                onClick={() => handleSaveCard('submit')}
+              >
+                {busy ? 'Submitting…' : 'Submit to design'}
+              </button>
+            </div>
+            {cardMissingText ? (
+              <p className="text-[12px] text-red-400">{cardMissingText}</p>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            <button className={btnGhost} onClick={onClose}>
+              Cancel
+            </button>
+            <button className={btnPrimary} disabled={busy} onClick={submit}>
+              {busy ? 'Creating…' : 'Create content'}
+            </button>
+          </>
+        )
       }
     >
       <div className="flex flex-col gap-6 lg:grid lg:min-h-[540px] lg:flex-1 lg:grid-cols-[440px_minmax(0,1fr)] lg:gap-0">
@@ -114,7 +296,7 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
                     <button
                       key={t}
                       type="button"
-                      onClick={() => set('content_type', t)}
+                      onClick={() => onContentTypeChange(t)}
                       className={`rounded-full border px-3.5 py-1.5 text-[12px] font-semibold tracking-wide transition ${
                         f.content_type === t ? 'border-sky-400/60 bg-sky-500/15 text-sky-200' : 'border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:bg-white/[0.07]'
                       }`}
@@ -129,47 +311,130 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
                 <Field label="Channel *">
-                  <SelectBox value={f.channel} onChange={(v) => set('channel', v)} options={channels} placeholder="Select channel" />
+                  <SelectBox value={f.channel} onChange={onChannelChange} options={channels} placeholder="Select channel" />
                   {showErr('channel')}
                 </Field>
-                <Field label="Publish date & time" hint="optional">
-                  <input type="datetime-local" value={f.when} onChange={(e) => set('when', e.target.value)} className={`${inputBase} [color-scheme:dark]`} />
-                  <p className="mt-1.5 text-[11.5px] text-zinc-600">Leave empty to keep it in the On hold & unscheduled list</p>
-                  {showErr('when')}
-                </Field>
+
+                {isCard ? (
+                  <>
+                    <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                      <div>
+                        <div className="text-[13px] font-medium text-white">Breaking</div>
+                        <div className="text-[11.5px] text-zinc-500">Pin to top of channel and skip review</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => set('is_emergency', !f.is_emergency)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          f.is_emergency ? 'bg-red-500' : 'bg-zinc-700'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            f.is_emergency ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <Field label="Publish date & time" hint="optional">
+                      {f.is_emergency ? (
+                        <div className="text-[12px] text-zinc-400 italic py-2">Set when it is published</div>
+                      ) : (
+                        <>
+                          <input type="datetime-local" value={f.when} onChange={(e) => set('when', e.target.value)} className={`${inputBase} [color-scheme:dark]`} />
+                          <p className="mt-1.5 text-[11.5px] text-zinc-600">Leave empty to keep it in the On hold & unscheduled list</p>
+                        </>
+                      )}
+                    </Field>
+
+                    <Field label="Template *">
+                      <SelectBox
+                        value={f.template_id}
+                        onChange={onTemplateChange}
+                        options={templateOptions}
+                        placeholder={
+                          !f.channel
+                            ? 'Choose a channel first'
+                            : templateOptions.length === 0
+                            ? 'No templates for this channel'
+                            : 'Select template'
+                        }
+                        disabled={!f.channel || templateOptions.length === 0}
+                      />
+                      {showErr('template_id')}
+                    </Field>
+
+                    <Field label="Target platforms">
+                      <div className="flex flex-wrap gap-2">
+                        {(platforms || PLATFORMS).map((p) => {
+                          const on = (f.target_platforms || []).includes(p.id);
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                const cur = f.target_platforms || [];
+                                const next = on ? cur.filter((x) => x !== p.id) : [...cur, p.id];
+                                set('target_platforms', next);
+                              }}
+                              className={`rounded-full border px-3 py-1.5 text-[12px] transition ${
+                                on
+                                  ? 'border-sky-400/50 bg-sky-500/15 text-sky-200'
+                                  : 'border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:bg-white/[0.08]'
+                              }`}
+                            >
+                              {p.label || p.name || p.id}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </Field>
+                  </>
+                ) : (
+                  <Field label="Publish date & time" hint="optional">
+                    <input type="datetime-local" value={f.when} onChange={(e) => set('when', e.target.value)} className={`${inputBase} [color-scheme:dark]`} />
+                    <p className="mt-1.5 text-[11.5px] text-zinc-600">Leave empty to keep it in the On hold & unscheduled list</p>
+                    {showErr('when')}
+                  </Field>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="order-3">
-            <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">People</div>
-            <div className="space-y-4">
-              {f.content_type === 'UNCUT' ? (
-                <Field label="Multimedia Journalist">
-                  <PersonSelect value={f.multimedia_journalist} onChange={(name) => set('multimedia_journalist', name)} members={multimediaMembers} team={team} placeholder="Select multimedia journalist" />
-                </Field>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
-                    <Field label="Concept Creator" hint="same as the writer until you change it">
-                      <PersonSelect value={f.concept_creator} onChange={(name) => { setConceptTouched(true); set('concept_creator', name); }} members={conceptMembers} team={team} placeholder="Select concept creator" />
-                    </Field>
-                    <Field label="Research & Script Writer">
-                      <PersonSelect value={f.writer} onChange={(name) => setF((p) => ({ ...p, writer: name, concept_creator: conceptTouched ? p.concept_creator : name }))} members={writerMembers} team={team} placeholder="Select research & script" />
-                    </Field>
-                  </div>
-                  <Field label="Presenter" hint="optional" locked={!okPres} lockMessage={'You need the "Assign Presenter" permission'}>
-                    <PersonSelect value={f.presenter_name} onChange={(name) => set('presenter_name', name)} members={presenterMembersList} team={team} placeholder="Select presenter" disabled={!okPres} />
+          {!isCard ? (
+            <div className="order-3">
+              <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">People</div>
+              <div className="space-y-4">
+                {f.content_type === 'UNCUT' ? (
+                  <Field label="Multimedia Journalist">
+                    <PersonSelect value={f.multimedia_journalist} onChange={(name) => set('multimedia_journalist', name)} members={multimediaMembers} team={team} placeholder="Select multimedia journalist" />
                   </Field>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                      <Field label="Concept Creator" hint="same as the writer until you change it">
+                        <PersonSelect value={f.concept_creator} onChange={(name) => { setConceptTouched(true); set('concept_creator', name); }} members={conceptMembers} team={team} placeholder="Select concept creator" />
+                      </Field>
+                      <Field label="Research & Script Writer">
+                        <PersonSelect value={f.writer} onChange={(name) => setF((p) => ({ ...p, writer: name, concept_creator: conceptTouched ? p.concept_creator : name }))} members={writerMembers} team={team} placeholder="Select research & script" />
+                      </Field>
+                    </div>
+                    <Field label="Presenter" hint="optional" locked={!okPres} lockMessage={'You need the "Assign Presenter" permission'}>
+                      <PersonSelect value={f.presenter_name} onChange={(name) => set('presenter_name', name)} members={presenterMembersList} team={team} placeholder="Select presenter" disabled={!okPres} />
+                    </Field>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
 
         <div className="order-2 flex flex-col gap-4 lg:px-8 lg:py-6">
-          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 lg:hidden">Story</div>
-          <Field label="Slug name *" hint="filled from the title, you can edit it" className="[&>span]:!text-sky-300 [&>span]:!font-bold">
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 lg:hidden">
+            {isCard ? 'Card Details' : 'Story'}
+          </div>
+          <Field label="Slug name *" hint={isCard ? "filled from template, you can edit it" : "filled from the title, you can edit it"} className="[&>span]:!text-sky-300 [&>span]:!font-bold">
             <div className="relative">
               <input
                 value={f.slug_name}
@@ -190,39 +455,149 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
             {showErr('slug_name')}
           </Field>
 
-          <Field label="Title *">
-            <input value={f.title} onChange={(e) => onTitle(e.target.value)} placeholder="Full story title" className={`${inputBase} !text-[15px]`} />
-            {showErr('title')}
-          </Field>
-
-          <Field label="Thumbnail text">
-            <input value={f.thumbnail_text} onChange={(e) => set('thumbnail_text', e.target.value)} placeholder="Short hook shown on the thumbnail" className={inputBase} />
-          </Field>
-
-          {(!f.content_type || typeHasScript(f.content_type)) ? (
+          {isCard ? (
             <>
-              <div className="lg:hidden">
-                {showScript || f.script ? (
-                  <Field label="Script">
-                    <textarea value={f.script} onChange={(e) => set('script', e.target.value)} rows={6} placeholder="Paste or write the script…" className={`${inputBase} resize-y leading-relaxed`} />
-                  </Field>
-                ) : (
-                  <button type="button" onClick={() => setShowScript(true)} className="text-[13px] font-medium text-sky-400 transition hover:text-sky-300">
-                    + Add script (optional)
-                  </button>
-                )}
-              </div>
+              {currentTemplate && Array.isArray(currentTemplate.fields) ? (
+                <div className="space-y-4">
+                  {currentTemplate.fields.map((fld) => {
+                    const val = (f.card_fields && f.card_fields[fld.key]) != null ? f.card_fields[fld.key] : '';
+                    const len = String(val).length;
+                    const max = fld.max_length || null;
+                    return (
+                      <Field
+                        key={fld.key}
+                        label={`${fld.label || fld.key}${fld.required ? ' *' : ''}`}
+                        hint={max ? `${len} / ${max}` : (fld.type === 'image' ? 'Paste a link the designer can open without asking for permission' : null)}
+                      >
+                        {fld.type === 'long' ? (
+                          <textarea
+                            value={val}
+                            maxLength={max || undefined}
+                            onChange={(e) => onCardFieldChange(fld.key, e.target.value)}
+                            rows={3}
+                            className={`${inputBase} resize-y leading-relaxed`}
+                            placeholder={`Enter ${fld.label || fld.key}...`}
+                          />
+                        ) : fld.type === 'image' ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={val}
+                              onChange={(e) => onCardFieldChange(fld.key, e.target.value)}
+                              className={`${inputBase} flex-1`}
+                              placeholder="https://..."
+                            />
+                            {(val.startsWith('http://') || val.startsWith('https://')) ? (
+                              <a
+                                href={val}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`${btnGhost} !px-3 shrink-0 text-sky-400`}
+                                title="Open image link"
+                              >
+                                Open ↗
+                              </a>
+                            ) : null}
+                          </div>
+                        ) : fld.type === 'date' ? (
+                          <input
+                            type="date"
+                            value={val}
+                            onChange={(e) => onCardFieldChange(fld.key, e.target.value)}
+                            className={`${inputBase} [color-scheme:dark]`}
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            value={val}
+                            maxLength={max || undefined}
+                            onChange={(e) => onCardFieldChange(fld.key, e.target.value)}
+                            className={inputBase}
+                            placeholder={`Enter ${fld.label || fld.key}...`}
+                          />
+                        )}
+                      </Field>
+                    );
+                  })}
+                </div>
+              ) : null}
 
-              <Field label="Script" hint="Paste or write the script here. You can also add it later." className="hidden lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+              <Field
+                label="Source *"
+                hint={
+                  f.card_source && (f.card_source.startsWith('http://') || f.card_source.startsWith('https://')) ? (
+                    <a href={f.card_source} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">
+                      Open ↗
+                    </a>
+                  ) : 'plain text or link'
+                }
+              >
+                <input
+                  type="text"
+                  value={f.card_source || ''}
+                  onChange={(e) => set('card_source', e.target.value)}
+                  className={inputBase}
+                  placeholder="Information source or link..."
+                />
+              </Field>
+
+              <Field label="Caption" hint="optional">
                 <textarea
-                  value={f.script}
-                  onChange={(e) => set('script', e.target.value)}
-                  placeholder="Paste or write the script…"
-                  className={`${inputBase} w-full leading-relaxed lg:min-h-[160px] lg:flex-1 lg:resize-none`}
+                  value={f.post_caption || ''}
+                  onChange={(e) => set('post_caption', e.target.value)}
+                  rows={3}
+                  className={`${inputBase} resize-y leading-relaxed`}
+                  placeholder="Caption for social posts..."
+                />
+              </Field>
+
+              <Field label="Instructions for designer" hint="optional">
+                <textarea
+                  value={f.designer_instructions || ''}
+                  onChange={(e) => set('designer_instructions', e.target.value)}
+                  rows={2}
+                  className={`${inputBase} resize-y leading-relaxed`}
+                  placeholder="Notes or instructions for the graphic designer..."
                 />
               </Field>
             </>
-          ) : null}
+          ) : (
+            <>
+              <Field label="Title *">
+                <input value={f.title} onChange={(e) => onTitle(e.target.value)} placeholder="Full story title" className={`${inputBase} !text-[15px]`} />
+                {showErr('title')}
+              </Field>
+
+              <Field label="Thumbnail text">
+                <input value={f.thumbnail_text} onChange={(e) => set('thumbnail_text', e.target.value)} placeholder="Short hook shown on the thumbnail" className={inputBase} />
+              </Field>
+
+              {(!f.content_type || typeHasScript(f.content_type)) ? (
+                <>
+                  <div className="lg:hidden">
+                    {showScript || f.script ? (
+                      <Field label="Script">
+                        <textarea value={f.script} onChange={(e) => set('script', e.target.value)} rows={6} placeholder="Paste or write the script…" className={`${inputBase} resize-y leading-relaxed`} />
+                      </Field>
+                    ) : (
+                      <button type="button" onClick={() => setShowScript(true)} className="text-[13px] font-medium text-sky-400 transition hover:text-sky-300">
+                        + Add script (optional)
+                      </button>
+                    )}
+                  </div>
+
+                  <Field label="Script" hint="Paste or write the script here. You can also add it later." className="hidden lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+                    <textarea
+                      value={f.script}
+                      onChange={(e) => set('script', e.target.value)}
+                      placeholder="Paste or write the script…"
+                      className={`${inputBase} w-full leading-relaxed lg:min-h-[160px] lg:flex-1 lg:resize-none`}
+                    />
+                  </Field>
+                </>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
     </ModalShell>
@@ -669,7 +1044,7 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
         writer: hasScript ? (r.writer || '') : '',
         presenter_name: hasScript ? (r.presenter_name || '') : '',
         video_editor: r.video_editor || '',
-        multimedia_journalist: hasScript ? '' : (r.multimedia_journalist || ''),
+        multimedia_journalist: r.content_type === 'UNCUT' ? (r.multimedia_journalist || '') : '',
       };
       const saved = await onAdd(data);
       if (saved && saved.content_uid) {
@@ -745,7 +1120,7 @@ function BulkScheduleModal({ onClose, team, channels, onAdd }) {
                     <SelectBox
                       value={r.content_type}
                       onChange={(v) => updateItem(r._id, 'content_type', v)}
-                      options={CONTENT_TYPES}
+                      options={CONTENT_TYPES.filter((t) => !typeIsCard(t))}
                     />
                   </td>
                   <td className="px-3 py-2">

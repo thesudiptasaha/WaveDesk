@@ -5,6 +5,7 @@ import {
   STATUS_META,
   typeConfig,
   typeHasScript,
+  typeIsCard,
   getActions,
   isRemovedPublished,
   rowTimeIn,
@@ -36,7 +37,7 @@ export function ShortNote({ r, range }) {
   );
 }
 
-export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel, ads, checkState, flash, canAnswer, onAnswerCheck, showDate }) {
+export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel, ads, checkState, flash, canAnswer, onAnswerCheck, showDate, photoTemplates }) {
   const endEx = addDays(range.end, 1);
   const tIso = showDate ? r.scheduled_publish_time : rowTimeIn(r, range.start, endEx);
   const t = formatTime(tIso);
@@ -127,7 +128,7 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
           ) : null}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-          <ActionButtons compact actions={getActions(r, actor).slice(0, 2)} onRun={(a) => onRun && onRun(r, a)} />
+          <ActionButtons compact actions={getActions(r, actor, { photoTemplates }).slice(0, 2)} onRun={(a) => onRun && onRun(r, a)} />
         </div>
       </div>
     </div>
@@ -143,7 +144,7 @@ export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, show
   const ampm = spaceIdx === -1 ? '' : t.slice(spaceIdx + 1);
 
   let n = 0;
-  if (r.status !== 'Published' && r.status !== 'Dropped') {
+  if (r.status !== 'Published' && r.status !== 'Dropped' && !typeIsCard(r.content_type)) {
     if (typeHasScript(r.content_type) && !r.writer) n++;
     if (!typeConfig(r.content_type).hiddenCredits.includes('presenter_name') && !r.presenter_name) n++;
     if (r.content_type === 'UNCUT' && !r.multimedia_journalist) n++;

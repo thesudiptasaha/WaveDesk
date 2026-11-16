@@ -1,5 +1,23 @@
 # Photocard idea (2026-11-01)
 
+## Update 16 Nov 2026 — Photo Card step 2 (N152)
+
+- **New Content form**:
+  - Selecting `PHOTO CARD` swaps people/script sections for template fields, source, caption, instructions for designer, and target platforms (default Facebook).
+  - Choosing channel + template loads the template's ordered fields: `short` (single line), `long` (textarea), `image` (URL with "Open ↗" link), `date`. Respects `f.max_length`.
+  - Slug auto-fills from the first `short` text field until manually edited; fallback: `<template name> #<number>`.
+  - Breaking toggle (`is_emergency`): hides the publish time input, shows "Set when it is published", and saves the scheduled publish time as current timestamp.
+  - Two buttons:
+    - "Save as draft": requires only channel, template, and slug.
+    - "Submit to design": validates `photoCardMissing` (channel, template, required template fields, source, publish time unless Breaking); creates Draft and immediately advances to Requested.
+- **Drawer tabs**:
+  - Left column: hides Title, Thumbnail text, Archive shelf ID; shows Breaking notice "Set when it is published" for emergency cards not yet published.
+  - Editorial tab: read-only requester and timestamp, template line with sample link, Breaking toggle, template fields, Source (required, with open link), Caption (character counter and copy button), Instructions for designer. Editable before approval by Request Photo Cards tick holders or Managers.
+  - Production tab: read-only Graphic Designer tile with "Not taken yet", Card folder input, Production notes, and workflow history (Requested, Taken, Made, Approved, Corrections, "Not approved" review skipped badge).
+  - Publish tab: Publisher card, real upload time, read-only platform chips, published link row per platform, Caption, Hashtags, and Linked content (`linked_content_uid`).
+  - One caption for all platforms for now (per-platform captions will require a DB column update since publishers cannot edit `card_fields`).
+  - Images are links (http/https) for now.
+
 ## Update 16 Nov 2026 — decisions (replaces the earlier phase A/B plan for the first version)
 
 - **Type & Rundown**: Type PHOTO CARD, same `contents` table and content-ID system. The main rundown later gets a switch Videos | Photo Cards | All (default Videos); emergency (breaking) cards are pinned to the top of their channel in every view and flash until Published; a Photo Cards view gives designers "my work", the waiting list and a channel filter. Channel = page.

@@ -84,6 +84,7 @@ Every content type's full pipeline and credit list will be revised as part of th
 7. **Photo Card workflow**:
    - ✅ **DONE (16 Nov): Database groundwork** — `sql/2026-11-16_photocard_database.sql` (3 ticks on `team_members`, `photo_card_templates` table with RLS, 16 new columns on `contents`, full rules in `guard_contents_insert`, `guard_contents_update`, `guard_team_members`, `notify_content_update`).
    - ✅ **DONE (16 Nov, N151): Three ticks & Photo Card Templates page** — `can_request_photo_cards`, `can_approve_photo_cards`, `can_manage_photo_templates`, menu item in Manage section, list view & template editor with dynamic fields.
-   - **Next: N152** — PHOTO CARD type in the app (CONTENT_TYPE_CONFIG, new card form with "Save as draft" and "Submit to design", drawer tabs, pipeline action buttons).
+   - ✅ **DONE (16 Nov, N152 / N152b / N152b2): Step 2 — PHOTO CARD type, request form & drawer tabs** — `PHOTO CARD` in `CONTENT_TYPE_CONFIG`, 2-button form (Save as draft / Submit to design), template fields, Breaking toggle, drawer tabs (Editorial, Production, Publish, QC, Credits), search & Excel export.
+   - **Next: N153** — Step 3: pipeline step buttons (Take card, Make card, Send for Review, Approve, Request Correction, Cancel Assignment, Skip Review, Publish).
 
 Each step is its own task, one at a time.

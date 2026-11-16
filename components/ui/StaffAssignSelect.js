@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { can, FIELD_PERM, eligibleMembers, presenterMembers, typeConfig, typeHasScript, isUncutReporter } from '../../lib/core';
+import { can, FIELD_PERM, eligibleMembers, presenterMembers, typeConfig, typeHasScript, typeIsCard, isUncutReporter } from '../../lib/core';
 import { Avatar, PersonName } from './Shared';
 import { PersonPicker } from './PersonPicker';
 
@@ -154,6 +154,50 @@ function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow
 }
 
 export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }) {
+  if (typeIsCard(r.content_type)) {
+    const designer = r.graphic_designer;
+    if (layout === 'columns') {
+      return (
+        <div className="flex gap-2.5">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <div className="mb-1 text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-500">GRAPHIC DESIGNER</div>
+            {designer ? <PersonName name={designer} team={team} hideDesignation /> : <span className="text-[12px] italic text-zinc-600">Not taken yet</span>}
+          </div>
+        </div>
+      );
+    }
+    if (layout === 'rows') {
+      return (
+        <div className="flex flex-col gap-1 text-[11px]">
+          <div className="flex items-center gap-1.5">
+            <span className="text-zinc-500">Graphic Designer:</span>
+            {designer ? <PersonName name={designer} team={team} hideDesignation /> : <span className="text-[11px] italic text-zinc-600">Not taken yet</span>}
+          </div>
+        </div>
+      );
+    }
+    if (layout === 'tiles') {
+      return (
+        <div className="flex items-start gap-1">
+          <div className="group relative flex flex-col justify-between rounded-md border border-white/[0.06] bg-white/[0.02] p-1.5 min-w-[100px]">
+            <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500">GRAPHIC DESIGNER</div>
+            <div className="mt-1">
+              {designer ? <PersonName name={designer} team={team} hideDesignation /> : <span className="text-[11px] italic text-zinc-600">Not taken yet</span>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-col gap-1 text-[11px]">
+        <div className="flex items-center gap-1.5">
+          <span className="text-zinc-500 w-[110px] shrink-0">Graphic Designer:</span>
+          {designer ? <PersonName name={designer} team={team} hideDesignation /> : <span className="text-[11px] italic text-zinc-600">Not taken yet</span>}
+        </div>
+      </div>
+    );
+  }
+
   const actorCan = actor && actor.active !== false;
 
   const writers = eligibleMembers(team, 'role_research_script_writer').map((m) => m.full_name);
