@@ -26,10 +26,10 @@ Footage shot by a reporter — place/time/person — brought in, graphics added,
 - **No "Footage note" field:** Shoot place goes into the new dedicated `shoot_location` column instead.
 - **Database groundwork:** Completed live on 14 Nov 2026; record in `sql/2026-11-14_uncut_photocard_groundwork.sql`.
 
-### shoot_location field (final decision 14-15 Nov)
-A separate text column (`shoot_location` on `contents`) for **ALL** content types (database column already created via `sql/2026-11-14_uncut_photocard_groundwork.sql`).
-- Shown in the Production tab next to the shoot times.
-- Later will support autocomplete / suggestions from earlier entries. No separate search screen yet.
+### shoot_location field (done in N150)
+A separate text column (`shoot_location` on `contents`) for **ALL** content types (database column created via `sql/2026-11-14_uncut_photocard_groundwork.sql`).
+- Shown in the Production tab Shoot card next to shoot times (N150).
+- Autocomplete / suggestions from loaded contents; case-insensitive deduplication preserves earlier spelling. Searchable in rundown and parking search, included in Excel export. Dedicated archive search screen comes later.
 - **Purpose:** Find raw footage in the archive by location and date.
 
 ### New content type: "Photo Card"
@@ -93,7 +93,7 @@ Every content type's full pipeline and credit list will be revised as part of th
 3. ✅ **DONE (14 Nov): Database groundwork** — `sql/2026-11-14_uncut_photocard_groundwork.sql` (UNCUT and PHOTO CARD allowed; `role_multimedia_journalist`, `multimedia_journalist`, `shoot_location` columns; Uncut workflow rules) and `sql/2026-11-14_manage_sponsors.sql` (`can_manage_sponsors` tick and policies).
 4. ✅ **DONE (15 Nov, N148/N148b): Manage Sponsors tick + Sponsors section in drawer left column** — `can_manage_sponsors` permission in app code, Sponsors moved to drawer left column under ContentDetailsFields with glowing badge, responsive layout and 44px touch targets.
 5. ✅ **DONE (15 Nov, N149/N149b/N149b2): Uncut app side** — UNCUT type in `CONTENT_TYPE_CONFIG` (hasScript: false, afterDraft: 'Assign Editor'), 22nd role Multimedia Journalist in `ROLE_LIST`, drawer without Editorial tab opening on Production, Footage Ready action, reporter production-admin powers, self-assign as Video Editor, creation payload filtering.
-6. **Next: shoot_location field (N150)** — UI input in Production tab next to shoot times for all content types.
-7. **Photo Card workflow** (discussion first, then phase A & B).
+6. ✅ **DONE (16 Nov, N150): shoot_location field** — free-text Location input in Production tab Shoot card for all content types with datalist suggestions, case-insensitive match, searchable, and in Excel export. Later: dedicated search screen over the archive.
+7. **Next: Photo Card workflow** (discussion first, then phase A & B).
 
 Each step is its own task, one at a time.

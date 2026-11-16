@@ -1,6 +1,6 @@
-# WaveDesk — মূল ডকুমেন্ট কোথায় ও কাজের ধরন (হালনাগাদ: ৯ নভেম্বর ২০২৬)
+# WaveDesk — মূল ডকুমেন্ট কোথায় ও কাজের ধরন (হালনাগাদ: ১৬ নভেম্বর ২০২৬)
 
-**মূল ডকুমেন্ট GitHub রিপোর `docs/` ফোল্ডারে** (github.com/thesudiptasaha/wavedesk, ব্রাঞ্চ main; রিপো Public)। ডকুমেন্ট একাধিক জায়গায় রাখা হবে না; বিরোধ হলে GitHub-ই সঠিক। পরিকল্পনার নোট (সিদ্ধান্ত ও ধারণা) `docs/notes/`-এ। শেষ যাচাই-করা কমিট: **65c9415** (N144)। লাইভ: https://wavedesk-manager.vercel.app
+**মূল ডকুমেন্ট GitHub রিপোর `docs/` ফোল্ডারে** (github.com/thesudiptasaha/wavedesk, ব্রাঞ্চ main; রিপো Public)। ডকুমেন্ট একাধিক জায়গায় রাখা হবে না; বিরোধ হলে GitHub-ই সঠিক। পরিকল্পনার নোট (সিদ্ধান্ত ও ধারণা) `docs/notes/`-এ। শেষ যাচাই-করা কমিট: **b3cd1b3** (N149)। লাইভ: https://wavedesk-manager.vercel.app
 
 ## কোন কাজের জন্য কোন ফাইল
 | বিষয় | ফাইল |
@@ -48,7 +48,7 @@ Draft → Script Submitted → Ready for Shoot → Shooting → Assign Editor �
 - SQL মালিক Supabase SQL Editor-এ চালান (লাইভ ফাংশনের লাইন CRLF, প্যাচ এক লাইনে); লাইভ চালালে রিপোতে রেকর্ড ফাইল।
 - UI নকশা: আগে টেক্সট/ছবির মকআপ দেখিয়ে পছন্দ নেওয়া।
 - রিপো Public: কোনো key, পাসওয়ার্ড, সার্ভারের ঠিকানা, আসল কনটেন্ট, গোপন নোট (বিজনেস প্ল্যান, নিরাপত্তা রিভিউ) রিপোতে নয়।
-- নম্বর ও কমিটের মিল: `docs/notes/task-number-tracker.md`। পরের নম্বর **N150** (N150 = shoot_location সংরক্ষিত)।
+- নম্বর ও কমিটের মিল: `docs/notes/task-number-tracker.md`। পরের নম্বর **N151** (N150 = shoot_location সম্পন্ন, N151 ক্রমানুসারে সংরক্ষিত)।
 
 ## এখন বাকি
-`docs/notes/roadmap.md` দেখুন। সংক্ষেপে: বাইরের ক্রু আমন্ত্রণ ফিচার সম্পন্ন (পাবলিক পেজসহ) → স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন (N142, N145, N143, N144; টেস্ট বাকি) → Content type decisions recorded (N146) → content type table refactor (`CONTENT_TYPE_CONFIG`, N147 সম্পন্ন) → DB groundwork records (14 Nov) & Manage Sponsors tick + Sponsors section in drawer left column (N148/N148b সম্পন্ন) → Uncut app side (N149/N149b/N149b2 সম্পন্ন, টেস্ট বাকি) → shoot_location field (N150, পরের কাজ) → Photo Card workflow (discussion first) → ব্যাকআপ ফলো-আপসমূহ → Telegram বট → ডক ও হোম পেজ (ডকের জায়গা অনুমোদন বাকি)। ব্যবহারকারীর স্থগিত: Bulk schedule পুনর্ভাবনা। ব্যাকআপ রিস্টোর পরীক্ষা মালিকের পরে করার কাজ।
+`docs/notes/roadmap.md` দেখুন। সংক্ষেপে: বাইরের ক্রু আমন্ত্রণ ফিচার সম্পন্ন (পাবলিক পেজসহ) → স্ক্রিপ্ট প্রিন্ট ও এডিটর সম্পন্ন (N142, N145, N143, N144; টেস্ট বাকি) → Content type decisions recorded (N146) → content type table refactor (`CONTENT_TYPE_CONFIG`, N147 সম্পন্ন) → DB groundwork records (14 Nov) & Manage Sponsors tick + Sponsors section in drawer left column (N148/N148b সম্পন্ন ও টেস্ট পাস) → Uncut app side (N149/N149b/N149b2 সম্পন্ন ও টেস্ট পাস) → shoot_location field (N150 সম্পন্ন, টেস্ট বাকি) → Photo Card workflow (discussion first) → ব্যাকআপ ফলো-আপসমূহ → Telegram বট → ডক ও হোম পেজ (ডকের জায়গা অনুমোদন বাকি)। ব্যবহারকারীর স্থগিত: Bulk schedule পুনর্ভাবনা। ব্যাকআপ রিস্টোর পরীক্ষা মালিকের পরে করার কাজ।

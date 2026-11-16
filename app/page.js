@@ -1670,7 +1670,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       .filter((r) => statusFilter === 'all' || r.status === statusFilter)
       .filter((r) => {
         if (!q) return true;
-        return [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text].some((v) => String(v || '').toLowerCase().includes(q));
+        return [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text, r.shoot_location].some((v) => String(v || '').toLowerCase().includes(q));
       })
       .sort((a, b) => {
         if (channelFilter === 'all') {
@@ -1691,7 +1691,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       .filter(isParked)
       .filter((r) => channelFilter === 'all' || r.channel === channelFilter)
       .filter((r) => statusFilter === 'all' || r.status === statusFilter)
-      .filter((r) => !q || [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text].some((v) => String(v || '').toLowerCase().includes(q)))
+      .filter((r) => !q || [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text, r.shoot_location].some((v) => String(v || '').toLowerCase().includes(q)))
       .sort((a, b) => {
         if (a.scheduled_publish_time && b.scheduled_publish_time) return new Date(a.scheduled_publish_time) - new Date(b.scheduled_publish_time);
         if (a.scheduled_publish_time) return -1;
@@ -1829,6 +1829,19 @@ function NewsroomApp({ authUser, onSignOut }) {
   const publishRow = publishFor ? rows.find((r) => r.id === publishFor.rowId) : null;
   const publishCheckRow = publishCheckFor ? rows.find((r) => r.id === publishCheckFor) : null;
 
+  const locationOptions = useMemo(() => {
+    const map = new Map();
+    for (const r of rows) {
+      const loc = (r.shoot_location || '').trim();
+      if (!loc) continue;
+      const key = loc.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, loc);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }, [rows]);
+
   /* ---------------- export ---------------- */
   const exportXlsx = async () => {
     try {
@@ -1848,6 +1861,7 @@ function NewsroomApp({ authUser, onSignOut }) {
           item[rl.label] = r[rl.field] || '';
         });
         item['Status'] = r.status;
+        item['Shoot Location'] = r.shoot_location || '';
         item['Shoot Started'] = r.shoot_started_at ? new Date(r.shoot_started_at).toLocaleString() : '';
         item['Shoot Finished'] = r.shoot_finished_at ? new Date(r.shoot_finished_at).toLocaleString() : '';
         item['Production Notes'] = r.production_notes || '';
@@ -2622,6 +2636,7 @@ function NewsroomApp({ authUser, onSignOut }) {
           onUpdateAd={updateContentAd}
           onDeleteAd={deleteContentAd}
           onPublishCheck={(r) => setPublishCheckFor(r.id)}
+          locationOptions={locationOptions}
         />
       ) : null}
       

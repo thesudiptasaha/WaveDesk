@@ -985,13 +985,23 @@ function ShootDateTimeInput({ label, value, disabled, lockMessage, onCommit }) {
   );
 }
 
-function ShootCard({ row, actor, patch }) {
+function ShootCard({ row, actor, patch, locationOptions = [] }) {
   const canEdit = canEditShootTimes(actor, row);
   const lockMsg = row?.content_type === 'UNCUT'
     ? 'Only the Multimedia Journalist, Camera Operator, Producer, Production Manager or a Manager can change shoot times'
     : 'Only the Camera Operator, Producer, Production Manager or a Manager can change shoot times';
   const durationText = formatShootDuration(row.shoot_started_at, row.shoot_finished_at);
   const showDuration = !row.shoot_started_at || !!durationText;
+
+  const handleCommitLocation = (val) => {
+    const trimmed = (val || '').trim();
+    if (!trimmed) {
+      patch({ shoot_location: '' });
+      return;
+    }
+    const match = (locationOptions || []).find((loc) => loc.toLowerCase() === trimmed.toLowerCase());
+    patch({ shoot_location: match || trimmed });
+  };
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
@@ -1021,6 +1031,32 @@ function ShootCard({ row, actor, patch }) {
           />
         </div>
 
+        <div className="space-y-1.5">
+          <Field label="Location" locked={!canEdit} lockMessage={lockMsg}>
+            <BlurInput
+              list={`shoot-location-${row.id}`}
+              maxLength={120}
+              value={row.shoot_location}
+              disabled={!canEdit}
+              onCommit={handleCommitLocation}
+              placeholder="Where was this shot? e.g. Mirpur Stadium, Studio 2"
+            />
+            <datalist id={`shoot-location-${row.id}`}>
+              {(locationOptions || []).map((loc) => (
+                <option key={loc} value={loc} />
+              ))}
+            </datalist>
+          </Field>
+          {row?.content_type === 'UNCUT' && !row.shoot_location?.trim() && canEdit ? (
+            <p className="text-[12px] text-amber-400">Location not set</p>
+          ) : null}
+          {!canEdit ? (
+            <p className="flex items-center gap-1.5 text-[12px] text-zinc-500">
+              <LockIcon message={lockMsg} /> {lockMsg}
+            </p>
+          ) : null}
+        </div>
+
         {showDuration ? (
           <div className="flex items-center justify-between text-[12px] pt-1 border-t border-white/[0.06]">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Duration</span>
@@ -1033,7 +1069,7 @@ function ShootCard({ row, actor, patch }) {
         ) : null}
 
         <p className="text-[12px] leading-relaxed text-zinc-500">
-          Filled automatically when Start Shoot / Finish Shoot is pressed. If another Camera Operator presses Start Shoot, their name replaces the earlier one (the old name stays in the log). Producer, Production Manager, Camera Operator and Managers can correct the times.
+          Filled automatically when Start Shoot / Finish Shoot is pressed. If another Camera Operator presses Start Shoot, their name replaces the earlier one (the old name stays in the log). Producer, Production Manager, Camera Operator and Managers can correct the times. Location is a free text; pick an earlier one from the suggestions to keep spellings the same.
         </p>
       </div>
     </div>
@@ -1313,7 +1349,7 @@ function FilesDeliveredCard({ row, actor, patch }) {
   );
 }
 
-function ProductionTab({ row, actor, team, patch }) {
+function ProductionTab({ row, actor, team, patch, locationOptions }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
       <div>
@@ -1321,7 +1357,7 @@ function ProductionTab({ row, actor, team, patch }) {
       </div>
       <div className="space-y-4">
         <div className="hidden lg:block h-[27px]" aria-hidden="true" />
-        <ShootCard row={row} actor={actor} patch={patch} />
+        <ShootCard row={row} actor={actor} patch={patch} locationOptions={locationOptions} />
         <FilesDeliveredCard row={row} actor={actor} patch={patch} />
       </div>
     </div>
@@ -2766,7 +2802,7 @@ function PublishCheckBanner({ row, actor, onAnswer }) {
   return null;
 }
 
-function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd, onPublishCheck }) {
+function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd, onPublishCheck, locationOptions = [] }) {
   const bookings = useContentBookings(row?.id);
   const savedScriptStats = scriptStats(row.script);
   const [tab, setTab] = useState(typeHasScript(row.content_type) ? 'editorial' : 'production');
@@ -3002,7 +3038,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             {currentTab === 'editorial' ? (
               <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} />
             ) : null}
-            {currentTab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
+            {currentTab === 'production' ? <ProductionTab row={row} actor={actor} team={team} patch={patch} locationOptions={locationOptions} /> : null}
             {currentTab === 'postproduction' ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
             {currentTab === 'packaging' ? <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} /> : null}
             {currentTab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}

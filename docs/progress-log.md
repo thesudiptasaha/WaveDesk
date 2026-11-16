@@ -5,6 +5,16 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 16 Nov 2026 — Shoot location field in Production tab (N150)
+
+- **Shoot location field**: new free-text "Location" field (`contents.shoot_location`, column already added on 14 Nov 2026) in the Shoot card of the Production tab for every content type.
+- **Permissions**: editable by the same people who can edit shoot times (Camera Operator, Producer, Production Manager, Manager, and the Multimedia Journalist on an Uncut).
+- **Suggestions & normalization**: suggestions come from the locations of all contents currently loaded in the app (all channels), so a place is not stored in two spellings. A typed text that matches an earlier one ignoring case is saved with the earlier spelling.
+- **Uncut hint**: Uncut shows a small amber "Location not set" hint that blocks nothing.
+- **Search & export**: the location is searchable (rundown list and parking search) and is a column in the Excel export.
+- **Components**: `BlurInput` got an optional `list` prop to bind to an HTML `<datalist>`.
+- The N148 and N149 live tests (Manage Sponsors tick, sponsors section, Uncut flow, Esc closes the drawer) were done by the user and passed.
+
 ## 15 Nov 2026 — Uncut content type & Multimedia Journalist role in the app (N149 / N149b / N149b2)
 
 The UNCUT content type is now in the app:

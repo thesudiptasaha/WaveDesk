@@ -104,7 +104,7 @@ Central table holding all daily video rundown items.
 * `presenter_name` (`text`) — Assigned on-camera presenter.
 * `multimedia_journalist` (`text`, nullable) - Assigned Multimedia Journalist (reporter who shoots uncut footage; added 14 Nov 2026 via `sql/2026-11-14_uncut_photocard_groundwork.sql`).
 * `camera_operator` (`text`) - Assigned Camera Operator (was `camera_person`). Governed by contents_production_rules (sql/2026-10-29_production_rules.sql).
-* `shoot_location` (`text`, nullable) - Shoot location / place of shooting for all content types, used to find raw footage in archive by location and date (added 14 Nov 2026 via `sql/2026-11-14_uncut_photocard_groundwork.sql`).
+* `shoot_location` (`text`, nullable) - Shoot location / place of shooting for all content types, used to find raw footage in archive by location and date (added 14 Nov 2026 via `sql/2026-11-14_uncut_photocard_groundwork.sql`; shown in the Production tab Shoot card (N150), free text, up to 120 characters, searchable and included in the Excel export).
 * `shoot_started_at` (`timestamptz`, nullable) - Timestamp when the shoot started. Populated automatically on Start Shoot. Editable manually only by Manager/Owner, Producer, Production Manager, or Camera Operator (also Multimedia Journalist on an UNCUT).
 * `shoot_finished_at` (`timestamptz`, nullable) - Timestamp when the shoot finished. Populated automatically on Finish Shoot, cleared on Start Shoot. Editable manually only by Manager/Owner, Producer, Production Manager, or Camera Operator (also Multimedia Journalist on an UNCUT).
 * `production_notes` (`text`, nullable) - On-set and shoot production notes.
