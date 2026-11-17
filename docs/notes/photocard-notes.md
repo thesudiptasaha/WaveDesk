@@ -1,5 +1,25 @@
 # Photocard idea (2026-11-01)
 
+## Update 17 Nov 2026 — Photo Card step 4 (N154)
+
+- **Rundown switch**:
+  - Segmented control pills in filter bar next to channel dropdown: "Videos", "Photo Cards", and "All".
+  - Default view is `videos` (`!typeIsCard`), keeping standard video rundown identical to before.
+  - User choice is saved in `localStorage` key `wavedesk.cardView.<actor id>` (loaded once actor is known).
+  - Filters rundown rows (`visible`), Parking Zone (`parked`), and pinned rows (`pinnedRows`).
+  - Bin, Excel export, KPI modals, and My Work are unaffected.
+- **Breaking cards pinned**:
+  - Emergency photo cards (`typeIsCard && is_emergency`) in active statuses (`Requested`, `Designing`, `In Review`, `Ready to Publish`, `Scheduled`) are pinned at the top of their channel in `cards` and `all` views (not in `videos`).
+  - Ignores date range, search query, and status filter; obeys channel filter.
+  - Merged into `pinnedRows` ahead of publish-check rows; sorted oldest first among Breaking cards.
+  - Date shown in time cell when scheduled date is outside the view range (`showDate`/`pinnedDateFlag`).
+  - Unpinned once Published, On Hold, or Dropped.
+- **Visuals & header**:
+  - Red pulsating `BREAKING` badge on all active Breaking cards across table rows, mobile cards/rows, and Parking Zone. Pulse disabled under `prefers-reduced-motion: reduce`.
+  - Pinned Breaking rows have a red left border highlight (`border-l-red-500`).
+  - Channel headers use generic `{count} pinned` wording (no "Did it go out?" text or buttons on Breaking rows).
+- **Next steps**: N155 Photo Card Desk page, N156 report page, N157 real-time auto-refresh for everyone (URGENT).
+
 ## Update 17 Nov 2026 — Photo Card step 3 (N153)
 
 - **Step buttons by status**:

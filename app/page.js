@@ -7,7 +7,7 @@ import { APP_NAME, APP_CREDIT, APP_COPYRIGHT, APP_CONTACT_EMAIL } from '../utils
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon, LockIcon } from '../components/ui/Icons';
-import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox, AdBadge } from '../components/ui/Badges';
+import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox, AdBadge, BreakingBadge } from '../components/ui/Badges';
 import { supabase } from '../services/supabase';
 import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, ConfirmDialog, FullScreenCard, Toggle, ActionButtons, useNow } from '../components/ui/Shared';
 import { fetchAllPages } from '../utils/fetchAll';
@@ -29,7 +29,7 @@ import {
   canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
   canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
   typeHasScript, typeIsCard, isUncutReporter, canManagePhotoTemplates,
-  getPublishedLinks
+  getPublishedLinks, isBreakingActive
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -636,6 +636,7 @@ function NewsroomApp({ authUser, onSignOut }) {
   const [rows, setRows] = useState([]);
   const [actorId, setActorId] = useState(null);
   const [range, setRange] = useState({ start: today, end: today });
+  const [cardView, setCardView] = useState('videos');
   const [channelFilter, setChannelFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -725,6 +726,22 @@ function NewsroomApp({ authUser, onSignOut }) {
   const switcherOn = !authId || isOwner(me);
   const actor = useMemo(() => (authId && !isOwner(me) ? me : staffTeam.find((m) => m.id === actorId) || null), [staffTeam, actorId, authId, me]);
   actorIdRef.current = actor?.id ?? null;
+  useEffect(() => {
+    if (!actor?.id) return;
+    try {
+      const stored = window.localStorage.getItem(`wavedesk.cardView.${actor.id}`);
+      if (stored === 'videos' || stored === 'cards' || stored === 'all') {
+        setCardView(stored);
+      }
+    } catch (e) {}
+  }, [actor?.id]);
+  const changeCardView = (nextView) => {
+    setCardView(nextView);
+    if (!actor?.id) return;
+    try {
+      window.localStorage.setItem(`wavedesk.cardView.${actor.id}`, nextView);
+    } catch (e) {}
+  };
 
   const closeHelp = () => {
     setShowHelp(false);
@@ -1834,6 +1851,8 @@ function NewsroomApp({ authUser, onSignOut }) {
     const endExclusive = addDays(range.end, 1);
     return rows
       .filter((r) => {
+        if (cardView === 'videos' && typeIsCard(r.content_type)) return false;
+        if (cardView === 'cards' && !typeIsCard(r.content_type)) return false;
         if (!isComplete(r)) return false;
         const d = new Date(r.scheduled_publish_time);
         if (d >= range.start && d < endExclusive) return true;
@@ -1856,12 +1875,17 @@ function NewsroomApp({ authUser, onSignOut }) {
         }
       return new Date(rowTimeIn(a, range.start, endExclusive) || 0) - new Date(rowTimeIn(b, range.start, endExclusive) || 0);
       });
-  }, [rows, range, channelFilter, statusFilter, search, channels]);
+  }, [rows, range, channelFilter, statusFilter, search, channels, cardView]);
   /* Parking Zone: On Hold content + incomplete content. */
   const parked = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows
       .filter(isParked)
+      .filter((r) => {
+        if (cardView === 'videos' && typeIsCard(r.content_type)) return false;
+        if (cardView === 'cards' && !typeIsCard(r.content_type)) return false;
+        return true;
+      })
       .filter((r) => channelFilter === 'all' || r.channel === channelFilter)
       .filter((r) => statusFilter === 'all' || r.status === statusFilter)
       .filter((r) => !q || [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text, r.shoot_location, r.card_source, ...(r.card_fields ? Object.values(r.card_fields).filter((v) => typeof v === 'string') : [])].some((v) => String(v || '').toLowerCase().includes(q)))
@@ -1871,7 +1895,7 @@ function NewsroomApp({ authUser, onSignOut }) {
         if (b.scheduled_publish_time) return 1;
         return new Date(b.created_at || 0) - new Date(a.created_at || 0);
       });
-    }, [rows, channelFilter, statusFilter, search]);
+    }, [rows, channelFilter, statusFilter, search, cardView]);
 
   const bin = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1880,16 +1904,43 @@ function NewsroomApp({ authUser, onSignOut }) {
       .filter((r) => !q || [r.slug_name, r.title, r.channel, r.content_uid].some((v) => String(v || '').toLowerCase().includes(q)))
       .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
   }, [rows, search]);
+  /* Pinned Breaking photo cards (only when cardView !== 'videos'). */
+  const breakingRows = useMemo(() => {
+    if (cardView === 'videos') return [];
+    const pinnedStatuses = new Set(['Requested', 'Designing', 'In Review', 'Ready to Publish', 'Scheduled']);
+    return rows
+      .filter((r) => {
+        if (!typeIsCard(r.content_type) || !r.is_emergency) return false;
+        if (!pinnedStatuses.has(r.status)) return false;
+        if (channelFilter !== 'all' && r.channel !== channelFilter) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(a.created_at || a.scheduled_publish_time || 0) - new Date(b.created_at || b.scheduled_publish_time || 0));
+  }, [rows, cardView, channelFilter]);
+
   /* Pinned "Did it go out?" rows: publishCheckState is active. They ignore range, search and statusFilter, but obey channelFilter. */
-  const pinnedRows = useMemo(() => {
+  const publishCheckPinnedRows = useMemo(() => {
     return rows.filter((r) => {
+      if (cardView === 'videos' && typeIsCard(r.content_type)) return false;
+      if (cardView === 'cards' && !typeIsCard(r.content_type)) return false;
       if (!isComplete(r)) return false;
       if (publishCheckState(r, nowTick) === null) return false;
       if (channelFilter !== 'all' && r.channel !== channelFilter) return false;
       return true;
     });
-  }, [rows, nowTick, channelFilter]);
+  }, [rows, nowTick, channelFilter, cardView]);
 
+  /* Combined pinned rows: Breaking cards first (oldest first), then publish check rows. */
+  const pinnedRows = useMemo(() => {
+    const map = new Map();
+    breakingRows.forEach((r) => map.set(r.id, r));
+    publishCheckPinnedRows.forEach((r) => {
+      if (!map.has(r.id)) map.set(r.id, r);
+    });
+    return Array.from(map.values());
+  }, [breakingRows, publishCheckPinnedRows]);
+
+  const breakingIds = useMemo(() => new Set(breakingRows.map((r) => r.id)), [breakingRows]);
   const pinnedIds = useMemo(() => new Set(pinnedRows.map((r) => r.id)), [pinnedRows]);
 
   const pinnedDateFlag = (r) => {
@@ -1921,12 +1972,19 @@ function NewsroomApp({ authUser, onSignOut }) {
       if (aPinned && !bPinned) return -1;
       if (!aPinned && bPinned) return 1;
       if (aPinned && bPinned) {
+        const aBrk = breakingIds.has(a.id);
+        const bBrk = breakingIds.has(b.id);
+        if (aBrk && !bBrk) return -1;
+        if (!aBrk && bBrk) return 1;
+        if (aBrk && bBrk) {
+          return new Date(a.created_at || a.scheduled_publish_time || 0) - new Date(b.created_at || b.scheduled_publish_time || 0);
+        }
         return new Date(a.scheduled_publish_time || 0) - new Date(b.scheduled_publish_time || 0);
       }
       const endExclusive = addDays(range.end, 1);
       return new Date(rowTimeIn(a, range.start, endExclusive) || 0) - new Date(rowTimeIn(b, range.start, endExclusive) || 0);
     });
-  }, [visible, pinnedRows, pinnedIds, channelFilter, channels, range]);
+  }, [visible, pinnedRows, pinnedIds, breakingIds, channelFilter, channels, range]);
 
   /* Rundown rows, with a channel header inserted before each channel group in "All Channels" view. */
   const tableItems = useMemo(() => {
@@ -1989,12 +2047,19 @@ function NewsroomApp({ authUser, onSignOut }) {
         if (aPinned && !bPinned) return -1;
         if (!aPinned && bPinned) return 1;
         if (aPinned && bPinned) {
+          const aBrk = breakingIds.has(a.id);
+          const bBrk = breakingIds.has(b.id);
+          if (aBrk && !bBrk) return -1;
+          if (!aBrk && bBrk) return 1;
+          if (aBrk && bBrk) {
+            return new Date(a.created_at || a.scheduled_publish_time || 0) - new Date(b.created_at || b.scheduled_publish_time || 0);
+          }
           return new Date(a.scheduled_publish_time || 0) - new Date(b.scheduled_publish_time || 0);
         }
         const endExclusive = addDays(range.end, 1);
         return new Date(rowTimeIn(a, range.start, endExclusive) || 0) - new Date(rowTimeIn(b, range.start, endExclusive) || 0);
       }),
-    [rundownRows, pinnedIds, range]
+    [rundownRows, pinnedIds, breakingIds, range]
   );
 
   const selected = rows.find((r) => r.id === selectedId) || null;
@@ -2275,7 +2340,7 @@ function NewsroomApp({ authUser, onSignOut }) {
 
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-3 px-5 pb-3">
           <DatePicker range={range} onChange={setRange} />
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <div className="relative">
               <select
                 value={channelFilter}
@@ -2293,6 +2358,44 @@ function NewsroomApp({ authUser, onSignOut }) {
                 ))}
               </select>
               <Icon name="chevronDown" className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
+            </div>
+            <div className="inline-flex rounded-full border border-white/[0.1] bg-white/[0.04] p-0.5 text-[12px] font-medium" role="group" aria-label="Content view">
+              <button
+                type="button"
+                onClick={() => changeCardView('videos')}
+                className={`rounded-full px-3 py-1 transition ${
+                  cardView === 'videos'
+                    ? 'bg-white text-black font-semibold shadow-sm'
+                    : 'text-zinc-300 hover:text-white'
+                }`}
+                aria-pressed={cardView === 'videos'}
+              >
+                Videos
+              </button>
+              <button
+                type="button"
+                onClick={() => changeCardView('cards')}
+                className={`rounded-full px-3 py-1 transition ${
+                  cardView === 'cards'
+                    ? 'bg-white text-black font-semibold shadow-sm'
+                    : 'text-zinc-300 hover:text-white'
+                }`}
+                aria-pressed={cardView === 'cards'}
+              >
+                Photo Cards
+              </button>
+              <button
+                type="button"
+                onClick={() => changeCardView('all')}
+                className={`rounded-full px-3 py-1 transition ${
+                  cardView === 'all'
+                    ? 'bg-white text-black font-semibold shadow-sm'
+                    : 'text-zinc-300 hover:text-white'
+                }`}
+                aria-pressed={cardView === 'all'}
+              >
+                All
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -2407,7 +2510,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                               <span className="text-[14px] font-semibold flex-1 truncate">{item.name}</span>
                               {item.pinnedCount > 0 ? (
                                 <span className="rounded-full bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 text-[11px] font-bold">
-                                  {item.pinnedCount} to answer
+                                  {item.pinnedCount} pinned
                                 </span>
                               ) : null}
                               <span className="chan-band-count rounded-full px-2.5 py-0.5 text-[12px] font-bold tabular-nums">{item.count}</span>
@@ -2429,9 +2532,9 @@ function NewsroomApp({ authUser, onSignOut }) {
                         key={item.key}
                         onClick={() => setSelectedId(r.id)}
                         style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
-                        className={`row-in cursor-pointer border-b border-white/[0.14] transition last:border-0 hover:bg-white/[0.04]${altNo % 2 === 0 ? ' rd-alt' : ''}`}
+                        className={`row-in cursor-pointer border-b border-white/[0.14] transition last:border-0 hover:bg-white/[0.04]${altNo % 2 === 0 ? ' rd-alt' : ''}${isPinned && isBreakingActive(r) ? ' !border-l-2 !border-l-red-500 bg-red-950/[0.08]' : ''}`}
                       >
-                        <td className="whitespace-nowrap w-[110px] px-3 py-1.5 border-r border-white/5 tabular-nums text-zinc-300 align-top">
+                        <td className={`whitespace-nowrap w-[110px] px-3 py-1.5 border-r border-white/5 tabular-nums text-zinc-300 align-top${isPinned && isBreakingActive(r) ? ' border-l-2 border-l-red-500' : ''}`}>
                           <div className="font-medium text-white">{formatTime(timeIso)}</div>
                           {(showDate || !sameDay(range.start, range.end)) ? <div className="text-[11px] text-zinc-500">{formatDay(timeIso)}</div> : null}
                           <div className="mt-1 flex flex-col items-start gap-0.5">
@@ -2444,9 +2547,10 @@ function NewsroomApp({ authUser, onSignOut }) {
                           </div>
                         </td>
                         <td className="max-w-[360px] px-3 py-1.5 border-r border-white/5 relative align-top">
-                          <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
+                          <div className={`absolute inset-y-0 left-0 w-1 ${isPinned && isBreakingActive(r) ? 'bg-red-500' : (STATUS_META[r.status]?.dot || "bg-zinc-500")}`} />
                           <div className="pl-3 flex flex-col gap-0.5">
                             <div className="flex flex-wrap items-center gap-2">
+                              {isBreakingActive(r) ? <BreakingBadge /> : null}
                               <TypeBox type={r.content_type} />
                               <IdBox uid={r.content_uid} />
                             </div>
@@ -2528,6 +2632,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                     onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                     showDate={showDate}
                     photoTemplates={photoTemplates}
+                    isPinned={isPinned}
                   />
                 );
               })}
@@ -2585,7 +2690,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                           <span className="text-[15px] font-bold flex-1 truncate">{group.header.name}</span>
                           {group.header.pinnedCount > 0 ? (
                             <span className="rounded-full bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 text-[11px] font-bold">
-                              {group.header.pinnedCount} to answer
+                              {group.header.pinnedCount} pinned
                             </span>
                           ) : null}
                           <span className="chan-band-count rounded-full px-2.5 py-0.5 text-[13px] font-bold">{group.header.count}</span>
@@ -2621,6 +2726,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                       onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                                       showDate={showDate}
                                       photoTemplates={photoTemplates}
+                                      isPinned={isPinned}
                                     />
                                   </div>
                                 );
@@ -2636,6 +2742,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                   checkState={checkState}
                                   flash={flash}
                                   showDate={showDate}
+                                  isPinned={isPinned}
                                 />
                               );
                             })}
@@ -2666,6 +2773,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                   onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                                   showDate={showDate}
                                   photoTemplates={photoTemplates}
+                                  isPinned={isPinned}
                                 />
                               );
                             })}
@@ -2727,6 +2835,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                     <td className="px-3 py-2 border-r border-white/5 relative">
                       <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
                       <div className="flex flex-wrap items-center gap-2">
+                        {isBreakingActive(r) ? <BreakingBadge small /> : null}
                         <TypeBadge type={r.content_type} />
                         <IdBox uid={r.content_uid} small />
                       </div>
@@ -2780,6 +2889,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                     </>
                                   )}
                                 <div className="flex flex-wrap items-center gap-2">
+                                  {isBreakingActive(r) ? <BreakingBadge small /> : null}
                                   <div className="scale-90 origin-left"><TypeBadge type={r.content_type} /></div>
                                   <IdBox uid={r.content_uid} small />
                                 </div>

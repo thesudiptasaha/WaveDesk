@@ -13,10 +13,11 @@ import {
   sameDay,
   formatTime,
   formatDay,
-  shortClipNotes
+  shortClipNotes,
+  isBreakingActive
 } from '../../lib/core';
 import { LockIcon } from './Icons';
-import { StatusBadge, TypeBox, IdBox, AdBadge } from './Badges';
+import { StatusBadge, TypeBox, IdBox, AdBadge, BreakingBadge } from './Badges';
 import { StaffCell } from './StaffAssignSelect';
 import { ActionButtons } from './Shared';
 
@@ -37,7 +38,7 @@ export function ShortNote({ r, range }) {
   );
 }
 
-export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel, ads, checkState, flash, canAnswer, onAnswerCheck, showDate, photoTemplates }) {
+export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel, ads, checkState, flash, canAnswer, onAnswerCheck, showDate, photoTemplates, isPinned = false }) {
   const endEx = addDays(range.end, 1);
   const tIso = showDate ? r.scheduled_publish_time : rowTimeIn(r, range.start, endEx);
   const t = formatTime(tIso);
@@ -49,9 +50,9 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
   return (
     <div
       onClick={() => onOpen && onOpen(r.id)}
-      className="rd-card relative cursor-pointer overflow-hidden rounded-[20px] border border-white/[0.14] bg-[#121215]"
+      className={`rd-card relative cursor-pointer overflow-hidden rounded-[20px] border ${isPinned && isBreakingActive(r) ? 'border-red-500/60 border-l-2 border-l-red-500' : 'border-white/[0.14]'} bg-[#121215]`}
     >
-      <div className={`absolute inset-y-0 left-0 w-1.5 ${STATUS_META[r.status]?.dot || 'bg-zinc-500'}`} />
+      <div className={`absolute inset-y-0 left-0 ${isPinned && isBreakingActive(r) ? 'w-2 bg-red-500' : 'w-1.5 ' + (STATUS_META[r.status]?.dot || 'bg-zinc-500')}`} />
       <div className="pl-[22px] pr-4 pt-3.5 pb-3 flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <div>
@@ -63,6 +64,7 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
             {!showDate && isMultiDay ? <div className="text-[11px] text-zinc-500">{formatDay(tIso)}</div> : null}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            {isBreakingActive(r) ? <BreakingBadge /> : null}
             <TypeBox type={r.content_type} />
             <IdBox uid={r.content_uid} />
             {onCollapse ? (
@@ -135,7 +137,7 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
   );
 }
 
-export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, showDate }) {
+export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, showDate, isPinned = false }) {
   const endEx = addDays(range.end, 1);
   const tIso = showDate ? r.scheduled_publish_time : rowTimeIn(r, range.start, endEx);
   const t = formatTime(tIso);
@@ -165,9 +167,9 @@ export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, show
       tabIndex={0}
       onClick={onToggle}
       onKeyDown={handleKeyDown}
-      className={`relative flex min-h-[56px] items-stretch border-b border-white/[0.14] cursor-pointer ${alt ? 'rd-alt' : ''}`}
+      className={`relative flex min-h-[56px] items-stretch border-b border-white/[0.14] cursor-pointer ${alt ? 'rd-alt' : ''}${isPinned && isBreakingActive(r) ? ' border-l-2 border-l-red-500 bg-red-950/[0.08]' : ''}`}
     >
-      <div className={`w-1.5 shrink-0 ${STATUS_META[r.status]?.dot || 'bg-zinc-500'}`} />
+      <div className={`w-1.5 shrink-0 ${isPinned && isBreakingActive(r) ? 'bg-red-500' : (STATUS_META[r.status]?.dot || 'bg-zinc-500')}`} />
       <div className={`${showDate ? 'w-[76px]' : 'w-[58px]'} shrink-0 flex flex-col justify-center pl-2.5`}>
         <div className="flex items-baseline gap-1">
           <span className="text-[14px] font-bold tabular-nums text-sky-400 leading-none">{clock}</span>
@@ -180,6 +182,7 @@ export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, show
           {r.slug_name || 'NO SLUG...'}
         </div>
         <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+          {isBreakingActive(r) ? <BreakingBadge small /> : null}
           <TypeBox type={r.content_type} small />
           <IdBox uid={r.content_uid} small />
           <AdBadge ads={ads} small />

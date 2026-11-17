@@ -5,6 +5,26 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 17 Nov 2026 — Photo Card step 4: rundown switch & Breaking pin (N154)
+
+- **Rundown switch (Videos | Photo Cards | All)**:
+  - Added a segmented control pill group in the filter bar next to the channel select: "Videos", "Photo Cards", and "All".
+  - Default view is `videos` (`!typeIsCard`), keeping existing video behavior identical to before (cards do not show).
+  - Selected view is remembered per user in the browser under `localStorage` key `wavedesk.cardView.<actor id>`, loaded once the actor is known, with error handling (`try/catch`) and validation of stored values.
+  - The switch filters the rundown (`visible`), Parking Zone (`parked`), and pinned rows (`pinnedRows`). The rundown item counter automatically reflects the filtered count.
+  - Bin, Excel export, KPI modals, and My Work are unchanged.
+- **Breaking cards pinned**:
+  - Emergency photo cards (`typeIsCard && is_emergency`) in active statuses (`Requested`, `Designing`, `In Review`, `Ready to Publish`, `Scheduled`) are pinned at the top of their channel when `cardView !== 'videos'`.
+  - Breaking cards ignore the date range, search input, and status filter, but obey the channel filter.
+  - Merged into `pinnedRows` ahead of "Did it go out?" publish-check rows; among Breaking cards, sorted oldest first (`created_at` or `scheduled_publish_time`).
+  - Outside-range rows display the date in their time cell via the existing `showDate`/`pinnedDateFlag` logic.
+  - Once published (or held/dropped), the card is unpinned and appears in normal chronological rundown order if inside the selected date range.
+- **Wording & badges**:
+  - Avoided any "Did it go out?" wording or buttons: `publishCheckState` returns `null` for emergency cards, and channel headers now generically state `{count} pinned` instead of `{count} to answer`.
+  - Red pulsating `BREAKING` badge (`BreakingBadge`) displayed on all active Breaking card rows (table rows, phone cards, phone rows, and Parking Zone).
+  - Pinned Breaking rows receive a thin red left border highlight.
+  - Pulse animation (`breaking-badge-pulse`) uses `@keyframes breakingPulse` and is disabled under `@media (prefers-reduced-motion: reduce)`.
+
 ## 17 Nov 2026 — Photo Card step 3: step buttons & transitions (N153 / N153b)
 
 - **Step buttons for Photo Card**: Added full transition actions for `PHOTO CARD` in `lib/core.js` (`getActions`), strictly mirroring database rules in `sql/2026-11-16_photocard_database.sql`:

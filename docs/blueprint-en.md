@@ -144,6 +144,7 @@ The app is one page (`app/page.js`) with a sticky header, the rundown, a second 
 | --- | --- |
 | Date picker | Choose one day or a range. Controls which contents are loaded (by publish time, plus any content whose shorts are due in range). |
 | Channel dropdown | All Channels or one channel. Filters both tables. |
+| Content view switch | Segmented control next to channel dropdown: Videos, Photo Cards, All. Remembers user choice in localStorage (`wavedesk.cardView.<actor id>`). Filters the rundown, Parking Zone, and pinned rows. Default: Videos. |
 | + Channel | Owner and Managers: opens Add channel. Everyone else sees a lock and a message. |
 
 **Main area, Daily Rundown**
@@ -220,7 +221,7 @@ The top two rows are the full pipeline. The cards underneath list the moves that
 
 **The UNCUT content type.** Uncut content is reporter-driven raw footage brought in from the field without a script and without studio shoot steps. In Draft, the only forward action is "Footage Ready" (moving to Assign Editor), which can be pressed by the assigned Multimedia Journalist or a Manager once a Multimedia Journalist is selected; there is no Submit Script button. The drawer has no Editorial tab and opens on the Production tab by default. On an Uncut the Multimedia Journalist has production-admin powers: they can edit shoot times, add/remove names in Production Crew fields, edit production notes, and tick "Files delivered" (which is also available directly in Draft). In Assign Editor, the Multimedia Journalist can also assign themselves as Video Editor into an empty slot and advance the content to Editing. Re-Shoot and Copy Script actions are not offered on an Uncut.
 
-**The PHOTO CARD content type.** Card requested by writers from a channel template, crafted by a Graphic Designer, and published to social platforms. In New Content, choosing Photo Card provides a 2-button form ("Save as draft" and "Submit to design") with template fields, Breaking toggle, Source, Caption, and Designer instructions. The drawer features Editorial, Production, and Publish tabs (no Post-production tab). Step buttons allow taking the card, submitting it for review, skipping review with confirmation for Breaking cards, approving, requesting corrections with a reason, scheduling, and publishing with optional per-platform links.
+**The PHOTO CARD content type.** Card requested by writers from a channel template, crafted by a Graphic Designer, and published to social platforms. In New Content, choosing Photo Card provides a 2-button form ("Save as draft" and "Submit to design") with template fields, Breaking toggle, Source, Caption, and Designer instructions. The drawer features Editorial, Production, and Publish tabs (no Post-production tab). Step buttons allow taking the card, submitting it for review, skipping review with confirmation for Breaking cards, approving, requesting corrections with a reason, scheduling, and publishing with optional per-platform links. The rundown filter switch allows toggling between Videos, Photo Cards, and All (choice remembered per user in localStorage). Active Breaking cards are pinned to the top of their channel with a red pulsating BREAKING badge and red left border until published.
 
 **The 13 statuses and every allowed move**
 
