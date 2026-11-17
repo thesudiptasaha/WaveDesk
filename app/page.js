@@ -28,7 +28,8 @@ import {
   FIELD_PERM, TRACKED_FIELDS, wentLiveDefault,
   canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
   canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
-  typeHasScript, typeIsCard, isUncutReporter, canManagePhotoTemplates
+  typeHasScript, typeIsCard, isUncutReporter, canManagePhotoTemplates,
+  getPublishedLinks
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -1115,6 +1116,9 @@ function NewsroomApp({ authUser, onSignOut }) {
         status: current.to,
         audit_log: [...fresh.audit_log, { kind: 'status', actor: actor.full_name, role: actor.role, from: fresh.status, to: current.to, time: now, note: extra && extra.wentLiveAt ? `Went live at ${formatStamp(extra.wentLiveAt)}` : reason }],
       };
+      if (current.id === 'correct_card') {
+        patch.correction_note = reason;
+      }
       if (current.id === 'start_shoot') {
         patch.shoot_started_at = now;
         patch.shoot_finished_at = null;
@@ -1139,6 +1143,18 @@ function NewsroomApp({ authUser, onSignOut }) {
         if (!fresh.published_by) patch.published_by = actor.full_name;
         if (!fresh.went_live_at) patch.went_live_at = (extra && extra.wentLiveAt) || now;
       }
+      if (typeIsCard(fresh.content_type) && extra && extra.publishedLinks && Object.keys(extra.publishedLinks).length > 0) {
+        const existing = getPublishedLinks(fresh);
+        const updated = { ...existing, ...extra.publishedLinks };
+        Object.keys(updated).forEach((k) => {
+          if (!updated[k] || !String(updated[k]).trim()) delete updated[k];
+        });
+        const hasKeys = Object.keys(updated).length > 0;
+        patch.live_video_url = hasKeys ? JSON.stringify(updated) : '';
+        if ('published_links' in fresh) {
+          patch.published_links = updated;
+        }
+      }
       const ok = await patchRow(fresh.id, patch, true);
       if (ok) notify(`${fresh.slug_name || fresh.title || 'Content'} → ${current.to}`, 'success');
       return ok;
@@ -1148,6 +1164,15 @@ function NewsroomApp({ authUser, onSignOut }) {
 
   const runAction = (row, action) => {
     if (action.id === 'copy_script') { navigator.clipboard.writeText(scriptToPlainText(row.script) || 'No script'); notify('Script copied', 'success'); return true; }
+    if (action.id === 'skip_review') {
+      setConfirmReq({
+        title: 'Skip review',
+        message: "This card will go out without review and will be marked 'Not approved'. Continue?",
+        confirmLabel: 'Skip review',
+        onConfirm: () => transition(row, action),
+      });
+      return true;
+    }
     if (action.id === 'publish') { setPublishFor({ rowId: row.id, action }); return true; }
     if (action.needsReason) { setReasonFor({ rowId: row.id, action }); return true; }
     return transition(row, action);
@@ -2950,15 +2975,28 @@ function NewsroomApp({ authUser, onSignOut }) {
       ) : null}
         {reasonFor && reasonRow ? (
           <ReasonModal
-            title={reasonFor.action.id === 'drop' && reasonRow.status === 'Published' ? 'Drop published content?' : reasonFor.action.label}
+            title={
+              reasonFor.action.id === 'drop' && reasonRow.status === 'Published'
+                ? 'Drop published content?'
+                : reasonFor.action.id === 'correct_card'
+                ? 'Request correction'
+                : reasonFor.action.label
+            }
             subtitle={
               reasonFor.action.id === 'drop' && reasonRow.status === 'Published'
                 ? 'This was already published. It stays on the rundown, shown in grey as Published, later removed, and the reason you write is saved in the Activity log.'
                 : undefined
             }
-            confirmLabel={reasonFor.action.id === 'drop' && reasonRow.status === 'Published' ? 'Drop it' : 'Confirm'}
+            confirmLabel={
+              reasonFor.action.id === 'drop' && reasonRow.status === 'Published'
+                ? 'Drop it'
+                : reasonFor.action.id === 'correct_card'
+                ? 'Request correction'
+                : 'Confirm'
+            }
             danger={reasonFor.action.id === 'drop' && reasonRow.status === 'Published'}
-            label="Reason / note"
+            label={reasonFor.action.id === 'correct_card' ? 'What needs to be fixed' : 'Reason / note'}
+            placeholder={reasonFor.action.id === 'correct_card' ? 'What should the designer fix?' : undefined}
             onClose={() => setReasonFor(null)}
             onConfirm={(reason) => {
               const { action } = reasonFor;
@@ -2971,11 +3009,12 @@ function NewsroomApp({ authUser, onSignOut }) {
         <PublishTimeModal
           row={publishRow}
           defaultIso={wentLiveDefault(publishRow, new Date().toISOString())}
+          platforms={platforms}
           onClose={() => setPublishFor(null)}
-          onConfirm={(iso) => {
+          onConfirm={(iso, extra) => {
             const { action } = publishFor;
             setPublishFor(null);
-            transition(publishRow, action, '', { wentLiveAt: iso });
+            transition(publishRow, action, '', { wentLiveAt: iso, ...(extra || {}) });
           }}
         />
       ) : null}

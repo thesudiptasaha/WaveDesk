@@ -1,6 +1,6 @@
-# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৬ নভেম্বর ২০২৬)
+# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৭ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N153** (N152, N152b, N152b2, N152c, N152d ব্যবহৃত; N153 সংরক্ষিত: Photo Card step 3 = step buttons)। শেষ যাচাই-করা কমিট: 42b7c58 (N151, verified on GitHub 16 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N154** (N153, N153b, N153c, N153d ব্যবহৃত; N154 সংরক্ষিত: Photo Card step 4 = rundown switch, emergency pin, designer "my work")। শেষ যাচাই-করা কমিট: ad37d13 (N152, verified on GitHub 17 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -60,7 +60,8 @@
 | N149 (b, b2, c, d) | Uncut content type and Multimedia Journalist role in the app | b3cd1b3 |
 | N150 (c, d) | Shoot location field in the Production tab (suggestions from earlier entries, searchable, in the Excel export) | 7d62abb |
 | N151 (c, d) | Photo Card ground work: three new ticks and the Photo Card Templates page (+ DB record for Photo Card tables and rules) | 42b7c58 |
-| N152 (b, b2, c, d) | Photo Card step 2: PHOTO CARD type, new-card form (two buttons Save as draft / Submit to design, template fields, source, caption, designer instructions, Breaking), card drawer tabs (Editorial, Production, Publish), Excel columns | this commit |
+| N152 (b, b2, c, d) | Photo Card step 2: PHOTO CARD type, new-card form (two buttons Save as draft / Submit to design, template fields, source, caption, designer instructions, Breaking), card drawer tabs (Editorial, Production, Publish), Excel columns | ad37d13 |
+| N153 (b, c, d) | Photo Card step 3: step buttons for cards (I'm taking it, Withdraw, Made send for review, Give back, Skip review for Breaking cards with confirm, Approve, Request correction with reason, Mark as Scheduled, Publish dialog with optional per-platform links, Confirm Published, Cancel Schedule); no publish-check nag for Breaking cards | this commit |
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।
 

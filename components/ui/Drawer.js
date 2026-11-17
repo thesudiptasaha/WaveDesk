@@ -28,7 +28,7 @@ import {
   AD_TYPES, AD_STATUSES, canEditAds, stepProgress,
   canMarkFilesReceived, canFixFilesProblem,
   canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
-  isExternal, canManageExternals
+  isExternal, canManageExternals, getPublishedLinks
 } from '../../lib/core';
 import {
   BookingsContext,
@@ -922,26 +922,6 @@ function CopyButton({ text }) {
       )}
     </button>
   );
-}
-
-function getPublishedLinks(row) {
-  if (row.published_links && typeof row.published_links === 'object') {
-    return row.published_links;
-  }
-  if (row.live_video_url && typeof row.live_video_url === 'string') {
-    const trimmed = row.live_video_url.trim();
-    if (trimmed.startsWith('{')) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed && typeof parsed === 'object') return parsed;
-      } catch (_) {}
-    }
-    if (safeHttpUrl(trimmed)) {
-      const first = (row.target_platforms && row.target_platforms[0]) || 'youtube';
-      return { [first]: trimmed };
-    }
-  }
-  return {};
 }
 
 function formatShootDuration(startIso, endIso) {

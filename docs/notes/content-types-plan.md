@@ -85,6 +85,7 @@ Every content type's full pipeline and credit list will be revised as part of th
    - ✅ **DONE (16 Nov): Database groundwork** — `sql/2026-11-16_photocard_database.sql` (3 ticks on `team_members`, `photo_card_templates` table with RLS, 16 new columns on `contents`, full rules in `guard_contents_insert`, `guard_contents_update`, `guard_team_members`, `notify_content_update`).
    - ✅ **DONE (16 Nov, N151): Three ticks & Photo Card Templates page** — `can_request_photo_cards`, `can_approve_photo_cards`, `can_manage_photo_templates`, menu item in Manage section, list view & template editor with dynamic fields.
    - ✅ **DONE (16 Nov, N152 / N152b / N152b2): Step 2 — PHOTO CARD type, request form & drawer tabs** — `PHOTO CARD` in `CONTENT_TYPE_CONFIG`, 2-button form (Save as draft / Submit to design), template fields, Breaking toggle, drawer tabs (Editorial, Production, Publish, QC, Credits), search & Excel export.
-   - **Next: N153** — Step 3: pipeline step buttons (Take card, Make card, Send for Review, Approve, Request Correction, Cancel Assignment, Skip Review, Publish).
+   - ✅ **DONE (17 Nov, N153 / N153b): Step 3 — pipeline step buttons & Publish dialog** — action buttons for cards (I'm taking it, Withdraw, Made send for review, Give back, Skip review for Breaking cards with confirm, Approve, Request correction with reason, Mark as Scheduled, Publish dialog with optional per-platform links, Confirm Published, Cancel Schedule); nag suppression for emergency cards; getPublishedLinks unified into lib/core.js.
+   - **Next: N154** — Step 4: rundown switch (Videos | Photo Cards | All), Breaking emergency cards pinned and flashing until Published, designer "my work" list.
 
 Each step is its own task, one at a time.

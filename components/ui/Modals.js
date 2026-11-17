@@ -12,7 +12,7 @@ import {
   normalizeRow, presenterMembers, eligibleMembers, typeHasScript,
   typeIsCard, photoCardMissing, photoCardSlugFrom,
   isExternal, canManageExternals, normalizePhone,
-  canManagePhotoTemplates, PHOTO_FIELD_TYPES
+  canManagePhotoTemplates, PHOTO_FIELD_TYPES, getPublishedLinks
 } from '../../lib/core';
 
 import { downloadUserReport } from '../../services/exportService';
@@ -703,7 +703,7 @@ function AddPlatformModal({ onClose, onAdd, existing = [] }) {
   );
 }
 
-function ReasonModal({ title, subtitle, label, confirmLabel = 'Confirm', danger = false, onClose, onConfirm }) {
+function ReasonModal({ title, subtitle, label, placeholder = 'Add a short note…', confirmLabel = 'Confirm', danger = false, onClose, onConfirm }) {
   const [reason, setReason] = useState('');
   return (
     <ModalShell
@@ -722,7 +722,7 @@ function ReasonModal({ title, subtitle, label, confirmLabel = 'Confirm', danger 
       }
     >
       <Field label={label}>
-        <textarea autoFocus rows={4} className={inputBase} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Add a short note…" />
+        <textarea autoFocus rows={4} className={inputBase} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={placeholder} />
       </Field>
     </ModalShell>
   );
@@ -1865,11 +1865,31 @@ function DirectoryModal({ team, onClose }) {
   );
 }
 
-function PublishTimeModal({ row, defaultIso, onClose, onConfirm }) {
+function PublishTimeModal({ row, defaultIso, onClose, onConfirm, platforms = PLATFORMS }) {
   const [when, setWhen] = useState(toLocalInput(defaultIso));
   const maxNow = toLocalInput(new Date().toISOString());
   const iso = when ? fromLocalInput(when) : '';
   const future = !!iso && new Date(iso).getTime() > Date.now() + 60000;
+  const isCard = typeIsCard(row?.content_type);
+  const targetPlatforms = (row && Array.isArray(row.target_platforms) && row.target_platforms.length > 0)
+    ? row.target_platforms
+    : ['facebook'];
+  const existingLinks = isCard ? getPublishedLinks(row) : {};
+  const [cardLinks, setCardLinks] = useState(() => ({ ...existingLinks }));
+
+  const handleConfirm = () => {
+    if (isCard) {
+      const trimmedLinks = {};
+      Object.entries(cardLinks).forEach(([pId, val]) => {
+        const v = (val || '').trim();
+        if (v) trimmedLinks[pId] = v;
+      });
+      onConfirm(iso, { publishedLinks: trimmedLinks });
+    } else {
+      onConfirm(iso);
+    }
+  };
+
   return (
     <ModalShell
       title="Confirm publish time"
@@ -1878,7 +1898,7 @@ function PublishTimeModal({ row, defaultIso, onClose, onConfirm }) {
       footer={
         <>
           <button className={btnGhost} onClick={onClose}>Cancel</button>
-          <button className={btnPrimary} disabled={!iso || future} onClick={() => onConfirm(iso)}>Confirm published</button>
+          <button className={btnPrimary} disabled={!iso || future} onClick={handleConfirm}>Confirm published</button>
         </>
       }
     >
@@ -1890,6 +1910,26 @@ function PublishTimeModal({ row, defaultIso, onClose, onConfirm }) {
           <input type="datetime-local" value={when} max={maxNow} onChange={(e) => setWhen(e.target.value)} className={`${inputBase} [color-scheme:dark]`} />
         </Field>
         {future ? <p className="text-[12px] text-red-400">The publish time cannot be in the future.</p> : null}
+        {isCard ? (
+          <div className="pt-2 border-t border-white/[0.08] space-y-3">
+            <p className="text-[12px] font-medium text-zinc-300">Published links (optional)</p>
+            {targetPlatforms.map((pId) => {
+              const pObj = (platforms || []).find((p) => p.id === pId);
+              const label = pObj ? (pObj.label || pObj.name || pId) : pId;
+              return (
+                <Field key={pId} label={label}>
+                  <input
+                    type="url"
+                    value={cardLinks[pId] || ''}
+                    onChange={(e) => setCardLinks((prev) => ({ ...prev, [pId]: e.target.value }))}
+                    className={inputBase}
+                    placeholder="https://..."
+                  />
+                </Field>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </ModalShell>
   );

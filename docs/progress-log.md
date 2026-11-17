@@ -5,6 +5,21 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 17 Nov 2026 — Photo Card step 3: step buttons & transitions (N153 / N153b)
+
+- **Step buttons for Photo Card**: Added full transition actions for `PHOTO CARD` in `lib/core.js` (`getActions`), strictly mirroring database rules in `sql/2026-11-16_photocard_database.sql`:
+  - **Requested**: "I'm taking it" (`take_card` → `Designing`, primary; Graphic Designer role or Manager) and "Withdraw" (`withdraw_card` → `Draft`, ghost; Requester or Manager).
+  - **Designing**: "Made, send for review" (`made_card` → `In Review`, primary; assigned Graphic Designer or Manager; non-emergency cards only). For Breaking cards (`is_emergency`), shows "Skip review" (`skip_review` → `Ready to Publish`, danger tone; requires confirmation dialog: "This card will go out without review and will be marked 'Not approved'. Continue?"). Both get "Give back" (`give_back_card` → `Requested`, ghost; assigned Graphic Designer or Manager).
+  - **In Review**: "Approve" (`approve_card` → `Ready to Publish`, primary; Requester, holder of `can_approve_photo_cards`, or Manager; assigned Graphic Designer cannot approve own card unless Manager) and "Request correction" (`correct_card` → `Designing`, ghost; same people as Approve, also blocks assigned designer unless Manager; requires reason).
+  - **Ready to Publish**: "Mark as Scheduled" (`schedule` → `Scheduled`, primary) and "Publish" (`publish` → `Published`, ghost; Publisher role or Manager). Does not block if publisher is unassigned (the database auto-stamps actor).
+  - **Scheduled**: "Confirm Published" (`publish` → `Published`, primary; Publisher or Manager) and "Cancel Schedule" (`unschedule` → `Ready to Publish`, ghost; allowed for Publishers and Managers in the database).
+  - **Hold, Drop, Resume, Restore**: standard management controls remain available for Managers across all stages.
+- **Database trigger stamping**: Trigger automatically stamps `requested_by/at`, `graphic_designer`, `designer_taken_at`, `made_at`, `review_skipped`, `approved_by/at`, `correction_count`, and default `publisher`. The app only needs to send `correction_note = reason` for `correct_card`.
+- **Reason dialog for corrections**: `ReasonModal` supports optional `placeholder`. For `correct_card`, displays title "Request correction", label "What needs to be fixed", placeholder "What should the designer fix?", and requires text before confirming.
+- **Publish dialog for cards**: `PublishTimeModal` reuses real upload time and, for cards (`typeIsCard`), shows optional link inputs per target platform (`row.target_platforms`, labels from platforms list, e.g. Facebook). On publish confirmation, merges non-empty links into existing published links (`live_video_url` JSON and `published_links` object).
+- **Nag suppression for Breaking cards**: `publishCheckState` returns `null` for emergency cards so the 10-minute "was it published?" check never nags.
+- **Deduplication of `getPublishedLinks`**: Unified `getPublishedLinks` into `lib/core.js` with `safeHttpUrl` protocol validation, removing the duplicate in `components/ui/Drawer.js`.
+
 ## 16 Nov 2026 — Photo Card step 2: Photo Card type, form & drawer tabs (N152 / N152b / N152b2)
 
 - **PHOTO CARD content type**: Added `PHOTO CARD` to `CONTENT_TYPE_CONFIG` with pink theme, `skipsShoot: true`, `hasPostStage: false`, `usesVideoEditor: false`, `hasScript: false`, `isCard: true`, and all roles hidden in credits except `graphic_designer` and `publisher`. Exported helper `typeIsCard(type)`. Statuses added to `STATUS_META`: `Requested` (violet), `Designing` (fuchsia), `In Review` (orange).

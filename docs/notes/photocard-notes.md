@@ -1,5 +1,34 @@
 # Photocard idea (2026-11-01)
 
+## Update 17 Nov 2026 — Photo Card step 3 (N153)
+
+- **Step buttons by status**:
+  | Status | Button ID | Label | Next Status | Tone | Allowed Users | Notes |
+  | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+  | Draft | `submit_card` | Submit to Design | Requested | primary | `can_request_photo_cards` tick | Blocked if required fields/source/publish time/template missing |
+  | Requested | `take_card` | I'm taking it | Designing | primary | Graphic Designer role or Manager | Stamps `graphic_designer` and `designer_taken_at` |
+  | Requested | `withdraw_card` | Withdraw | Draft | ghost | Requester or Manager | Returns to Draft |
+  | Designing | `made_card` | Made, send for review | In Review | primary | Assigned Graphic Designer or Manager | Regular cards; stamps `made_at` |
+  | Designing | `skip_review` | Skip review | Ready to Publish | danger | Assigned Graphic Designer or Manager | Emergency/Breaking cards only; confirmation dialog; stamps `made_at` and `review_skipped = true` |
+  | Designing | `give_back_card` | Give back | Requested | ghost | Assigned Graphic Designer or Manager | Clears designer and `designer_taken_at` |
+  | In Review | `approve_card` | Approve | Ready to Publish | primary | Requester, `can_approve_photo_cards`, or Manager | Designer cannot approve own card unless Manager; stamps `approved_by/at` |
+  | In Review | `correct_card` | Request correction | Designing | ghost | Requester, `can_approve_photo_cards`, or Manager | Designer cannot request correction unless Manager; requires reason; increments `correction_count` and saves `correction_note` |
+  | Ready to Publish | `schedule` | Mark as Scheduled | Scheduled | primary | Publisher role or Manager | Unassigned publisher is auto-stamped on action |
+  | Ready to Publish | `publish` | Publish | Published | ghost | Publisher role or Manager | Opens Publish dialog; auto-stamps publisher |
+  | Scheduled | `publish` | Confirm Published | Published | primary | Publisher role or Manager | Opens Publish dialog |
+  | Scheduled | `unschedule` | Cancel Schedule | Ready to Publish | ghost | Publisher role or Manager | Reverts schedule |
+  | Published | `drop` | Drop | Dropped | danger | Managers only | Requires reason |
+  | On Hold | `resume` | Resume | previous status / Draft | primary | Managers only | |
+  | Dropped | `restore` | Restore | Published / Draft | primary | Managers only | Restores to Published if was published |
+  | Any active | `hold` / `drop` | Hold / Drop | On Hold / Dropped | ghost / danger | Managers only | Requires reason |
+
+- **Publish dialog for cards**:
+  - Reuses `PublishTimeModal` with real upload time (defaulting to now or scheduled time).
+  - Shows one optional link input per target platform (`row.target_platforms`, using platform labels).
+  - On confirm, non-empty trimmed links are merged into existing published links (saving both `published_links` jsonb and `live_video_url` JSON string).
+- **Emergency cards**:
+  - `publishCheckState` returns `null` for emergency cards so the 10-minute unanswered nag never fires.
+
 ## Update 16 Nov 2026 — Photo Card step 2 (N152)
 
 - **New Content form**:
