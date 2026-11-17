@@ -16,6 +16,7 @@ import { StaffCell } from '../components/ui/StaffAssignSelect';
 import { NewContentModal, AddChannelModal, AddPlatformModal, ReasonModal, TeamModal, KpiModal, BulkScheduleModal, ProfileModal, MyWorkModal, EmployeeReportModal, BackupModal, DirectoryModal, PublishTimeModal, AdvertisersModal, ExternalPeopleModal, PublishCheckModal, PhotoTemplatesModal } from '../components/ui/Modals';
 import { NoticeModal } from '../components/ui/NoticeModal';
 import { HowItWorksModal } from '../components/ui/HowItWorksModal';
+import { PhotoCardDeskModal } from '../components/ui/PhotoCardDesk';
 import { PhoneCard, PhoneRow, ShortNote } from '../components/ui/RundownCards';
 import { fetchNotices, createNotice, deleteNotice } from '../services/noticeService';
 
@@ -29,7 +30,7 @@ import {
   canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
   canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
   typeHasScript, typeIsCard, isUncutReporter, canManagePhotoTemplates,
-  getPublishedLinks, isBreakingActive
+  getPublishedLinks, isBreakingActive, canSeePhotoCardDesk
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -647,6 +648,8 @@ function NewsroomApp({ authUser, onSignOut }) {
     const [showBackup, setShowBackup] = useState(false);
   const [showAdvertisers, setShowAdvertisers] = useState(false);
   const [showPhotoTemplates, setShowPhotoTemplates] = useState(false);
+  const [showCardDesk, setShowCardDesk] = useState(false);
+  const [newContentType, setNewContentType] = useState('');
   const [showExternals, setShowExternals] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
@@ -2144,7 +2147,9 @@ function NewsroomApp({ authUser, onSignOut }) {
       if (publishCheckFor) setPublishCheckFor(null);
       else if (publishFor) setPublishFor(null);
       else if (reasonFor) setReasonFor(null);
-      else if (showNew) setShowNew(false);
+      else if (selectedId) setSelectedId(null);
+      else if (showNew) { setShowNew(false); setNewContentType(''); }
+      else if (showCardDesk) setShowCardDesk(false);
       else if (showAddChannel) setShowAddChannel(false);
       else if (showAddPlatform) setShowAddPlatform(false);
       else if (showAdvertisers) setShowAdvertisers(false);
@@ -2156,11 +2161,10 @@ function NewsroomApp({ authUser, onSignOut }) {
       else if (showKpi) setShowKpi(false);
       else if (showBin) setShowBin(false);
       else if (showNotices) setShowNotices(false);
-      else if (selectedId) setSelectedId(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [publishCheckFor, publishFor, reasonFor, showNew, showAddChannel, showAddPlatform, showAdvertisers, showPhotoTemplates, showExternals, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices, selectedId]);
+  }, [publishCheckFor, publishFor, reasonFor, selectedId, showNew, showCardDesk, showAddChannel, showAddPlatform, showAdvertisers, showPhotoTemplates, showExternals, showTeam, showDirectory, showHelp, showKpi, showBin, showNotices]);
   /* ---------------- my profile ---------------- */
   const saveProfile = async ({ full_name, designation, avatar_url, phone, whatsapp, employee_id, nickname }) => {
     if (!me) return false;
@@ -2229,6 +2233,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       { icon: 'plus', label: 'Add publish platform', onClick: () => setShowAddPlatform(true) },
       { icon: 'megaphone', label: 'Advertisers', onClick: () => setShowAdvertisers(true) },
       { icon: 'board', label: 'Photo Card Templates', onClick: () => setShowPhotoTemplates(true) },
+      { icon: 'board', label: 'Photo Card Desk', onClick: () => setShowCardDesk(true) },
       { icon: 'calendar', label: 'Bulk schedule entry', onClick: () => setBulkOpen(true) },
     ] });
     const dataItems = [];
@@ -2244,6 +2249,9 @@ function NewsroomApp({ authUser, onSignOut }) {
     }
     if (canManagePhotoTemplates(actor)) {
       nonManagerManageItems.push({ icon: 'board', label: 'Photo Card Templates', onClick: () => setShowPhotoTemplates(true) });
+    }
+    if (canSeePhotoCardDesk(actor)) {
+      nonManagerManageItems.push({ icon: 'board', label: 'Photo Card Desk', onClick: () => setShowCardDesk(true) });
     }
     if (nonManagerManageItems.length > 0) {
       menuSections.push({ title: 'Manage', items: nonManagerManageItems });
@@ -2974,7 +2982,7 @@ function NewsroomApp({ authUser, onSignOut }) {
         <Icon name="plus" className="h-6 w-6 sm:h-4 sm:w-4" />
         <span className="hidden sm:inline">New Content</span>
       </button>
-      {showNew ? <NewContentModal channels={channels} team={team} defaultDate={range.start} actor={actor} onClose={() => setShowNew(false)} onCreate={createContent} photoTemplates={photoTemplates} platforms={platforms} onRunAction={runAction} notify={notify} /> : null}
+      {showNew ? <NewContentModal channels={channels} team={team} defaultDate={range.start} actor={actor} onClose={() => { setShowNew(false); setNewContentType(''); }} onCreate={createContent} photoTemplates={photoTemplates} platforms={platforms} onRunAction={runAction} notify={notify} initialType={newContentType} /> : null}
       {showNotices ? (
         <NoticeModal
           notices={notices}
@@ -2997,6 +3005,22 @@ function NewsroomApp({ authUser, onSignOut }) {
           onAdd={addPhotoTemplate}
           onUpdate={updatePhotoTemplate}
           onDelete={deletePhotoTemplate}
+        />
+      ) : null}
+      {showCardDesk ? (
+        <PhotoCardDeskModal
+          rows={rows}
+          actor={actor}
+          team={team}
+          channels={channels}
+          photoTemplates={photoTemplates}
+          onClose={() => setShowCardDesk(false)}
+          onOpenContent={(id) => setSelectedId(id)}
+          onRun={(row, action) => runAction(row, action)}
+          onNewCard={() => {
+            setNewContentType('PHOTO CARD');
+            setShowNew(true);
+          }}
         />
       ) : null}
       {showExternals ? <ExternalPeopleModal team={team} actor={actor} onClose={() => setShowExternals(false)} onAdd={addExternal} onUpdate={updateExternal} /> : null}

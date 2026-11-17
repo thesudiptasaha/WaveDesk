@@ -1,5 +1,27 @@
 # Photocard idea (2026-11-01)
 
+## Update 17 Nov 2026 — Photo Card step 5: Photo Card Desk (N155 / N155b)
+
+- **Menu item (`canSeePhotoCardDesk`)**:
+  - Accessible to Owner/Managers, or members with any of: `can_request_photo_cards`, `can_approve_photo_cards`, `role_graphic_designer`, `role_publisher`.
+  - Displayed under "Manage" in the main menu for managers and eligible team members.
+- **Dedicated Desk page (`PhotoCardDeskModal`)**:
+  - Full-screen modal with summary count chips and "+ New Photo Card" button (opens `NewContentModal` with `initialType = 'PHOTO CARD'`).
+  - Four curated sections (2-column desktop grid, phone stacked; Breaking cards sorted first, then oldest waiting first):
+    1. **Waiting for a designer**: all open `Requested` cards across channels. Shown to Graphic Designers and Managers. Action: "I'm taking it" (`take_card`).
+    2. **My work**: `Designing` cards assigned to current user (`graphic_designer === actor.full_name`). Shows red correction note when `correction_count > 0`. Actions: "Made, send for review" (`made_card`) / "Skip review" (`skip_review` for Breaking) and "Give back" (`give_back_card`).
+    3. **Waiting for my review**: `In Review` cards where current user can approve (`approve_card` action is enabled; designer's own card excluded, managers see all). Actions: "Approve" (`approve_card`) and "Request correction" (`correct_card`).
+    4. **My requests & drafts**: open cards where `requested_by === actor.full_name` or `isCardCreatedBy(row, actor.full_name)` (detects user's drafts via audit log). Action: "Submit to Design" (`submit_card`) for Draft cards.
+- **All cards directory**:
+  - Channel filter, Status filter (default "Open cards", with full status options), and text search.
+  - Active Breaking cards sorted first, then newest first. 100 cards at a time with "Show more" button.
+- **Layering & Escape**:
+  - Desk at `z-[45]`. Clicking a card opens `Drawer` (`z-50`) on top while keeping Desk mounted. Dialogs and `NewContentModal` open at `z-[60]`.
+  - `Escape` key closes topmost first: dialogs → Drawer → NewContentModal → Desk.
+- **Audit log helper (`isCardCreatedBy`)**:
+  - Checks `row.audit_log` for `{ kind: 'status', to: 'Draft', note: 'Created', actor: name }` so draft cards appear in "My requests & drafts" before `requested_by` is stamped.
+- **Next steps**: N156 report page, N157 real-time auto-refresh for everyone (URGENT).
+
 ## Update 17 Nov 2026 — Photo Card step 4 (N154)
 
 - **Rundown switch**:

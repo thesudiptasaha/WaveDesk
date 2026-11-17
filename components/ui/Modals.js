@@ -20,7 +20,7 @@ import { supabase } from '../../services/supabase';
 import { resizeToJpeg } from '../../utils/helpers';
 import { fetchAllPages } from '../../utils/fetchAll';
 
-function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate, photoTemplates = [], platforms = PLATFORMS, onRunAction, notify }) {
+function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate, photoTemplates = [], platforms = PLATFORMS, onRunAction, notify, initialType = '' }) {
   const conceptMembers = eligibleMembers(team, 'role_concept_creator');
   const writerMembers = eligibleMembers(team, 'role_research_script_writer');
   const multimediaMembers = eligibleMembers(team, 'role_multimedia_journalist');
@@ -33,7 +33,7 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
     return toLocalInput(d.toISOString());
   };
   const [f, setF] = useState({
-    content_type: '',
+    content_type: initialType || '',
     channel: '',
     when: initialTime(),
     slug_name: '',

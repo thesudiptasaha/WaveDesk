@@ -5,6 +5,33 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 17 Nov 2026 — Photo Card Desk (N155 / N155b)
+
+- **Menu item visibility (`canSeePhotoCardDesk`)**:
+  - Implemented and exported `canSeePhotoCardDesk(m)` in `lib/core.js`.
+  - Returns `true` for active Owner/Managers or members with any of: `can_request_photo_cards`, `can_approve_photo_cards`, `role_graphic_designer`, `role_publisher`.
+  - Added to the "Manage" section of the main menu: for Owner/Managers alongside existing manage items; for non-managers matching `canSeePhotoCardDesk` so photo card team members can open the Desk.
+- **Photo Card Desk page (`components/ui/PhotoCardDesk.js`)**:
+  - Full-screen modal (`PhotoCardDeskModal`) providing a dedicated workspace for the photo card team.
+  - Header displays title "Photo Card Desk", active count chips, and "+ New Photo Card" button (accessible to requesters and managers, sets `initialType = 'PHOTO CARD'` and opens `NewContentModal`).
+  - Four curated sections displayed in a 2-column desktop grid / stacked mobile layout:
+    1. **Waiting for a designer**: all open `Requested` cards across channels. Shown to Graphic Designers and Managers. Sorted active Breaking first, then oldest waiting first. Action: "I'm taking it" (`take_card`).
+    2. **My work**: open cards in `Designing` where `graphic_designer === actor.full_name`. Shown to Graphic Designers (or if user has active work). Shows red correction note when `correction_count > 0`. Actions: "Made, send for review" (`made_card`) / "Skip review" (`skip_review` for Breaking) and "Give back" (`give_back_card`).
+    3. **Waiting for my review**: cards in `In Review` where current user is permitted to approve (`approve_card` action enabled in `getActions`). Assigned designers are prevented from approving their own cards; managers see all review cards. Actions: "Approve" (`approve_card`) and "Request correction" (`correct_card`).
+    4. **My requests & drafts**: open cards where `requested_by === actor.full_name` or `isCardCreatedBy(row, actor.full_name)` (detects user's drafts via audit log). Action: "Submit to Design" (`submit_card`) for Draft cards. Section visible if user can request or has open requests/drafts.
+- **Section 5: All cards**:
+  - Searchable, filterable card directory at the bottom with Channel dropdown, Status dropdown (default "Open cards", with options for All statuses, Draft, Requested, Designing, In Review, Ready to Publish, Scheduled, Published, On Hold, Dropped), and text search.
+  - Sorted active Breaking first, then newest first (`created_at` or `when`).
+  - Displays up to 100 cards at a time with "Show more" pagination.
+- **Layering & Escape key order**:
+  - Desk modal rendered at `z-[45]`. Clicking any card opens `Drawer` (`z-50`) directly on top while keeping the Desk mounted underneath.
+  - `NewContentModal` and action modals (`PublishCheckModal`, `PublishTimeModal`, `ReasonModal`) open above Drawer (`z-[60]`), and `ConfirmDialog` at `z-[70]`.
+  - Global `Escape` handler in `app/page.js` closes dialogs first, then `selectedId` (Drawer, returning to Desk), then `showNew` (`NewContentModal`), then `showCardDesk` (Desk), then other modals.
+- **Audit log creator helper (`isCardCreatedBy`)**:
+  - Because `contents` table lacks a `created_by` column and only stamps `requested_by` on submit, `isCardCreatedBy(row, name)` checks `row.audit_log` for an entry with `kind === 'status'`, `to === 'Draft'`, `note === 'Created'`, and `actor === name`. Allows users to find and submit their own saved drafts.
+- **`NewContentModal` initialType prop**:
+  - Added optional `initialType` prop to `NewContentModal` to pre-select `PHOTO CARD` when triggered from "+ New Photo Card".
+
 ## 17 Nov 2026 — Photo Card step 4: rundown switch & Breaking pin (N154)
 
 - **Rundown switch (Videos | Photo Cards | All)**:
