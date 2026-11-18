@@ -135,7 +135,7 @@ Central table holding all daily video rundown items.
 * **Photo Card columns on `contents`** (added 16 Nov 2026, record: `sql/2026-11-16_photocard_database.sql`):
   * `template_id` (`bigint`, nullable, FK to `photo_card_templates.id` on delete restrict) — Selected photo card template.
   * `card_fields` (`jsonb`, not null, default `'{}'::jsonb`) — Field values for the card stored under each template field's stable key.
-  * `is_emergency` (`boolean`, not null, default `false`) — Emergency breaking card flag; skips review and pins/flashes in rundown.
+  * `is_emergency` (`boolean`, not null, default `false`) — Unused by the app (Breaking concept removed in N156; column retained in DB).
   * `card_source` (`text`, nullable) — Information source or credit for the photo card.
   * `designer_instructions` (`text`, nullable) — Special layout or design instructions for the Graphic Designer.
   * `card_folder` (`text`, nullable) — Shared drive folder path where the designer saved the finished card files.
@@ -146,7 +146,7 @@ Central table holding all daily video rundown items.
   * `made_at` (`timestamptz`, nullable) — Timestamp when the designer marked the card "Made".
   * `approved_by` (`text`, nullable) — Full name of the reviewer who approved the card.
   * `approved_at` (`timestamptz`, nullable) — Timestamp when the card was approved.
-  * `review_skipped` (`boolean`, not null, default `false`) — Indicates review was bypassed (emergency cards).
+  * `review_skipped` (`boolean`, not null, default `false`) — Unused by the app (review is always mandatory in N156; column retained in DB).
   * `correction_count` (`int`, not null, default `0`) — Number of times the card was sent back for corrections.
   * `correction_note` (`text`, nullable) — Note explaining what needs correction when sending back to Designing.
 * **Trigger `contents_post_production`** (BEFORE UPDATE on `contents`, function `contents_post_production_rules`): Files received (Video Editor or Manager, only after Files delivered, once, Manager undoes), Files problem (Video Editor or Manager, note required, clears received, notifies the files-delivered person, the Producer and the Production Manager), Problem fixed (Production or Manager, notifies the Video Editor), a Manager undoing Files delivered clears received and problem, and the default fill: when a Video Editor is assigned or changed on a non-LIVE content, EMPTY `motion_graphics_designer`, `graphic_designer`, `colorist`, `audio_mixer` slots get the same name, slots holding the OLD editor's name move to the new editor, slots changed by hand in the same save are untouched. Not applied when contents are created (INSERT). Record: `sql/2026-11-07_post_production.sql`.
@@ -255,7 +255,7 @@ Templates used by writers to request photo cards per channel. Added on 16 Nov 20
 * `organization_id` (`uuid`, NOT NULL)
 * `channel` (`text`, NOT NULL) — Channel the template belongs to.
 * `number` (`int`, NOT NULL, CHECK `number > 0`) — Template number within the channel.
-* `name` (`text`, NOT NULL) — Template name (e.g. Breaking News, Quote Card).
+* `name` (`text`, NOT NULL) — Template name (e.g. Quote Card, Infographic).
 * `fields` (`jsonb`, NOT NULL, default `'[]'::jsonb`, CHECK `jsonb_typeof(fields) = 'array'`) — List of template field definitions (`{ key, label, type, required, max_length }`).
 * `sample_url` (`text`, nullable) — Optional link to a sample image of the template.
 * `active` (`boolean`, NOT NULL, default `true`) — Inactive templates cannot be chosen for new cards.

@@ -1,5 +1,25 @@
 # Photocard idea (2026-11-01)
 
+## Update 18 Nov 2026 — Removal of Breaking & Desk Ready to publish (N156)
+
+- **Removal of Breaking / Emergency**:
+  - The "Breaking" concept for Photo Cards has been cancelled completely and removed from app UI and code. Urgency is decided by people outside the app.
+  - Review always stays: the Photo Card flow is strictly:
+    `Draft -> Requested -> Designing -> In Review -> Ready to Publish -> (optional Scheduled) -> Published` (+ Manager-only `On Hold` / `Dropped`).
+  - **Database note:** The database columns `is_emergency` and `review_skipped` still exist in the database schema (`contents` table), but the app no longer uses them (does not read them, does not send them).
+  - "Did it go out?" publish check is turned off for all Photo Cards (`publishCheckState` returns `null` for all photo cards).
+- **Photo Card Desk sections (final)**:
+  1. **Waiting for a designer**: all open `Requested` cards across channels. Shown to Graphic Designers and Managers. Sorted oldest waiting first. Action: "I'm taking it" (`take_card`).
+  2. **My work**: `Designing` cards assigned to current user (`graphic_designer === actor.full_name`). Shows red correction note when `correction_count > 0`. Actions: "Made, send for review" (`made_card`) and "Give back" (`give_back_card`).
+  3. **Waiting for my review**: `In Review` cards where current user can approve (`approve_card` action is enabled; designer's own card excluded, managers see all). Actions: "Approve" (`approve_card`) and "Request correction" (`correct_card`).
+  4. **Ready to publish**: open cards in `Ready to Publish` or `Scheduled`. Shown to users with publishing permission (`role_publisher` or Manager). Actions: Schedule, Publish (opens `PublishTimeModal`), Cancel Schedule.
+  5. **My requests & drafts**: open cards where `requested_by === actor.full_name` or `isCardCreatedBy(row, actor.full_name)` (detects user's drafts via audit log). Action: "Submit to Design" (`submit_card`) for Draft cards.
+  6. **All cards directory**: searchable, filterable card directory at the bottom with Channel dropdown, Status dropdown (default "Open cards"), and text search.
+- **Planned next tasks**:
+  - N157: Photo Card request form without date/time (time is set when it is published) + open cards (Requested..Scheduled) carried over and pinned at the top of their channel in the Photo Cards and All views from the request day until published; obey channel/status/search filters; grey "Open" tag.
+  - N158: Real-time auto-refresh for all users (URGENT).
+  - Later: report page (Owner/Manager full; designers see their own row through profile My Work; Excel download), card preview for approval (kept 7 days after Published/Dropped; scheduled deletion through Storage API), in-app card editor (Konva; fonts and PNG layers uploaded by Owner/Manager; phone console; JPEG sRGB 72 PPI with full metadata; file name = content ID with -001, -002 counter).
+
 ## Update 17 Nov 2026 — Photo Card step 5: Photo Card Desk (N155 / N155b)
 
 - **Menu item (`canSeePhotoCardDesk`)**:
@@ -7,20 +27,20 @@
   - Displayed under "Manage" in the main menu for managers and eligible team members.
 - **Dedicated Desk page (`PhotoCardDeskModal`)**:
   - Full-screen modal with summary count chips and "+ New Photo Card" button (opens `NewContentModal` with `initialType = 'PHOTO CARD'`).
-  - Four curated sections (2-column desktop grid, phone stacked; Breaking cards sorted first, then oldest waiting first):
+  - Curated sections (2-column desktop grid, phone stacked; sorted oldest waiting first):
     1. **Waiting for a designer**: all open `Requested` cards across channels. Shown to Graphic Designers and Managers. Action: "I'm taking it" (`take_card`).
-    2. **My work**: `Designing` cards assigned to current user (`graphic_designer === actor.full_name`). Shows red correction note when `correction_count > 0`. Actions: "Made, send for review" (`made_card`) / "Skip review" (`skip_review` for Breaking) and "Give back" (`give_back_card`).
+    2. **My work**: `Designing` cards assigned to current user (`graphic_designer === actor.full_name`). Shows red correction note when `correction_count > 0`. Actions: "Made, send for review" (`made_card`) and "Give back" (`give_back_card`).
     3. **Waiting for my review**: `In Review` cards where current user can approve (`approve_card` action is enabled; designer's own card excluded, managers see all). Actions: "Approve" (`approve_card`) and "Request correction" (`correct_card`).
-    4. **My requests & drafts**: open cards where `requested_by === actor.full_name` or `isCardCreatedBy(row, actor.full_name)` (detects user's drafts via audit log). Action: "Submit to Design" (`submit_card`) for Draft cards.
+    4. **Ready to publish**: cards in `Ready to Publish` or `Scheduled` (visible to publishers and managers).
+    5. **My requests & drafts**: open cards where `requested_by === actor.full_name` or `isCardCreatedBy(row, actor.full_name)` (detects user's drafts via audit log). Action: "Submit to Design" (`submit_card`) for Draft cards.
 - **All cards directory**:
   - Channel filter, Status filter (default "Open cards", with full status options), and text search.
-  - Active Breaking cards sorted first, then newest first. 100 cards at a time with "Show more" button.
+  - Sorted newest first. 100 cards at a time with "Show more" button.
 - **Layering & Escape**:
   - Desk at `z-[45]`. Clicking a card opens `Drawer` (`z-50`) on top while keeping Desk mounted. Dialogs and `NewContentModal` open at `z-[60]`.
   - `Escape` key closes topmost first: dialogs → Drawer → NewContentModal → Desk.
 - **Audit log helper (`isCardCreatedBy`)**:
   - Checks `row.audit_log` for `{ kind: 'status', to: 'Draft', note: 'Created', actor: name }` so draft cards appear in "My requests & drafts" before `requested_by` is stamped.
-- **Next steps**: N156 report page, N157 real-time auto-refresh for everyone (URGENT).
 
 ## Update 17 Nov 2026 — Photo Card step 4 (N154)
 
@@ -30,17 +50,6 @@
   - User choice is saved in `localStorage` key `wavedesk.cardView.<actor id>` (loaded once actor is known).
   - Filters rundown rows (`visible`), Parking Zone (`parked`), and pinned rows (`pinnedRows`).
   - Bin, Excel export, KPI modals, and My Work are unaffected.
-- **Breaking cards pinned**:
-  - Emergency photo cards (`typeIsCard && is_emergency`) in active statuses (`Requested`, `Designing`, `In Review`, `Ready to Publish`, `Scheduled`) are pinned at the top of their channel in `cards` and `all` views (not in `videos`).
-  - Ignores date range, search query, and status filter; obeys channel filter.
-  - Merged into `pinnedRows` ahead of publish-check rows; sorted oldest first among Breaking cards.
-  - Date shown in time cell when scheduled date is outside the view range (`showDate`/`pinnedDateFlag`).
-  - Unpinned once Published, On Hold, or Dropped.
-- **Visuals & header**:
-  - Red pulsating `BREAKING` badge on all active Breaking cards across table rows, mobile cards/rows, and Parking Zone. Pulse disabled under `prefers-reduced-motion: reduce`.
-  - Pinned Breaking rows have a red left border highlight (`border-l-red-500`).
-  - Channel headers use generic `{count} pinned` wording (no "Did it go out?" text or buttons on Breaking rows).
-- **Next steps**: N155 Photo Card Desk page, N156 report page, N157 real-time auto-refresh for everyone (URGENT).
 
 ## Update 17 Nov 2026 — Photo Card step 3 (N153)
 
@@ -50,8 +59,7 @@
   | Draft | `submit_card` | Submit to Design | Requested | primary | `can_request_photo_cards` tick | Blocked if required fields/source/publish time/template missing |
   | Requested | `take_card` | I'm taking it | Designing | primary | Graphic Designer role or Manager | Stamps `graphic_designer` and `designer_taken_at` |
   | Requested | `withdraw_card` | Withdraw | Draft | ghost | Requester or Manager | Returns to Draft |
-  | Designing | `made_card` | Made, send for review | In Review | primary | Assigned Graphic Designer or Manager | Regular cards; stamps `made_at` |
-  | Designing | `skip_review` | Skip review | Ready to Publish | danger | Assigned Graphic Designer or Manager | Emergency/Breaking cards only; confirmation dialog; stamps `made_at` and `review_skipped = true` |
+  | Designing | `made_card` | Made, send for review | In Review | primary | Assigned Graphic Designer or Manager | Regular cards; review always required; stamps `made_at` |
   | Designing | `give_back_card` | Give back | Requested | ghost | Assigned Graphic Designer or Manager | Clears designer and `designer_taken_at` |
   | In Review | `approve_card` | Approve | Ready to Publish | primary | Requester, `can_approve_photo_cards`, or Manager | Designer cannot approve own card unless Manager; stamps `approved_by/at` |
   | In Review | `correct_card` | Request correction | Designing | ghost | Requester, `can_approve_photo_cards`, or Manager | Designer cannot request correction unless Manager; requires reason; increments `correction_count` and saves `correction_note` |
@@ -68,8 +76,6 @@
   - Reuses `PublishTimeModal` with real upload time (defaulting to now or scheduled time).
   - Shows one optional link input per target platform (`row.target_platforms`, using platform labels).
   - On confirm, non-empty trimmed links are merged into existing published links (saving both `published_links` jsonb and `live_video_url` JSON string).
-- **Emergency cards**:
-  - `publishCheckState` returns `null` for emergency cards so the 10-minute unanswered nag never fires.
 
 ## Update 16 Nov 2026 — Photo Card step 2 (N152)
 
@@ -77,21 +83,20 @@
   - Selecting `PHOTO CARD` swaps people/script sections for template fields, source, caption, instructions for designer, and target platforms (default Facebook).
   - Choosing channel + template loads the template's ordered fields: `short` (single line), `long` (textarea), `image` (URL with "Open ↗" link), `date`. Respects `f.max_length`.
   - Slug auto-fills from the first `short` text field until manually edited; fallback: `<template name> #<number>`.
-  - Breaking toggle (`is_emergency`): hides the publish time input, shows "Set when it is published", and saves the scheduled publish time as current timestamp.
   - Two buttons:
     - "Save as draft": requires only channel, template, and slug.
-    - "Submit to design": validates `photoCardMissing` (channel, template, required template fields, source, publish time unless Breaking); creates Draft and immediately advances to Requested.
+    - "Submit to design": validates `photoCardMissing` (channel, template, required template fields, source, publish time); creates Draft and immediately advances to Requested.
 - **Drawer tabs**:
-  - Left column: hides Title, Thumbnail text, Archive shelf ID; shows Breaking notice "Set when it is published" for emergency cards not yet published.
-  - Editorial tab: read-only requester and timestamp, template line with sample link, Breaking toggle, template fields, Source (required, with open link), Caption (character counter and copy button), Instructions for designer. Editable before approval by Request Photo Cards tick holders or Managers.
-  - Production tab: read-only Graphic Designer tile with "Not taken yet", Card folder input, Production notes, and workflow history (Requested, Taken, Made, Approved, Corrections, "Not approved" review skipped badge).
+  - Left column: hides Title, Thumbnail text, Archive shelf ID.
+  - Editorial tab: read-only requester and timestamp, template line with sample link, template fields, Source (required, with open link), Caption (character counter and copy button), Instructions for designer. Editable before approval by Request Photo Cards tick holders or Managers.
+  - Production tab: read-only Graphic Designer tile with "Not taken yet", Card folder input, Production notes, and workflow history (Requested, Taken, Made, Approved, Corrections).
   - Publish tab: Publisher card, real upload time, read-only platform chips, published link row per platform, Caption, Hashtags, and Linked content (`linked_content_uid`).
   - One caption for all platforms for now (per-platform captions will require a DB column update since publishers cannot edit `card_fields`).
   - Images are links (http/https) for now.
 
 ## Update 16 Nov 2026 — decisions (replaces the earlier phase A/B plan for the first version)
 
-- **Type & Rundown**: Type PHOTO CARD, same `contents` table and content-ID system. The main rundown later gets a switch Videos | Photo Cards | All (default Videos); emergency (breaking) cards are pinned to the top of their channel in every view and flash until Published; a Photo Cards view gives designers "my work", the waiting list and a channel filter. Channel = page.
+- **Type & Rundown**: Type PHOTO CARD, same `contents` table and content-ID system. The main rundown has a switch Videos | Photo Cards | All (default Videos); a Photo Cards view gives designers "my work", the waiting list and a channel filter. Channel = page.
 - **Pipeline**: `Draft` → `Requested` → `Designing` → `In Review` → `Approved` (= status "Ready to Publish") → `Scheduled` (optional) → `Published`.
   - *Draft*: the writer picks channel and template and fills the template fields; "Submit to Design" is blocked until all required fields are filled; the form has two buttons, "Save as draft" and "Submit to design".
   - *Requested*: waiting list for designers.
@@ -99,27 +104,30 @@
   - *In Review*: designer presses "Made".
   - *Approved*: approved by the requesting writer, or Manager/Owner/holders of "Approve Photo Cards"; the card's own designer cannot approve it (Managers can).
   - *Correction*: the reviewer must write a reason, the card goes back to Designing with the same designer, and corrections are counted.
-  - *Emergency*: emergency cards skip the review (Made goes straight to Approved) and carry a red "Not approved" mark.
+  - *Review always stays*: there is no Breaking / skip review concept; review is mandatory for all photo cards.
   - *Publish*: Approved shows both "Mark as Scheduled" and "Publish"; Scheduled shows one-click "Confirm Published" (same as videos). Publish permissions follow the video rule: Publisher-role tick holders and Managers; when the Publisher field is empty the person who presses Publish is filled in automatically.
 - **New ticks**: Request Photo Cards (`can_request_photo_cards`), Approve Photo Cards (`can_approve_photo_cards`), Manage Photo Card Templates (`can_manage_photo_templates`). Designer = existing Graphic Designer role (`role_graphic_designer`).
 - **Templates**: per channel; number, name, optional sample picture link, list of fields. Field types: short text, long text, image link, date; required or not; optional max length for text. Example templates: (Topic Text, Main News Text, Photo) and (Comment, Person, Person's Identity, Date). "Date shown on the card" is simply a date field of a template. The card stores the values under each field's stable key (`contents.card_fields`). Images are LINKS for now (http/https; an "Open" button); later, with an own server, the same field gets file upload. The slug of a card is filled automatically from the first short-text field of the template (Topic Text), which the writer can change; if the template has no short-text field the slug is `<template name> #<number>`.
 - **Drawer Tabs**:
-  - Left column (always visible): channel, publish time, breaking, template number, platforms, sponsors.
+  - Left column (always visible): channel, publish time, template number, platforms, sponsors.
   - *Editorial*: holds card information (template fields), one caption, source and instructions for the designer.
   - *Production*: holds designer's name, the folder where the finished card is (files stay on the shared drive, not in the app) and designer's notes.
   - *Publish*: holds publisher, platforms, upload time, caption (shown from Editorial and changeable per platform), hashtags, link to another content (link or content ID), and platform requirements.
   - *QC & Audit* and *Credits* as before. No Post-production tab. Platforms: the same list as normal contents.
-- **Tracking & Reports**: the database stamps names and times at every step (`requested_by`/`at`, designer and `designer_taken_at`, `made_at`, `approved_by`/`at`, `correction_count`, publisher, publish time, `review_skipped`); all included in the Excel export. A Photo Card report page comes later (per day/period per channel, per designer cards made and corrections, per writer requests, average time from request to publish).
+- **Tracking & Reports**: the database stamps names and times at every step (`requested_by`/`at`, designer and `designer_taken_at`, `made_at`, `approved_by`/`at`, `correction_count`, publisher, publish time); all included in the Excel export. A Photo Card report page comes later (per day/period per channel, per designer cards made and corrections, per writer requests, average time from request to publish).
 - **Order of work**:
   1. Database (done 16 Nov, record `sql/2026-11-16_photocard_database.sql`).
   2. N151 ticks and the Photo Card Templates page (menu item, list, editor).
   3. N152 PHOTO CARD type in the app, new-card form, drawer tabs, steps and buttons, status names Requested/Designing/In Review in `STATUS_META`.
-  4. Rundown switch, emergency pin, designer's "my work".
-  5. Report page.
+  4. Rundown switch, designer's "my work".
+  5. Photo Card Desk page.
+  6. Removal of Breaking, publish check off for photo cards.
+  7. Open cards carried over and pinned in rundown.
+  8. Real-time auto-refresh.
 
 ## Update 14 Nov 2026
 The workflow is now:
-- Writers submit a request (channel, template, publish time, breaking yes/no, card texts, source of the information, notes).
+- Writers submit a request (channel, template, publish time, card texts, source of the information, notes).
 - Designers (role Graphic Designer) see it, make the card outside the app, then mark "made" and "published" in the app.
 - Tracking wanted: who gave the text and when, who designed, when uploaded/published, which page got which cards through the day, how many cards each designer made.
 - In-browser generation becomes a later optional phase.
@@ -128,11 +136,10 @@ The workflow is now:
 
 ## Update 12 Nov 2026
 Photo Card is now a decided content type. Full decisions recorded in `docs/notes/content-types-plan.md` (section A). Key additions since 1 Nov:
-- Form fields now include: card text, caption, publish date/time (Publish Date in the form), emergency (yes/no), channel, **date shown on the card** (separate from publish date), source, linked content (another content's ID), template (dropdown per channel).
+- Form fields include: card text, caption, publish date/time, channel, **date shown on the card** (separate from publish date), source, linked content (another content's ID), template (dropdown per channel).
 - New permission required to create/fill a Photo Card (working name: "Make Photo Cards", key `can_make_photo_cards`).
-- Pipeline: `Draft` → `Ready to Publish` → `Scheduled` → `Published`. No script, shoot or editing.
-- Emergency = yes: rundown row pinned to the top of its channel and flashes until Published (same as "Did it go out?" pinned rows).
-- Two phases: Phase A = type, form, steps, permission, emergency behaviour (no image generation). Phase B = browser-side card generation from channel templates (after templates and font files arrive).
+- Pipeline: `Draft` → `Requested` → `Designing` → `In Review` → `Ready to Publish` → `Scheduled` → `Published`. No script, shoot or editing. Review is mandatory.
+- Two phases: Phase A = type, form, steps, permission. Phase B = browser-side card generation from channel templates (after templates and font files arrive).
 - The decisions below (1 Nov) still apply for phase B.
 
 ---

@@ -20,19 +20,6 @@ export function TypeBadge({ type }) {
   );
 }
 
-export function BreakingBadge({ small = false }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 font-bold uppercase tracking-wider text-white bg-red-600 border border-red-500/80 rounded-full breaking-badge-pulse shrink-0 select-none ${
-        small ? 'px-1.5 py-0.5 text-[9px]' : 'px-2 py-0.5 text-[10px]'
-      }`}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
-      BREAKING
-    </span>
-  );
-}
-
 export function TypeBox({ type, small = false }) {
   return <span className="type-box" style={small ? { fontSize: '8.5px', padding: '1px 5px' } : undefined}>{type || 'UNKNOWN'}</span>;
 }

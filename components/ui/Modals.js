@@ -46,7 +46,6 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
     script: '',
     template_id: '',
     card_fields: {},
-    is_emergency: false,
     card_source: '',
     post_caption: '',
     designer_instructions: '',
@@ -181,10 +180,9 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
       channel: f.channel,
       slug_name: f.slug_name.trim(),
       title: f.slug_name.trim(),
-      scheduled_publish_time: f.is_emergency ? new Date().toISOString() : fromLocalInput(f.when),
+      scheduled_publish_time: fromLocalInput(f.when),
       template_id: Number(f.template_id),
       card_fields: cleanFields,
-      is_emergency: !!f.is_emergency,
       card_source: (f.card_source || '').trim(),
       post_caption: f.post_caption || '',
       designer_instructions: f.designer_instructions || '',
@@ -317,35 +315,9 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
 
                 {isCard ? (
                   <>
-                    <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
-                      <div>
-                        <div className="text-[13px] font-medium text-white">Breaking</div>
-                        <div className="text-[11.5px] text-zinc-500">Pin to top of channel and skip review</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => set('is_emergency', !f.is_emergency)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          f.is_emergency ? 'bg-red-500' : 'bg-zinc-700'
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            f.is_emergency ? 'translate-x-5' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
                     <Field label="Publish date & time" hint="optional">
-                      {f.is_emergency ? (
-                        <div className="text-[12px] text-zinc-400 italic py-2">Set when it is published</div>
-                      ) : (
-                        <>
                           <input type="datetime-local" value={f.when} onChange={(e) => set('when', e.target.value)} className={`${inputBase} [color-scheme:dark]`} />
                           <p className="mt-1.5 text-[11.5px] text-zinc-600">Leave empty to keep it in the On hold & unscheduled list</p>
-                        </>
-                      )}
                     </Field>
 
                     <Field label="Template *">
@@ -3107,7 +3079,7 @@ export function PhotoTemplatesModal({
               </label>
               <input
                 className={`${inputBase} min-h-[44px]`}
-                placeholder="e.g. Breaking News, Quote Card"
+                placeholder="e.g. Quote Card, Infographic"
                 value={editing.name}
                 onChange={(e) => setEditing((prev) => ({ ...prev, name: e.target.value }))}
                 disabled={!canManage}

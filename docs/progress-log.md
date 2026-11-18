@@ -5,6 +5,23 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 18 Nov 2026 — Removal of Breaking, Photo Card Desk "Ready to publish" & publish check off for photo cards (N156)
+
+- **Complete removal of Breaking / emergency concept**:
+  - The Breaking idea for Photo Cards has been cancelled and completely removed across app UI and code. Urgency is decided by people outside the app.
+  - Review always stays: the Photo Card workflow is strictly `Draft -> Requested -> Designing -> In Review -> Ready to Publish -> (optional Scheduled) -> Published` (+ Manager-only `On Hold` and `Dropped`).
+  - Removed Breaking toggle from `NewContentModal` and `Drawer` (Editorial tab). Removed Breaking badges, pulse animations (`breakingPulse`), and red left borders.
+  - In `lib/core.js`, removed `skip_review` action (Designing now only transitions to `made_card` and `give_back_card`), removed `isBreakingActive`, and removed `is_emergency` from `normalizeRow`, `photoCardMissing`, and `TRACKED_FIELDS`.
+  - Removed `Breaking` and `Review Skipped` columns from Excel export.
+- **Publish check turned off for all Photo Cards**:
+  - `publishCheckState` in `lib/core.js` now immediately returns `null` for any `typeIsCard(row.content_type)`. Photo cards never trigger the "Did it go out?" publish check (videos keep their publish check unchanged).
+  - Channel header count badge restored to `{item.pinnedCount} to answer` for video publish checks.
+- **Photo Card Desk "Ready to publish" section**:
+  - Added new "Ready to publish" section in `components/ui/PhotoCardDesk.js` right after "Waiting for my review" (or at top if no review work), displaying open cards in `Ready to Publish` or `Scheduled`.
+  - Visible only to users with publishing permission: managers/owner and members with `role_publisher` (`isManager(actor) || !!actor?.role_publisher`).
+  - Rows show content ID, title, channel, status, and allowed action buttons (`schedule`, `publish`, `unschedule`). Clicking "Publish" opens `PublishTimeModal`.
+  - Summary chips at the top include "Ready to publish: N" when visible to the user.
+
 ## 17 Nov 2026 — Photo Card Desk (N155 / N155b)
 
 - **Menu item visibility (`canSeePhotoCardDesk`)**:
@@ -14,14 +31,15 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 - **Photo Card Desk page (`components/ui/PhotoCardDesk.js`)**:
   - Full-screen modal (`PhotoCardDeskModal`) providing a dedicated workspace for the photo card team.
   - Header displays title "Photo Card Desk", active count chips, and "+ New Photo Card" button (accessible to requesters and managers, sets `initialType = 'PHOTO CARD'` and opens `NewContentModal`).
-  - Four curated sections displayed in a 2-column desktop grid / stacked mobile layout:
-    1. **Waiting for a designer**: all open `Requested` cards across channels. Shown to Graphic Designers and Managers. Sorted active Breaking first, then oldest waiting first. Action: "I'm taking it" (`take_card`).
-    2. **My work**: open cards in `Designing` where `graphic_designer === actor.full_name`. Shown to Graphic Designers (or if user has active work). Shows red correction note when `correction_count > 0`. Actions: "Made, send for review" (`made_card`) / "Skip review" (`skip_review` for Breaking) and "Give back" (`give_back_card`).
+  - Five curated sections displayed in a 2-column desktop grid / stacked mobile layout:
+    1. **Waiting for a designer**: all open `Requested` cards across channels. Shown to Graphic Designers and Managers. Sorted oldest waiting first. Action: "I'm taking it" (`take_card`).
+    2. **My work**: open cards in `Designing` where `graphic_designer === actor.full_name`. Shown to Graphic Designers (or if user has active work). Shows red correction note when `correction_count > 0`. Actions: "Made, send for review" (`made_card`) and "Give back" (`give_back_card`).
     3. **Waiting for my review**: cards in `In Review` where current user is permitted to approve (`approve_card` action enabled in `getActions`). Assigned designers are prevented from approving their own cards; managers see all review cards. Actions: "Approve" (`approve_card`) and "Request correction" (`correct_card`).
-    4. **My requests & drafts**: open cards where `requested_by === actor.full_name` or `isCardCreatedBy(row, actor.full_name)` (detects user's drafts via audit log). Action: "Submit to Design" (`submit_card`) for Draft cards. Section visible if user can request or has open requests/drafts.
-- **Section 5: All cards**:
+    4. **Ready to publish**: cards in `Ready to Publish` or `Scheduled`. Shown to users with publishing permission (`role_publisher` or Manager). Actions: Schedule, Publish, Cancel Schedule.
+    5. **My requests & drafts**: open cards where `requested_by === actor.full_name` or `isCardCreatedBy(row, actor.full_name)` (detects user's drafts via audit log). Action: "Submit to Design" (`submit_card`) for Draft cards. Section visible if user can request or has open requests/drafts.
+- **Section: All cards**:
   - Searchable, filterable card directory at the bottom with Channel dropdown, Status dropdown (default "Open cards", with options for All statuses, Draft, Requested, Designing, In Review, Ready to Publish, Scheduled, Published, On Hold, Dropped), and text search.
-  - Sorted active Breaking first, then newest first (`created_at` or `when`).
+  - Sorted newest first (`created_at` or `when`).
   - Displays up to 100 cards at a time with "Show more" pagination.
 - **Layering & Escape key order**:
   - Desk modal rendered at `z-[45]`. Clicking any card opens `Drawer` (`z-50`) directly on top while keeping the Desk mounted underneath.
@@ -32,7 +50,7 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 - **`NewContentModal` initialType prop**:
   - Added optional `initialType` prop to `NewContentModal` to pre-select `PHOTO CARD` when triggered from "+ New Photo Card".
 
-## 17 Nov 2026 — Photo Card step 4: rundown switch & Breaking pin (N154)
+## 17 Nov 2026 — Photo Card step 4: rundown switch (N154)
 
 - **Rundown switch (Videos | Photo Cards | All)**:
   - Added a segmented control pill group in the filter bar next to the channel select: "Videos", "Photo Cards", and "All".
@@ -40,31 +58,19 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
   - Selected view is remembered per user in the browser under `localStorage` key `wavedesk.cardView.<actor id>`, loaded once the actor is known, with error handling (`try/catch`) and validation of stored values.
   - The switch filters the rundown (`visible`), Parking Zone (`parked`), and pinned rows (`pinnedRows`). The rundown item counter automatically reflects the filtered count.
   - Bin, Excel export, KPI modals, and My Work are unchanged.
-- **Breaking cards pinned**:
-  - Emergency photo cards (`typeIsCard && is_emergency`) in active statuses (`Requested`, `Designing`, `In Review`, `Ready to Publish`, `Scheduled`) are pinned at the top of their channel when `cardView !== 'videos'`.
-  - Breaking cards ignore the date range, search input, and status filter, but obey the channel filter.
-  - Merged into `pinnedRows` ahead of "Did it go out?" publish-check rows; among Breaking cards, sorted oldest first (`created_at` or `scheduled_publish_time`).
-  - Outside-range rows display the date in their time cell via the existing `showDate`/`pinnedDateFlag` logic.
-  - Once published (or held/dropped), the card is unpinned and appears in normal chronological rundown order if inside the selected date range.
-- **Wording & badges**:
-  - Avoided any "Did it go out?" wording or buttons: `publishCheckState` returns `null` for emergency cards, and channel headers now generically state `{count} pinned` instead of `{count} to answer`.
-  - Red pulsating `BREAKING` badge (`BreakingBadge`) displayed on all active Breaking card rows (table rows, phone cards, phone rows, and Parking Zone).
-  - Pinned Breaking rows receive a thin red left border highlight.
-  - Pulse animation (`breaking-badge-pulse`) uses `@keyframes breakingPulse` and is disabled under `@media (prefers-reduced-motion: reduce)`.
 
 ## 17 Nov 2026 — Photo Card step 3: step buttons & transitions (N153 / N153b)
 
-- **Step buttons for Photo Card**: Added full transition actions for `PHOTO CARD` in `lib/core.js` (`getActions`), strictly mirroring database rules in `sql/2026-11-16_photocard_database.sql`:
+- **Step buttons for Photo Card**: Added full transition actions for `PHOTO CARD` in `lib/core.js` (`getActions`), strictly mirroring database rules:
   - **Requested**: "I'm taking it" (`take_card` → `Designing`, primary; Graphic Designer role or Manager) and "Withdraw" (`withdraw_card` → `Draft`, ghost; Requester or Manager).
-  - **Designing**: "Made, send for review" (`made_card` → `In Review`, primary; assigned Graphic Designer or Manager; non-emergency cards only). For Breaking cards (`is_emergency`), shows "Skip review" (`skip_review` → `Ready to Publish`, danger tone; requires confirmation dialog: "This card will go out without review and will be marked 'Not approved'. Continue?"). Both get "Give back" (`give_back_card` → `Requested`, ghost; assigned Graphic Designer or Manager).
+  - **Designing**: "Made, send for review" (`made_card` → `In Review`, primary; assigned Graphic Designer or Manager; review always required) and "Give back" (`give_back_card` → `Requested`, ghost; assigned Graphic Designer or Manager).
   - **In Review**: "Approve" (`approve_card` → `Ready to Publish`, primary; Requester, holder of `can_approve_photo_cards`, or Manager; assigned Graphic Designer cannot approve own card unless Manager) and "Request correction" (`correct_card` → `Designing`, ghost; same people as Approve, also blocks assigned designer unless Manager; requires reason).
   - **Ready to Publish**: "Mark as Scheduled" (`schedule` → `Scheduled`, primary) and "Publish" (`publish` → `Published`, ghost; Publisher role or Manager). Does not block if publisher is unassigned (the database auto-stamps actor).
   - **Scheduled**: "Confirm Published" (`publish` → `Published`, primary; Publisher or Manager) and "Cancel Schedule" (`unschedule` → `Ready to Publish`, ghost; allowed for Publishers and Managers in the database).
   - **Hold, Drop, Resume, Restore**: standard management controls remain available for Managers across all stages.
-- **Database trigger stamping**: Trigger automatically stamps `requested_by/at`, `graphic_designer`, `designer_taken_at`, `made_at`, `review_skipped`, `approved_by/at`, `correction_count`, and default `publisher`. The app only needs to send `correction_note = reason` for `correct_card`.
+- **Database trigger stamping**: Trigger automatically stamps `requested_by/at`, `graphic_designer`, `designer_taken_at`, `made_at`, `approved_by/at`, `correction_count`, and default `publisher`. The app only needs to send `correction_note = reason` for `correct_card`.
 - **Reason dialog for corrections**: `ReasonModal` supports optional `placeholder`. For `correct_card`, displays title "Request correction", label "What needs to be fixed", placeholder "What should the designer fix?", and requires text before confirming.
 - **Publish dialog for cards**: `PublishTimeModal` reuses real upload time and, for cards (`typeIsCard`), shows optional link inputs per target platform (`row.target_platforms`, labels from platforms list, e.g. Facebook). On publish confirmation, merges non-empty links into existing published links (`live_video_url` JSON and `published_links` object).
-- **Nag suppression for Breaking cards**: `publishCheckState` returns `null` for emergency cards so the 10-minute "was it published?" check never nags.
 - **Deduplication of `getPublishedLinks`**: Unified `getPublishedLinks` into `lib/core.js` with `safeHttpUrl` protocol validation, removing the duplicate in `components/ui/Drawer.js`.
 
 ## 16 Nov 2026 — Photo Card step 2: Photo Card type, form & drawer tabs (N152 / N152b / N152b2)
@@ -73,17 +79,16 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 - **New Content modal for Photo Card**: When choosing Photo Card, replaces the script and people sections with card sections:
   - Template dropdown: active templates for the selected channel (`#number · name`); switching channel or template resets fields.
   - Slug auto-generation: automatically mirrors the first `short` text field until manually edited; fallback to `<template name> #<number>`.
-  - Breaking toggle (`is_emergency`): hides the scheduled publish picker and replaces it with "Set when it is published", setting scheduled publish time to now.
   - Template fields: ordered by template; supports `short` (single line), `long` (textarea), `image` (URL with "Open ↗" link), and `date`. Respects `f.max_length`.
   - Additional fields: Source (required, with "Open ↗" link when starting with http), Caption (`post_caption`), Instructions for designer (`designer_instructions`), Target platforms chips (default `facebook`).
-  - Two buttons: "Save as draft" (requires channel, template, slug) and "Submit to design" (validates `photoCardMissing`: channel, template, required fields, source, publish time unless Breaking; creates Draft and advances to Requested; if submit fails, warns and keeps card as Draft).
+  - Two buttons: "Save as draft" (requires channel, template, slug) and "Submit to design" (validates `photoCardMissing`: channel, template, required fields, source, publish time; creates Draft and advances to Requested; if submit fails, warns and keeps card as Draft).
 - **Drawer for Photo Card**:
   - Five tabs: Editorial (initial tab), Production, Publish, QC & Audit, Credits (no Post-production tab). Uncut content type continues to open on Production.
-  - Editorial tab (`PhotoCardEditorialTab`): read-only "Requested by <name> on <date>", template line with "Sample ↗" link, Breaking toggle, template fields, Source, Caption (with character counter and Copy button), and Instructions for designer. Editable before approval by Request Photo Cards tick holders or Managers.
-  - Production tab (`PhotoCardProductionTab`): read-only Graphic Designer tile with "Not taken yet", Card folder input, Production notes, and workflow history block (Requested, Taken, Made, Approved, Corrections count and note, red "Not approved" mark if review was skipped). Editable by card designer, Graphic Designer tick holders, and Managers.
+  - Editorial tab (`PhotoCardEditorialTab`): read-only "Requested by <name> on <date>", template line with "Sample ↗" link, template fields, Source, Caption (with character counter and Copy button), and Instructions for designer. Editable before approval by Request Photo Cards tick holders or Managers.
+  - Production tab (`PhotoCardProductionTab`): read-only Graphic Designer tile with "Not taken yet", Card folder input, Production notes, and workflow history block (Requested, Taken, Made, Approved, Corrections count and note). Editable by card designer, Graphic Designer tick holders, and Managers.
   - Publish tab (`PhotoCardPublishTab`): Publisher card (`StaffGroupCard`), real upload time, read-only target platform chips, published links per platform (reusing LinkRow and published links storage), Caption, Hashtags (with counter and Copy button), and Linked content (`linked_content_uid` with "Open ↗" link).
-  - Left column: hides Title, Thumbnail text, and Archive shelf ID. Replaces Scheduled publish input with "Set when it is published" while Breaking is active and status is not Published.
-- **Search & Excel export**: Both rundown and parked search inspect `card_source` and template field values. Excel export adds 13 new columns after Production Notes: Template, Breaking, Source, Requested By, Requested At, Designer Taken At, Made At, Approved By, Approved At, Corrections, Review Skipped, Card Folder, Linked Content.
+  - Left column: hides Title, Thumbnail text, and Archive shelf ID.
+- **Search & Excel export**: Both rundown and parked search inspect `card_source` and template field values. Excel export adds columns after Production Notes: Template, Source, Requested By, Requested At, Designer Taken At, Made At, Approved By, Approved At, Corrections, Card Folder, Linked Content.
 - **Race condition & clean-up fixes (N152b / N152b2)**: `createContent` updates `rowsRef.current` synchronously before `setRows`, allowing immediate action dispatch after card creation; field type IDs use canonical `'short'` and `'long'`; character limits use `f.max_length`; removed all accidental whitespace differences.
 
 ## 16 Nov 2026 — Photo Card DB groundwork & Photo Card Templates page (N151)
@@ -127,7 +132,7 @@ lib/core.js now has CONTENT_TYPE_CONFIG, one table keyed by content type (EXPLAI
 
 ## 12 Nov 2026 — Content type decisions recorded (N146)
 
-New file `docs/notes/content-types-plan.md`: records the owner's decisions on content types made 10–12 Nov 2026 (STORY = PACKAGE; new type "Uncut" with Multimedia Journalist role; new type "Photo Card" with two phases and emergency-pinning behaviour) and the agreed order of work. No code or SQL was changed in this task.
+New file `docs/notes/content-types-plan.md`: records the owner's decisions on content types made 10–12 Nov 2026 (STORY = PACKAGE; new type "Uncut" with Multimedia Journalist role; new type "Photo Card") and the agreed order of work. No code or SQL was changed in this task.
 
 ## GitHub-এ শেষ (main, পুরনো → নতুন)
 | কমিট | কাজ |

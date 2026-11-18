@@ -1,6 +1,6 @@
-# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৭ নভেম্বর ২০২৬)
+# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৮ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N156** (N155, N155b, N155c, N155d ব্যবহৃত; N156 সংরক্ষিত: report page)। শেষ যাচাই-করা কমিট: dcc37a5 (N154, verified on GitHub 17 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N157** (N156 ব্যবহৃত; N157 সংরক্ষিত: Photo Card request form without date/time + open cards pinned)। শেষ যাচাই-করা কমিট: dcc37a5 (N154, verified on GitHub 17 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -60,14 +60,16 @@
 | N149 (b, b2, c, d) | Uncut content type and Multimedia Journalist role in the app | b3cd1b3 |
 | N150 (c, d) | Shoot location field in the Production tab (suggestions from earlier entries, searchable, in the Excel export) | 7d62abb |
 | N151 (c, d) | Photo Card ground work: three new ticks and the Photo Card Templates page (+ DB record for Photo Card tables and rules) | 42b7c58 |
-| N152 (b, b2, c, d) | Photo Card step 2: PHOTO CARD type, new-card form (two buttons Save as draft / Submit to design, template fields, source, caption, designer instructions, Breaking), card drawer tabs (Editorial, Production, Publish), Excel columns | ad37d13 |
-| N153 (b, c, d) | Photo Card step 3: step buttons for cards (I'm taking it, Withdraw, Made send for review, Give back, Skip review for Breaking cards with confirm, Approve, Request correction with reason, Mark as Scheduled, Publish dialog with optional per-platform links, Confirm Published, Cancel Schedule); no publish-check nag for Breaking cards | 28d8427 |
-| N154 (c, d) | Photo Card step 4: rundown switch Videos | Photo Cards | All (choice remembered per user in the browser), Breaking cards pinned at the top of their channel with a red pulsing BREAKING badge in Photo Cards and All views (not in Videos), channel header says 'pinned' | dcc37a5 |
-| N155 (b, c, d) | Photo Card Desk page: menu page for Owner/Managers and people with request/approve/design/publish power; sections Waiting for a designer, My work, Waiting for my review, My requests & drafts, All cards; inline buttons; '+ New Photo Card' | this commit |
+| N152 (b, b2, c, d) | Photo Card step 2: PHOTO CARD type, new-card form (two buttons Save as draft / Submit to design, template fields, source, caption, designer instructions), card drawer tabs (Editorial, Production, Publish), Excel columns | ad37d13 |
+| N153 (b, c, d) | Photo Card step 3: step buttons for cards (I'm taking it, Withdraw, Made send for review, Give back, Approve, Request correction with reason, Mark as Scheduled, Publish dialog with optional per-platform links, Confirm Published, Cancel Schedule) | 28d8427 |
+| N154 (c, d) | Photo Card step 4: rundown switch Videos | Photo Cards | All (choice remembered per user in the browser) | dcc37a5 |
+| N155 (b, c, d) | Photo Card Desk page: menu page for Owner/Managers and people with request/approve/design/publish power; sections Waiting for a designer, My work, Waiting for my review, My requests & drafts, All cards; inline buttons; '+ New Photo Card' | 2d864a1 |
+| N156 (c) | Removed Breaking from the app, Photo Card Desk 'Ready to publish' section, publish check off for all photo cards | this commit |
 
 পরিকল্পিত ক্রম:
-- N156 = report page
-- N157 = REAL-TIME AUTO-REFRESH for all users (URGENT, see below)
+- N157 = Photo Card request form without date/time + open cards carried over and pinned with grey "Open" tag
+- N158 = REAL-TIME AUTO-REFRESH for all users (URGENT)
+- Later = report page, card preview for approval, in-app card editor
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।
 

@@ -97,17 +97,6 @@ const globalCss = `
   .sponsor-glow {
     animation: sponsorGlow 2.4s ease-in-out infinite;
   }
-  @keyframes breakingPulse {
-    0%, 100% {
-      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.7), 0 0 8px rgba(239, 68, 68, 0.5);
-    }
-    50% {
-      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3), 0 0 2px rgba(239, 68, 68, 0.2);
-    }
-  }
-  .breaking-badge-pulse {
-    animation: breakingPulse 1.8s ease-in-out infinite;
-  }
   @media (prefers-reduced-motion: reduce) {
     .play-glow {
       animation: none !important;
@@ -120,9 +109,6 @@ const globalCss = `
     .pill-alert {
       animation: none !important;
       box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.8), 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
-    }
-    .breaking-badge-pulse {
-      animation: none !important;
     }
   }
   input, textarea, select, button { font-family: inherit; letter-spacing: inherit; }

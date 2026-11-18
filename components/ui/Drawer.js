@@ -12,7 +12,7 @@ import { scriptToPlainText, scriptToHtml, sanitizeScriptHtml } from '../../utils
 import dynamic from 'next/dynamic';
 const ScriptEditor = dynamic(() => import('./ScriptEditor'), { ssr: false });
 import { StatusBadge, TypeBadge, RoleBadge, DesignationPill } from './Badges';
-import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, FullScreenCard, Toggle, ActionButtons, ConfirmDialog, useNow } from './Shared';
+import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, FullScreenCard, ActionButtons, ConfirmDialog, useNow } from './Shared';
 import { PersonPicker } from './PersonPicker';
 import { StepBar } from './StepBar';
 import {
@@ -378,7 +378,6 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
   const heldLock = row.status === 'On Hold' && !isManager(actor);
   const okChan = can(actor, 'can_change_channel');
   const isCard = typeIsCard(row.content_type);
-  const emergencyNoTime = isCard && row.is_emergency && row.status !== 'Published';
 
   return (
     <div className="space-y-6 details-compact">
@@ -387,12 +386,7 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
           <Field label="Channel" locked={!okChan} lockMessage={lockMsg('Change Channel')}>
             <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
           </Field>
-          <Field label="Scheduled publish" locked={!emergencyNoTime && (!okSched || heldLock)} lockMessage={heldLock ? 'Only Managers and the Owner can reschedule held content' : lockMsg('Reschedule Content')}>
-            {emergencyNoTime ? (
-              <div className="flex h-9 items-center text-[12px] text-zinc-500 italic">
-                Set when it is published
-              </div>
-            ) : (
+          <Field label="Scheduled publish" locked={!okSched || heldLock} lockMessage={heldLock ? 'Only Managers and the Owner can reschedule held content' : lockMsg('Reschedule Content')}>
               <input
                 type="datetime-local"
                 disabled={!okSched || heldLock}
@@ -400,7 +394,6 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
                 onChange={(e) => e.target.value && patch({ scheduled_publish_time: fromLocalInput(e.target.value) })}
                 className={`${(okSched && !heldLock) ? inputBase : inputLocked} [color-scheme:dark]`}
               />
-            )}
           </Field>
         </div>
         <Field label="Slug name" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')} hint={`${(row.slug_name || '').length}/${SLUG_MAX}`}>
@@ -2117,19 +2110,7 @@ function PhotoCardEditorialTab({ row, actor, patch, photoTemplates = [] }) {
         </div>
       </Field>
 
-      {/* c) Breaking toggle */}
-      <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.025] px-3.5 py-2.5">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium text-zinc-200">Breaking</span>
-            {!okEdit ? <LockIcon message={cardLockMsg} /> : null}
-          </div>
-          <p className="text-[12px] text-zinc-500">Pinned to the top of the rundown until published</p>
-        </div>
-        <Toggle on={!!row.is_emergency} disabled={!okEdit} onChange={(v) => patch({ is_emergency: v })} />
-      </div>
-
-      {/* d) Template fields */}
+      {/* Template fields */}
       {tpl && Array.isArray(tpl.fields) && tpl.fields.length > 0 ? (
         <div className="space-y-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Template Fields</div>
@@ -2372,15 +2353,10 @@ function PhotoCardProductionTab({ row, actor, patch }) {
       </Field>
 
       {/* History block */}
-      {historyItems.length > 0 || row.review_skipped ? (
+      {historyItems.length > 0 ? (
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">History & Workflow</span>
-            {row.review_skipped ? (
-              <span className="inline-flex items-center rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-300 ring-1 ring-inset ring-red-500/30">
-                Not approved
-              </span>
-            ) : null}
           </div>
           <div className="space-y-2 text-[12px]">
             {historyItems.map((item, idx) => (

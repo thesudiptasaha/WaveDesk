@@ -7,12 +7,11 @@ import {
   isManager,
   canRequestPhotoCards,
   canApprovePhotoCards,
-  isBreakingActive,
   isRemovedPublished,
   isCardCreatedBy
 } from '../../lib/core';
 import { Icon } from './Icons';
-import { StatusBadge, BreakingBadge, IdBox } from './Badges';
+import { StatusBadge, IdBox } from './Badges';
 import { btnPrimary, btnGhost, inputBase, ActionButtons } from './Shared';
 
 function formatCardAge(r) {
@@ -48,23 +47,17 @@ function DeskCardItem({
     ? `Template #${r.template_id}`
     : 'No template';
   const age = formatCardAge(r);
-  const isBreaking = isBreakingActive(r);
   const allActions = getActions(r, actor, { photoTemplates });
   const actions = actionFilter ? allActions.filter(actionFilter) : [];
 
   return (
     <div
       onClick={() => onOpenContent && onOpenContent(r.id)}
-      className={`group relative cursor-pointer rounded-2xl border transition bg-[#121215] p-3.5 hover:border-white/[0.22] hover:bg-white/[0.03] ${
-        isBreaking
-          ? 'border-red-500/50 border-l-4 border-l-red-500 bg-red-950/[0.06]'
-          : 'border-white/[0.08]'
-      }`}
+      className="group relative cursor-pointer rounded-2xl border border-white/[0.08] transition bg-[#121215] p-3.5 hover:border-white/[0.22] hover:bg-white/[0.03]"
     >
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-            {isBreaking ? <BreakingBadge small /> : null}
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
               {r.channel || 'No channel'}
             </span>
@@ -138,14 +131,11 @@ export function PhotoCardDeskModal({
 
   const canRequest = isManager(actor) || canRequestPhotoCards(actor);
   const canApprove = isManager(actor) || canApprovePhotoCards(actor);
+  const canPublish = isManager(actor) || !!actor?.role_publisher;
   const isDesigner = !!actor?.role_graphic_designer;
 
   const sortSectionRows = (list) => {
     return [...list].sort((a, b) => {
-      const aBrk = isBreakingActive(a);
-      const bBrk = isBreakingActive(b);
-      if (aBrk && !bBrk) return -1;
-      if (!aBrk && bBrk) return 1;
       const aTime = new Date(a.requested_at || a.created_at || a.scheduled_publish_time || 0).getTime();
       const bTime = new Date(b.requested_at || b.created_at || b.scheduled_publish_time || 0).getTime();
       return aTime - bTime;
@@ -185,7 +175,19 @@ export function PhotoCardDeskModal({
   );
   const showReview = reviewRows.length > 0 || canApprove;
 
-  // Section 4: My requests & drafts (requested_by === actor.full_name OR isCardCreatedBy, open cards: not Published, Dropped, or On Hold)
+  // Section: Ready to publish (status 'Ready to Publish' or 'Scheduled')
+  const readyToPublishRows = useMemo(
+    () =>
+      sortSectionRows(
+        cardRows.filter(
+          (r) => r.status === 'Ready to Publish' || r.status === 'Scheduled'
+        )
+      ),
+    [cardRows]
+  );
+  const showReadyToPublish = canPublish;
+
+  // Section: My requests & drafts (requested_by === actor.full_name OR isCardCreatedBy, open cards: not Published, Dropped, or On Hold)
   const myRequestsRows = useMemo(
     () =>
       sortSectionRows(
@@ -198,12 +200,6 @@ export function PhotoCardDeskModal({
     [cardRows, actor?.full_name]
   );
   const showMyRequests = canRequest || myRequestsRows.length > 0;
-
-  // Breaking cards total
-  const breakingCount = useMemo(
-    () => cardRows.filter((r) => isBreakingActive(r)).length,
-    [cardRows]
-  );
 
   // All cards toolbar & list
   const [allChannel, setAllChannel] = useState('all');
@@ -235,10 +231,6 @@ export function PhotoCardDeskModal({
         return haystack.some((v) => String(v || '').toLowerCase().includes(q));
       })
       .sort((a, b) => {
-        const aBrk = isBreakingActive(a);
-        const bBrk = isBreakingActive(b);
-        if (aBrk && !bBrk) return -1;
-        if (!aBrk && bBrk) return 1;
         const aTime = new Date(
           a.created_at || a.requested_at || a.scheduled_publish_time || 0
         ).getTime();
@@ -298,12 +290,6 @@ export function PhotoCardDeskModal({
       <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 space-y-7">
         {/* Summary chips row */}
         <div className="flex flex-wrap items-center gap-2">
-          {breakingCount > 0 ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/15 px-3 py-1 text-[12px] font-bold text-red-300">
-              <span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
-              {breakingCount} Breaking
-            </span>
-          ) : null}
           {showWaiting ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[12px] font-medium text-zinc-300">
               <span className="h-2 w-2 rounded-full bg-violet-400" />
@@ -320,6 +306,12 @@ export function PhotoCardDeskModal({
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[12px] font-medium text-zinc-300">
               <span className="h-2 w-2 rounded-full bg-orange-400" />
               {reviewRows.length} Waiting for review
+            </span>
+          ) : null}
+          {showReadyToPublish ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[12px] font-medium text-zinc-300">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              {readyToPublishRows.length} Ready to publish
             </span>
           ) : null}
           {showMyRequests ? (
@@ -398,7 +390,6 @@ export function PhotoCardDeskModal({
                       onRun={onRun}
                       actionFilter={(a) =>
                         a.id === 'made_card' ||
-                        a.id === 'skip_review' ||
                         a.id === 'give_back_card'
                       }
                       showCorrection={true}
@@ -439,6 +430,44 @@ export function PhotoCardDeskModal({
                       onRun={onRun}
                       actionFilter={(a) =>
                         a.id === 'approve_card' || a.id === 'correct_card'
+                      }
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Section: Ready to publish */}
+          {showReadyToPublish ? (
+            <div className="flex flex-col rounded-2xl border border-white/[0.08] bg-[#121215]/80 p-4">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                  <h2 className="text-[14px] font-bold uppercase tracking-wider text-white">
+                    Ready to publish
+                  </h2>
+                </div>
+                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 tabular-nums">
+                  {readyToPublishRows.length}
+                </span>
+              </div>
+              <div className="space-y-3">
+                {readyToPublishRows.length === 0 ? (
+                  <p className="py-6 text-center text-[13px] text-zinc-500">
+                    No cards ready to publish.
+                  </p>
+                ) : (
+                  readyToPublishRows.map((r) => (
+                    <DeskCardItem
+                      key={r.id}
+                      r={r}
+                      actor={actor}
+                      photoTemplates={photoTemplates}
+                      onOpenContent={onOpenContent}
+                      onRun={onRun}
+                      actionFilter={(a) =>
+                        a.id === 'publish' || a.id === 'schedule' || a.id === 'unschedule'
                       }
                     />
                   ))

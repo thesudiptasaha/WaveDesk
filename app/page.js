@@ -7,7 +7,7 @@ import { APP_NAME, APP_CREDIT, APP_COPYRIGHT, APP_CONTACT_EMAIL } from '../utils
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon, LockIcon } from '../components/ui/Icons';
-import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox, AdBadge, BreakingBadge } from '../components/ui/Badges';
+import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox, AdBadge } from '../components/ui/Badges';
 import { supabase } from '../services/supabase';
 import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, ConfirmDialog, FullScreenCard, Toggle, ActionButtons, useNow } from '../components/ui/Shared';
 import { fetchAllPages } from '../utils/fetchAll';
@@ -30,7 +30,7 @@ import {
   canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
   canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
   typeHasScript, typeIsCard, isUncutReporter, canManagePhotoTemplates,
-  getPublishedLinks, isBreakingActive, canSeePhotoCardDesk
+  getPublishedLinks, canSeePhotoCardDesk
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -1184,15 +1184,6 @@ function NewsroomApp({ authUser, onSignOut }) {
 
   const runAction = (row, action) => {
     if (action.id === 'copy_script') { navigator.clipboard.writeText(scriptToPlainText(row.script) || 'No script'); notify('Script copied', 'success'); return true; }
-    if (action.id === 'skip_review') {
-      setConfirmReq({
-        title: 'Skip review',
-        message: "This card will go out without review and will be marked 'Not approved'. Continue?",
-        confirmLabel: 'Skip review',
-        onConfirm: () => transition(row, action),
-      });
-      return true;
-    }
     if (action.id === 'publish') { setPublishFor({ rowId: row.id, action }); return true; }
     if (action.needsReason) { setReasonFor({ rowId: row.id, action }); return true; }
     return transition(row, action);
@@ -1907,22 +1898,8 @@ function NewsroomApp({ authUser, onSignOut }) {
       .filter((r) => !q || [r.slug_name, r.title, r.channel, r.content_uid].some((v) => String(v || '').toLowerCase().includes(q)))
       .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
   }, [rows, search]);
-  /* Pinned Breaking photo cards (only when cardView !== 'videos'). */
-  const breakingRows = useMemo(() => {
-    if (cardView === 'videos') return [];
-    const pinnedStatuses = new Set(['Requested', 'Designing', 'In Review', 'Ready to Publish', 'Scheduled']);
-    return rows
-      .filter((r) => {
-        if (!typeIsCard(r.content_type) || !r.is_emergency) return false;
-        if (!pinnedStatuses.has(r.status)) return false;
-        if (channelFilter !== 'all' && r.channel !== channelFilter) return false;
-        return true;
-      })
-      .sort((a, b) => new Date(a.created_at || a.scheduled_publish_time || 0) - new Date(b.created_at || b.scheduled_publish_time || 0));
-  }, [rows, cardView, channelFilter]);
-
   /* Pinned "Did it go out?" rows: publishCheckState is active. They ignore range, search and statusFilter, but obey channelFilter. */
-  const publishCheckPinnedRows = useMemo(() => {
+  const pinnedRows = useMemo(() => {
     return rows.filter((r) => {
       if (cardView === 'videos' && typeIsCard(r.content_type)) return false;
       if (cardView === 'cards' && !typeIsCard(r.content_type)) return false;
@@ -1933,17 +1910,6 @@ function NewsroomApp({ authUser, onSignOut }) {
     });
   }, [rows, nowTick, channelFilter, cardView]);
 
-  /* Combined pinned rows: Breaking cards first (oldest first), then publish check rows. */
-  const pinnedRows = useMemo(() => {
-    const map = new Map();
-    breakingRows.forEach((r) => map.set(r.id, r));
-    publishCheckPinnedRows.forEach((r) => {
-      if (!map.has(r.id)) map.set(r.id, r);
-    });
-    return Array.from(map.values());
-  }, [breakingRows, publishCheckPinnedRows]);
-
-  const breakingIds = useMemo(() => new Set(breakingRows.map((r) => r.id)), [breakingRows]);
   const pinnedIds = useMemo(() => new Set(pinnedRows.map((r) => r.id)), [pinnedRows]);
 
   const pinnedDateFlag = (r) => {
@@ -1975,19 +1941,12 @@ function NewsroomApp({ authUser, onSignOut }) {
       if (aPinned && !bPinned) return -1;
       if (!aPinned && bPinned) return 1;
       if (aPinned && bPinned) {
-        const aBrk = breakingIds.has(a.id);
-        const bBrk = breakingIds.has(b.id);
-        if (aBrk && !bBrk) return -1;
-        if (!aBrk && bBrk) return 1;
-        if (aBrk && bBrk) {
-          return new Date(a.created_at || a.scheduled_publish_time || 0) - new Date(b.created_at || b.scheduled_publish_time || 0);
-        }
         return new Date(a.scheduled_publish_time || 0) - new Date(b.scheduled_publish_time || 0);
       }
       const endExclusive = addDays(range.end, 1);
       return new Date(rowTimeIn(a, range.start, endExclusive) || 0) - new Date(rowTimeIn(b, range.start, endExclusive) || 0);
     });
-  }, [visible, pinnedRows, pinnedIds, breakingIds, channelFilter, channels, range]);
+  }, [visible, pinnedRows, pinnedIds, channelFilter, channels, range]);
 
   /* Rundown rows, with a channel header inserted before each channel group in "All Channels" view. */
   const tableItems = useMemo(() => {
@@ -2050,19 +2009,12 @@ function NewsroomApp({ authUser, onSignOut }) {
         if (aPinned && !bPinned) return -1;
         if (!aPinned && bPinned) return 1;
         if (aPinned && bPinned) {
-          const aBrk = breakingIds.has(a.id);
-          const bBrk = breakingIds.has(b.id);
-          if (aBrk && !bBrk) return -1;
-          if (!aBrk && bBrk) return 1;
-          if (aBrk && bBrk) {
-            return new Date(a.created_at || a.scheduled_publish_time || 0) - new Date(b.created_at || b.scheduled_publish_time || 0);
-          }
           return new Date(a.scheduled_publish_time || 0) - new Date(b.scheduled_publish_time || 0);
         }
         const endExclusive = addDays(range.end, 1);
         return new Date(rowTimeIn(a, range.start, endExclusive) || 0) - new Date(rowTimeIn(b, range.start, endExclusive) || 0);
       }),
-    [rundownRows, pinnedIds, breakingIds, range]
+    [rundownRows, pinnedIds, range]
   );
 
   const selected = rows.find((r) => r.id === selectedId) || null;
@@ -2108,7 +2060,6 @@ function NewsroomApp({ authUser, onSignOut }) {
         item['Production Notes'] = r.production_notes || '';
         const tpl = (photoTemplates || []).find((t) => t.id === r.template_id);
         item['Template'] = tpl ? `#${tpl.number} · ${tpl.name}` : (r.template_id ? `Template #${r.template_id}` : '');
-        item['Breaking'] = r.is_emergency ? 'Yes' : (typeIsCard(r.content_type) ? 'No' : '');
         item['Source'] = r.card_source || '';
         item['Requested By'] = r.requested_by || '';
         item['Requested At'] = r.requested_at ? new Date(r.requested_at).toLocaleString() : '';
@@ -2117,7 +2068,6 @@ function NewsroomApp({ authUser, onSignOut }) {
         item['Approved By'] = r.approved_by || '';
         item['Approved At'] = r.approved_at ? new Date(r.approved_at).toLocaleString() : '';
         item['Corrections'] = r.correction_count > 0 ? (r.correction_note ? `${r.correction_count} (${r.correction_note})` : String(r.correction_count)) : '';
-        item['Review Skipped'] = r.review_skipped ? 'Yes' : (typeIsCard(r.content_type) ? 'No' : '');
         item['Card Folder'] = r.card_folder || '';
         item['Linked Content'] = r.linked_content_uid || '';
         item['Files Delivered At'] = r.files_delivered_at ? new Date(r.files_delivered_at).toLocaleString() : '';
@@ -2518,7 +2468,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                               <span className="text-[14px] font-semibold flex-1 truncate">{item.name}</span>
                               {item.pinnedCount > 0 ? (
                                 <span className="rounded-full bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 text-[11px] font-bold">
-                                  {item.pinnedCount} pinned
+                                  {item.pinnedCount} to answer
                                 </span>
                               ) : null}
                               <span className="chan-band-count rounded-full px-2.5 py-0.5 text-[12px] font-bold tabular-nums">{item.count}</span>
@@ -2540,9 +2490,9 @@ function NewsroomApp({ authUser, onSignOut }) {
                         key={item.key}
                         onClick={() => setSelectedId(r.id)}
                         style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
-                        className={`row-in cursor-pointer border-b border-white/[0.14] transition last:border-0 hover:bg-white/[0.04]${altNo % 2 === 0 ? ' rd-alt' : ''}${isPinned && isBreakingActive(r) ? ' !border-l-2 !border-l-red-500 bg-red-950/[0.08]' : ''}`}
+                        className={`row-in cursor-pointer border-b border-white/[0.14] transition last:border-0 hover:bg-white/[0.04]${altNo % 2 === 0 ? ' rd-alt' : ''}`}
                       >
-                        <td className={`whitespace-nowrap w-[110px] px-3 py-1.5 border-r border-white/5 tabular-nums text-zinc-300 align-top${isPinned && isBreakingActive(r) ? ' border-l-2 border-l-red-500' : ''}`}>
+                        <td className="whitespace-nowrap w-[110px] px-3 py-1.5 border-r border-white/5 tabular-nums text-zinc-300 align-top">
                           <div className="font-medium text-white">{formatTime(timeIso)}</div>
                           {(showDate || !sameDay(range.start, range.end)) ? <div className="text-[11px] text-zinc-500">{formatDay(timeIso)}</div> : null}
                           <div className="mt-1 flex flex-col items-start gap-0.5">
@@ -2555,10 +2505,9 @@ function NewsroomApp({ authUser, onSignOut }) {
                           </div>
                         </td>
                         <td className="max-w-[360px] px-3 py-1.5 border-r border-white/5 relative align-top">
-                          <div className={`absolute inset-y-0 left-0 w-1 ${isPinned && isBreakingActive(r) ? 'bg-red-500' : (STATUS_META[r.status]?.dot || "bg-zinc-500")}`} />
+                          <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
                           <div className="pl-3 flex flex-col gap-0.5">
                             <div className="flex flex-wrap items-center gap-2">
-                              {isBreakingActive(r) ? <BreakingBadge /> : null}
                               <TypeBox type={r.content_type} />
                               <IdBox uid={r.content_uid} />
                             </div>
@@ -2640,7 +2589,6 @@ function NewsroomApp({ authUser, onSignOut }) {
                     onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                     showDate={showDate}
                     photoTemplates={photoTemplates}
-                    isPinned={isPinned}
                   />
                 );
               })}
@@ -2698,7 +2646,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                           <span className="text-[15px] font-bold flex-1 truncate">{group.header.name}</span>
                           {group.header.pinnedCount > 0 ? (
                             <span className="rounded-full bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 text-[11px] font-bold">
-                              {group.header.pinnedCount} pinned
+                              {group.header.pinnedCount} to answer
                             </span>
                           ) : null}
                           <span className="chan-band-count rounded-full px-2.5 py-0.5 text-[13px] font-bold">{group.header.count}</span>
@@ -2734,7 +2682,6 @@ function NewsroomApp({ authUser, onSignOut }) {
                                       onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                                       showDate={showDate}
                                       photoTemplates={photoTemplates}
-                                      isPinned={isPinned}
                                     />
                                   </div>
                                 );
@@ -2750,7 +2697,6 @@ function NewsroomApp({ authUser, onSignOut }) {
                                   checkState={checkState}
                                   flash={flash}
                                   showDate={showDate}
-                                  isPinned={isPinned}
                                 />
                               );
                             })}
@@ -2781,7 +2727,6 @@ function NewsroomApp({ authUser, onSignOut }) {
                                   onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                                   showDate={showDate}
                                   photoTemplates={photoTemplates}
-                                  isPinned={isPinned}
                                 />
                               );
                             })}
@@ -2843,7 +2788,6 @@ function NewsroomApp({ authUser, onSignOut }) {
                     <td className="px-3 py-2 border-r border-white/5 relative">
                       <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
                       <div className="flex flex-wrap items-center gap-2">
-                        {isBreakingActive(r) ? <BreakingBadge small /> : null}
                         <TypeBadge type={r.content_type} />
                         <IdBox uid={r.content_uid} small />
                       </div>
@@ -2897,7 +2841,6 @@ function NewsroomApp({ authUser, onSignOut }) {
                                     </>
                                   )}
                                 <div className="flex flex-wrap items-center gap-2">
-                                  {isBreakingActive(r) ? <BreakingBadge small /> : null}
                                   <div className="scale-90 origin-left"><TypeBadge type={r.content_type} /></div>
                                   <IdBox uid={r.content_uid} small />
                                 </div>
