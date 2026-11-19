@@ -5,6 +5,30 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 19 Nov 2026 — Photo Card request form without date/time, open cards pinned at top of channel, real publish time (N157)
+
+- **Photo Card request form without date/time**:
+  - The new Photo Card request form (`NewContentModal`) has no date/time input field (`Publish date & time` input removed for cards; non-cards retain it).
+  - A card's `scheduled_publish_time` is set to the creation moment (`new Date().toISOString()`) for both "Save as draft" and "Submit to design".
+  - The app never changes `scheduled_publish_time` of a card after creation.
+  - In `components/ui/Drawer.js`, the "Scheduled publish" field for photo cards is displayed read-only: "Set when it is published" for open cards, or the actual publish timestamp once Published.
+- **Real publish time shown from `went_live_at`**:
+  - The real publish time of a card is `went_live_at` (fallback `published_at`).
+  - In rundown views, a Published card is placed at that real time.
+- **Open cards carried over and pinned at the top of their channel**:
+  - Open cards (statuses `Draft`, `Requested`, `Designing`, `In Review`, `Ready to Publish`, `Scheduled`) are carried over on every day from the card's request day through today.
+  - Pinned at the top of their channel in the "Photo Cards" and "All" views (never in "Videos" view, and not for future-only date ranges).
+  - Within each channel, open pinned cards are sorted by creation moment (`scheduled_publish_time || created_at`).
+  - Each pinned open card displays creation time, the date flag, and a neutral grey pill badge (`OpenTag`): "Open" if less than 1 day old, or "Open · 2d" style (`cardOpenDays(row, nowMs)`).
+- **Pure time helpers in `lib/core.js`**:
+  - `isOpenCard(row)`: checks if content type is a card and status is an open status (`Draft`, `Requested`, `Designing`, `In Review`, `Ready to Publish`, `Scheduled`).
+  - `cardOpenDays(row, nowMs)`: calculates the number of full 24-hour days since creation (`scheduled_publish_time || created_at`).
+  - `cardEffectiveTime(row)`: returns real publish time (`went_live_at || published_at`) for Published cards, or `scheduled_publish_time` otherwise.
+  - `openCardInRange(row, rangeStart, rangeEndExclusive, nowMs)`: pure function determining whether an open card should appear pinned in the given date range.
+  - `rowTimeIn` uses `cardEffectiveTime(r)`.
+  - Removed `'publish time'` requirement from `photoCardMissing`.
+- **No database change**: No new tables, columns, or SQL required; all logic implemented in client-side helpers and UI components.
+
 ## 18 Nov 2026 — Removal of Breaking, Photo Card Desk "Ready to publish" & publish check off for photo cards (N156)
 
 - **Complete removal of Breaking / emergency concept**:

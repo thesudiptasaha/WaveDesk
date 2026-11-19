@@ -106,6 +106,20 @@ export function IdBox({ uid, small = false }) {
   );
 }
 
+export function OpenTag({ days, small = false }) {
+  if (days == null) return null;
+  const label = days <= 0 ? 'Open' : `Open · ${days}d`;
+  return (
+    <span
+      className={`inline-flex items-center whitespace-nowrap rounded-full border border-white/[0.08] bg-white/[0.05] font-medium text-zinc-400 ${
+        small ? 'px-2 py-0.5 text-[9.5px]' : 'px-2.5 py-0.5 text-[11px]'
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
 export function RoleBadge({ role }) {
   const tone =
     role === 'owner'

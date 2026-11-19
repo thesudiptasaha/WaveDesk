@@ -180,7 +180,7 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
       channel: f.channel,
       slug_name: f.slug_name.trim(),
       title: f.slug_name.trim(),
-      scheduled_publish_time: fromLocalInput(f.when),
+      scheduled_publish_time: new Date().toISOString(),
       template_id: Number(f.template_id),
       card_fields: cleanFields,
       card_source: (f.card_source || '').trim(),
@@ -315,11 +315,6 @@ function NewContentModal({ channels, team, defaultDate, actor, onClose, onCreate
 
                 {isCard ? (
                   <>
-                    <Field label="Publish date & time" hint="optional">
-                          <input type="datetime-local" value={f.when} onChange={(e) => set('when', e.target.value)} className={`${inputBase} [color-scheme:dark]`} />
-                          <p className="mt-1.5 text-[11.5px] text-zinc-600">Leave empty to keep it in the On hold & unscheduled list</p>
-                    </Field>
-
                     <Field label="Template *">
                       <SelectBox
                         value={f.template_id}

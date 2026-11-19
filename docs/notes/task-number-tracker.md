@@ -1,6 +1,6 @@
-# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৮ নভেম্বর ২০২৬)
+# WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৯ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N157** (N156 ব্যবহৃত; N157 সংরক্ষিত: Photo Card request form without date/time + open cards pinned)। শেষ যাচাই-করা কমিট: dcc37a5 (N154, verified on GitHub 17 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N158** (N157 ব্যবহৃত; N158 সংরক্ষিত: real-time auto-refresh)। শেষ যাচাই-করা কমিট: 8b56892 (N156, verified on GitHub 19 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -64,10 +64,10 @@
 | N153 (b, c, d) | Photo Card step 3: step buttons for cards (I'm taking it, Withdraw, Made send for review, Give back, Approve, Request correction with reason, Mark as Scheduled, Publish dialog with optional per-platform links, Confirm Published, Cancel Schedule) | 28d8427 |
 | N154 (c, d) | Photo Card step 4: rundown switch Videos | Photo Cards | All (choice remembered per user in the browser) | dcc37a5 |
 | N155 (b, c, d) | Photo Card Desk page: menu page for Owner/Managers and people with request/approve/design/publish power; sections Waiting for a designer, My work, Waiting for my review, My requests & drafts, All cards; inline buttons; '+ New Photo Card' | 2d864a1 |
-| N156 (c) | Removed Breaking from the app, Photo Card Desk 'Ready to publish' section, publish check off for all photo cards | this commit |
+| N156 (c) | Removed Breaking from the app, Photo Card Desk 'Ready to publish' section, publish check off for all photo cards | 8b56892 |
+| N157 (c) | Photo Card request form without date/time (time = creation moment), real publish time shown from went_live_at, open cards (Draft..Scheduled) carried over and pinned at the top of their channel from the request day through today in Photo Cards and All views, grey 'Open · Nd' tag | this commit |
 
 পরিকল্পিত ক্রম:
-- N157 = Photo Card request form without date/time + open cards carried over and pinned with grey "Open" tag
 - N158 = REAL-TIME AUTO-REFRESH for all users (URGENT)
 - Later = report page, card preview for approval, in-app card editor
 

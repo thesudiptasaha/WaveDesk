@@ -386,6 +386,19 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
           <Field label="Channel" locked={!okChan} lockMessage={lockMsg('Change Channel')}>
             <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
           </Field>
+          {isCard ? (
+            <Field label="Scheduled publish">
+              <div className="flex min-h-[42px] items-center text-[13px]">
+                {row.status === 'Published' ? (
+                  <span className="font-medium text-emerald-400">
+                    {formatStamp(row.went_live_at || row.published_at || row.scheduled_publish_time)}
+                  </span>
+                ) : (
+                  <span className="italic text-zinc-500">Set when it is published</span>
+                )}
+              </div>
+            </Field>
+          ) : (
           <Field label="Scheduled publish" locked={!okSched || heldLock} lockMessage={heldLock ? 'Only Managers and the Owner can reschedule held content' : lockMsg('Reschedule Content')}>
               <input
                 type="datetime-local"
@@ -395,6 +408,7 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
                 className={`${(okSched && !heldLock) ? inputBase : inputLocked} [color-scheme:dark]`}
               />
           </Field>
+          )}
         </div>
         <Field label="Slug name" locked={!okMeta} lockMessage={lockMsg('Edit Content Details')} hint={`${(row.slug_name || '').length}/${SLUG_MAX}`}>
           <BlurInput value={row.slug_name} disabled={!okMeta} maxLength={SLUG_MAX} onCommit={(v) => { const s = normalizeSlugInput(v); if (s) patch({ slug_name: s }); }} placeholder="Slug name" />

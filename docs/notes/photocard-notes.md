@@ -1,5 +1,34 @@
 # Photocard idea (2026-11-01)
 
+## Update 19 Nov 2026 — Request form without date/time, open cards pinned & real publish time (N157)
+
+- **Request form without date/time**:
+  - The Photo Card request form (`NewContentModal`) has no date/time input field (`Publish date & time` input removed for cards; non-cards retain it).
+  - `scheduled_publish_time` is set to the creation moment (`new Date().toISOString()`) for both "Save as draft" and "Submit to design".
+  - The app never changes `scheduled_publish_time` of a card after creation.
+  - In `components/ui/Drawer.js`, the "Scheduled publish" field for cards is displayed read-only ("Set when it is published" for open cards, or formatted stamp if Published).
+  - `photoCardMissing` in `lib/core.js` no longer requires publish time.
+- **Rundown rule for open cards**:
+  - Open cards (`Draft`, `Requested`, `Designing`, `In Review`, `Ready to Publish`, `Scheduled`) are carried over and pinned at the top of their channel in the "Photo Cards" and "All" views on every day from the request day through today.
+  - They never appear in the "Videos" view, and are not carried over into future-only date ranges.
+  - Pinned open cards are sorted by creation time (`scheduled_publish_time || created_at`), and display creation time with the date flag.
+  - Each pinned open card displays an `OpenTag` pill badge: "Open" (< 1 day) or "Open · Nd" (`cardOpenDays(row, nowMs)`).
+- **Effective time rule**:
+  - The real publish time of a card is `went_live_at` (fallback `published_at`).
+  - `cardEffectiveTime(row)`: for a Published card returns `went_live_at || published_at`; for all other statuses returns `scheduled_publish_time`.
+  - Date filtering (`visible`) and time display (`rowTimeIn`) use `cardEffectiveTime(r)`.
+- **Planned next tasks**:
+  - N158: Real-time auto-refresh for all users (URGENT).
+  - Later: report page (Owner/Manager full; designers see their own row through profile My Work; Excel download), card preview for approval (kept 7 days after Published/Dropped; scheduled deletion through Storage API), in-app card editor (Konva; fonts and PNG layers uploaded by Owner/Manager; phone console; JPEG sRGB 72 PPI with full metadata; file name = content ID with -001, -002 counter).
+
+## Rules to keep card data ready for the future in-app editor
+
+1. **Card text only in `card_fields`**: all template-rendered text and dynamic values must reside inside `contents.card_fields`, keyed strictly by template field keys.
+2. **Other metadata facts stay where they are**: `title`, `caption`, `hashtags`, `content ID` (`uid`), `channel`, `graphic_designer`, `requested_by`, `card_source`, `template_id` remain in their existing columns on the `contents` table.
+3. **Time logic only through `lib/core.js` helpers**: components must strictly consume `isOpenCard`, `cardOpenDays`, `cardEffectiveTime`, and `openCardInRange`; do not implement custom time calculations in UI components.
+4. **No ad-hoc columns**: do not add random ad-hoc columns to the `contents` table for card rendering or editor state.
+5. **Separate editor tables**: the future in-app editor will have its own dedicated tables (`fonts`, `layers`, `designs`, `exports`) provisioned as a one-time SQL migration.
+
 ## Update 18 Nov 2026 — Removal of Breaking & Desk Ready to publish (N156)
 
 - **Removal of Breaking / Emergency**:
@@ -85,7 +114,7 @@
   - Slug auto-fills from the first `short` text field until manually edited; fallback: `<template name> #<number>`.
   - Two buttons:
     - "Save as draft": requires only channel, template, and slug.
-    - "Submit to design": validates `photoCardMissing` (channel, template, required template fields, source, publish time); creates Draft and immediately advances to Requested.
+    - "Submit to design": validates `photoCardMissing` (channel, template, required template fields, source); creates Draft and immediately advances to Requested.
 - **Drawer tabs**:
   - Left column: hides Title, Thumbnail text, Archive shelf ID.
   - Editorial tab: read-only requester and timestamp, template line with sample link, template fields, Source (required, with open link), Caption (character counter and copy button), Instructions for designer. Editable before approval by Request Photo Cards tick holders or Managers.

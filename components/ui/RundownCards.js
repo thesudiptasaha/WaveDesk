@@ -16,7 +16,7 @@ import {
   shortClipNotes
 } from '../../lib/core';
 import { LockIcon } from './Icons';
-import { StatusBadge, TypeBox, IdBox, AdBadge } from './Badges';
+import { StatusBadge, TypeBox, IdBox, AdBadge, OpenTag } from './Badges';
 import { StaffCell } from './StaffAssignSelect';
 import { ActionButtons } from './Shared';
 
@@ -37,7 +37,7 @@ export function ShortNote({ r, range }) {
   );
 }
 
-export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel, ads, checkState, flash, canAnswer, onAnswerCheck, showDate, photoTemplates }) {
+export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onRun, onCollapse, channelLabel, ads, checkState, flash, canAnswer, onAnswerCheck, showDate, photoTemplates, openDays }) {
   const endEx = addDays(range.end, 1);
   const tIso = showDate ? r.scheduled_publish_time : rowTimeIn(r, range.start, endEx);
   const t = formatTime(tIso);
@@ -65,6 +65,7 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
           <div className="flex flex-wrap items-center justify-end gap-2">
             <TypeBox type={r.content_type} />
             <IdBox uid={r.content_uid} />
+            <OpenTag days={openDays} />
             {onCollapse ? (
               <button
                 type="button"
@@ -135,7 +136,7 @@ export function PhoneCard({ r, range, team, actor, patchRow, notify, onOpen, onR
   );
 }
 
-export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, showDate }) {
+export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, showDate, openDays }) {
   const endEx = addDays(range.end, 1);
   const tIso = showDate ? r.scheduled_publish_time : rowTimeIn(r, range.start, endEx);
   const t = formatTime(tIso);
@@ -182,6 +183,7 @@ export function PhoneRow({ r, range, alt, onToggle, ads, checkState, flash, show
         <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
           <TypeBox type={r.content_type} small />
           <IdBox uid={r.content_uid} small />
+          <OpenTag days={openDays} small />
           <AdBadge ads={ads} small />
           <StatusBadge status={r.status} removed={isRemovedPublished(r)} flash={flash} />
           {checkState === 'unanswered' ? (

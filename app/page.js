@@ -7,7 +7,7 @@ import { APP_NAME, APP_CREDIT, APP_COPYRIGHT, APP_CONTACT_EMAIL } from '../utils
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon, LockIcon } from '../components/ui/Icons';
-import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox, AdBadge } from '../components/ui/Badges';
+import { StatusBadge, TypeBadge, RoleBadge, DesignationPill, TypeBox, IdBox, AdBadge, OpenTag } from '../components/ui/Badges';
 import { supabase } from '../services/supabase';
 import { inputBase, inputLocked, btnPrimary, btnGhost, btnDanger, Avatar, PersonName, Field, SelectBox, BlurInput, ModalShell, ConfirmDialog, FullScreenCard, Toggle, ActionButtons, useNow } from '../components/ui/Shared';
 import { fetchAllPages } from '../utils/fetchAll';
@@ -30,7 +30,8 @@ import {
   canEditAds, isExternal, canManageExternals, normalizePhone, memberOptionLabel,
   canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
   typeHasScript, typeIsCard, isUncutReporter, canManagePhotoTemplates,
-  getPublishedLinks, canSeePhotoCardDesk
+  getPublishedLinks, canSeePhotoCardDesk,
+  isOpenCard, cardOpenDays, cardEffectiveTime, openCardInRange
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -1848,7 +1849,7 @@ function NewsroomApp({ authUser, onSignOut }) {
         if (cardView === 'videos' && typeIsCard(r.content_type)) return false;
         if (cardView === 'cards' && !typeIsCard(r.content_type)) return false;
         if (!isComplete(r)) return false;
-        const d = new Date(r.scheduled_publish_time);
+        const d = new Date(cardEffectiveTime(r));
         if (d >= range.start && d < endExclusive) return true;
         return shortsInRange(r, range.start, endExclusive).length > 0;
       })
@@ -1912,15 +1913,38 @@ function NewsroomApp({ authUser, onSignOut }) {
 
   const pinnedIds = useMemo(() => new Set(pinnedRows.map((r) => r.id)), [pinnedRows]);
 
+  /* Open cards: open Photo Cards carried over from creation day through today. */
+  const openCardRows = useMemo(() => {
+    if (cardView === 'videos') return [];
+    const q = search.trim().toLowerCase();
+    const endExclusive = addDays(range.end, 1);
+    return rows
+      .filter((r) => {
+        if (!typeIsCard(r.content_type)) return false;
+        if (!isOpenCard(r)) return false;
+        if (!isComplete(r)) return false;
+        return openCardInRange(r, range.start, endExclusive, nowTick);
+      })
+      .filter((r) => channelFilter === 'all' || r.channel === channelFilter)
+      .filter((r) => statusFilter === 'all' || r.status === statusFilter)
+      .filter((r) => {
+        if (!q) return true;
+        return [r.slug_name, r.title, ...ROLE_LIST.map((rl) => r[rl.field]), r.content_uid, r.channel, r.thumbnail_text, r.shoot_location, r.card_source, ...(r.card_fields ? Object.values(r.card_fields).filter((v) => typeof v === 'string') : [])].some((v) => String(v || '').toLowerCase().includes(q));
+      });
+  }, [rows, cardView, range, nowTick, channelFilter, statusFilter, search]);
+
+  const openCardIds = useMemo(() => new Set(openCardRows.map((r) => r.id)), [openCardRows]);
+
   const pinnedDateFlag = (r) => {
     if (!r?.scheduled_publish_time) return true;
     const d = new Date(r.scheduled_publish_time);
     return !(d >= range.start && d < addDays(range.end, 1));
   };
 
-  /* Rundown rows: union of visible and pinnedRows, with pinned rows first within each channel (oldest scheduled time first). */
+  /* Rundown rows: union of openCardRows, pinnedRows and visible, with open cards first, then pinned rows within each channel. */
   const rundownRows = useMemo(() => {
     const allMap = new Map();
+    openCardRows.forEach((r) => allMap.set(r.id, r));
     pinnedRows.forEach((r) => allMap.set(r.id, r));
     visible.forEach((r) => allMap.set(r.id, r));
     const allRows = Array.from(allMap.values());
@@ -1936,6 +1960,15 @@ function NewsroomApp({ authUser, onSignOut }) {
           return String(a.channel || '').localeCompare(String(b.channel || ''));
         }
       }
+      const aOpen = openCardIds.has(a.id);
+      const bOpen = openCardIds.has(b.id);
+      if (aOpen && !bOpen) return -1;
+      if (!aOpen && bOpen) return 1;
+      if (aOpen && bOpen) {
+        const aTime = new Date(a.scheduled_publish_time || a.created_at || 0).getTime();
+        const bTime = new Date(b.scheduled_publish_time || b.created_at || 0).getTime();
+        return aTime - bTime;
+      }
       const aPinned = pinnedIds.has(a.id);
       const bPinned = pinnedIds.has(b.id);
       if (aPinned && !bPinned) return -1;
@@ -1946,7 +1979,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       const endExclusive = addDays(range.end, 1);
       return new Date(rowTimeIn(a, range.start, endExclusive) || 0) - new Date(rowTimeIn(b, range.start, endExclusive) || 0);
     });
-  }, [visible, pinnedRows, pinnedIds, channelFilter, channels, range]);
+  }, [visible, openCardRows, openCardIds, pinnedRows, pinnedIds, channelFilter, channels, range]);
 
   /* Rundown rows, with a channel header inserted before each channel group in "All Channels" view. */
   const tableItems = useMemo(() => {
@@ -2004,6 +2037,15 @@ function NewsroomApp({ authUser, onSignOut }) {
   const pcCardRows = useMemo(
     () =>
       [...rundownRows].sort((a, b) => {
+        const aOpen = openCardIds.has(a.id);
+        const bOpen = openCardIds.has(b.id);
+        if (aOpen && !bOpen) return -1;
+        if (!aOpen && bOpen) return 1;
+        if (aOpen && bOpen) {
+          const aTime = new Date(a.scheduled_publish_time || a.created_at || 0).getTime();
+          const bTime = new Date(b.scheduled_publish_time || b.created_at || 0).getTime();
+          return aTime - bTime;
+        }
         const aPinned = pinnedIds.has(a.id);
         const bPinned = pinnedIds.has(b.id);
         if (aPinned && !bPinned) return -1;
@@ -2014,7 +2056,7 @@ function NewsroomApp({ authUser, onSignOut }) {
         const endExclusive = addDays(range.end, 1);
         return new Date(rowTimeIn(a, range.start, endExclusive) || 0) - new Date(rowTimeIn(b, range.start, endExclusive) || 0);
       }),
-    [rundownRows, pinnedIds, range]
+    [rundownRows, openCardIds, pinnedIds, range]
   );
 
   const selected = rows.find((r) => r.id === selectedId) || null;
@@ -2480,11 +2522,13 @@ function NewsroomApp({ authUser, onSignOut }) {
                     altNo += 1;
                     const r = item.row;
                     const isPinned = pinnedIds.has(r.id);
+                    const isOpenPinned = openCardIds.has(r.id);
                     const checkState = isPinned ? publishCheckState(r, nowTick) : null;
                     const canAnswer = checkState ? canAnswerPublishCheckNow(actor, r, nowTick) : false;
                     const flash = checkState === 'unanswered' && !!r.publisher && r.publisher === actor.full_name;
-                    const showDate = isPinned && pinnedDateFlag(r);
-                    const timeIso = isPinned ? r.scheduled_publish_time : rowTimeIn(r, range.start, addDays(range.end, 1));
+                    const showDate = (isPinned && pinnedDateFlag(r)) || isOpenPinned;
+                    const timeIso = (isPinned || isOpenPinned) ? r.scheduled_publish_time : rowTimeIn(r, range.start, addDays(range.end, 1));
+                    const openDays = isOpenPinned ? cardOpenDays(r, nowTick) : null;
                     return (
                       <tr
                         key={item.key}
@@ -2510,6 +2554,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                             <div className="flex flex-wrap items-center gap-2">
                               <TypeBox type={r.content_type} />
                               <IdBox uid={r.content_uid} />
+                              <OpenTag days={openDays} />
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="uppercase text-[17px] font-bold tracking-wide text-white px-1 -ml-1 truncate w-full min-w-[150px]">
@@ -2566,10 +2611,12 @@ function NewsroomApp({ authUser, onSignOut }) {
             <div className="hidden md:grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-4">
               {pcCardRows.map((r) => {
                 const isPinned = pinnedIds.has(r.id);
+                const isOpenPinned = openCardIds.has(r.id);
                 const checkState = isPinned ? publishCheckState(r, nowTick) : null;
                 const canAnswer = checkState ? canAnswerPublishCheckNow(actor, r, nowTick) : false;
                 const flash = checkState === 'unanswered' && !!r.publisher && r.publisher === actor.full_name;
-                const showDate = isPinned && pinnedDateFlag(r);
+                const showDate = (isPinned && pinnedDateFlag(r)) || isOpenPinned;
+                const openDays = isOpenPinned ? cardOpenDays(r, nowTick) : null;
                 return (
                   <PhoneCard
                     key={r.id}
@@ -2589,6 +2636,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                     onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                     showDate={showDate}
                     photoTemplates={photoTemplates}
+                    openDays={openDays}
                   />
                 );
               })}
@@ -2658,10 +2706,12 @@ function NewsroomApp({ authUser, onSignOut }) {
                           <div className={`${group.header ? 'rounded-b-xl border-t-0' : 'rounded-xl'} border border-white/[0.14] bg-[#121215] overflow-hidden`}>
                             {group.rows.map((r, idx) => {
                               const isPinned = pinnedIds.has(r.id);
+                              const isOpenPinned = openCardIds.has(r.id);
                               const checkState = isPinned ? publishCheckState(r, nowTick) : null;
                               const canAnswer = checkState ? canAnswerPublishCheckNow(actor, r, nowTick) : false;
                               const flash = checkState === 'unanswered' && !!r.publisher && r.publisher === actor.full_name;
-                              const showDate = isPinned && pinnedDateFlag(r);
+                              const showDate = (isPinned && pinnedDateFlag(r)) || isOpenPinned;
+                              const openDays = isOpenPinned ? cardOpenDays(r, nowTick) : null;
                               if (expandedId === r.id) {
                                 return (
                                   <div key={r.id} className="my-2 mx-2">
@@ -2682,6 +2732,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                       onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                                       showDate={showDate}
                                       photoTemplates={photoTemplates}
+                                      openDays={openDays}
                                     />
                                   </div>
                                 );
@@ -2697,6 +2748,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                   checkState={checkState}
                                   flash={flash}
                                   showDate={showDate}
+                                  openDays={openDays}
                                 />
                               );
                             })}
@@ -2705,10 +2757,12 @@ function NewsroomApp({ authUser, onSignOut }) {
                           <div className={`flex flex-col gap-3.5 ${group.header ? 'mt-3' : ''}`}>
                             {group.rows.map((r) => {
                               const isPinned = pinnedIds.has(r.id);
+                              const isOpenPinned = openCardIds.has(r.id);
                               const checkState = isPinned ? publishCheckState(r, nowTick) : null;
                               const canAnswer = checkState ? canAnswerPublishCheckNow(actor, r, nowTick) : false;
                               const flash = checkState === 'unanswered' && !!r.publisher && r.publisher === actor.full_name;
-                              const showDate = isPinned && pinnedDateFlag(r);
+                              const showDate = (isPinned && pinnedDateFlag(r)) || isOpenPinned;
+                              const openDays = isOpenPinned ? cardOpenDays(r, nowTick) : null;
                               return (
                                 <PhoneCard
                                   key={r.id}
@@ -2727,6 +2781,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                                   onAnswerCheck={(row) => setPublishCheckFor(row.id)}
                                   showDate={showDate}
                                   photoTemplates={photoTemplates}
+                                  openDays={openDays}
                                 />
                               );
                             })}
