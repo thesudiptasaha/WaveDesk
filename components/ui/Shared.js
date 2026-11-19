@@ -1,5 +1,5 @@
 import { APP_NAME } from '../../utils/constants';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Icon, LockIcon } from './Icons';
 import { StatusBadge, TypeBadge, RoleBadge, DesignationPill } from './Badges';
 
@@ -92,11 +92,20 @@ export function SelectBox({ value, onChange, options, disabled = false, placehol
 
 export function BlurInput({ value, onCommit, disabled = false, placeholder, type = 'text', multiline = false, rows = 3, className, maxLength, list }) {
   const [draft, setDraft] = useState(value || '');
+  const isFocusedRef = useRef(false);
+  const dirtyRef = useRef(false);
   useEffect(() => {
-    setDraft(value || '');
+    if (!isFocusedRef.current) setDraft(value || '');
   }, [value]);
   const commit = () => {
-    if ((draft || '') !== (value || '')) onCommit(draft);
+    isFocusedRef.current = false;
+    if (dirtyRef.current) {
+      dirtyRef.current = false;
+      const nextVal = draft || '';
+      if (nextVal !== (value || '')) onCommit(nextVal);
+    } else {
+      setDraft(value || '');
+    }
   };
   const common = {
       value: draft,
@@ -104,7 +113,13 @@ export function BlurInput({ value, onCommit, disabled = false, placeholder, type
       placeholder,
       maxLength,
       list,
-    onChange: (e) => setDraft(e.target.value),
+    onFocus: () => {
+      isFocusedRef.current = true;
+    },
+    onChange: (e) => {
+      dirtyRef.current = true;
+      setDraft(e.target.value);
+    },
     onBlur: commit,
     className: className || (disabled ? inputLocked : inputBase),
   };

@@ -152,7 +152,7 @@ Central table holding all daily video rundown items.
 * **Trigger `contents_post_production`** (BEFORE UPDATE on `contents`, function `contents_post_production_rules`): Files received (Video Editor or Manager, only after Files delivered, once, Manager undoes), Files problem (Video Editor or Manager, note required, clears received, notifies the files-delivered person, the Producer and the Production Manager), Problem fixed (Production or Manager, notifies the Video Editor), a Manager undoing Files delivered clears received and problem, and the default fill: when a Video Editor is assigned or changed on a non-LIVE content, EMPTY `motion_graphics_designer`, `graphic_designer`, `colorist`, `audio_mixer` slots get the same name, slots holding the OLD editor's name move to the new editor, slots changed by hand in the same save are untouched. Not applied when contents are created (INSERT). Record: `sql/2026-11-07_post_production.sql`.
 * **Trigger `contents_publish_check`** (BEFORE UPDATE on `contents`, function `contents_publish_check_rules`): request allowed only for the assigned Publisher or a Manager, only when status is Scheduled or Ready to Publish and 10 minutes have passed after scheduled_publish_time, note required, notifies Owner and Managers, writes an Activity-log entry, clears itself on a status or publish-time change. Record: `sql/2026-11-07_publish_check.sql`.
 * `created_at` (`timestamptz`)
-* `updated_at` (`timestamptz`)
+* `updated_at` (`timestamptz`, not null default `now()`) — Automatically touched on every insert and update via trigger `zz_contents_touch_updated_at` (function `touch_contents_updated_at()`). Trigger name starts with `zz_` so it fires last alphabetically; `script_saved_at` remains managed solely by `trg_contents_script_saved_at`. Indexed by `contents_org_updated_at_idx` on `(organization_id, updated_at)`. (Added 19 Nov 2026, record: `sql/2026-11-19_contents_updated_at.sql`).
 
 ---
 
@@ -270,7 +270,7 @@ Templates used by writers to request photo cards per channel. Added on 16 Nov 20
 * `updated_by` (`text`, nullable) — Actor who last updated the template.
 * `updated_at` (`timestamptz`, nullable) — Timestamp of last update.
 * `last_change_note` (`text`, nullable) — Note explaining what changed in template file information (logged to history then cleared).
-* **Unique constraint**: `unique (organization_id, channel, number)` (`photo_card_templates_org_chan_num_uq`).
+* **Unique constraint**: `unique (organization_id, channel, number)` (`photo_card_templates_organization_id_channel_number_key`).
 * **Unique index**: `unique (organization_id, lower(btrim(current_file_name)))` (`photo_card_templates_current_file_name_uq`) where `current_file_name is not null and btrim(current_file_name) <> ''`.
 * **Trigger `photo_card_template_track_trg`** (BEFORE INSERT OR UPDATE OR DELETE, function `photo_card_template_track()`): stamps who/when, bumps version on file name changes, requires a note when file information changes, and writes change record into `photo_card_template_history`.
 * **RLS**: SELECT allowed for all active organization members (`organization_id = my_org_id() and i_am_active()`); INSERT, UPDATE, DELETE allowed for Owners, Managers, and members with the `can_manage_photo_templates` tick via `i_can_manage_photo_templates()`.
@@ -299,3 +299,14 @@ History and audit log for photo card template modifications. Added on 19 Nov 202
 ## Storage Buckets
 * `avatars` (Public bucket) — Stores user profile photos.
 * `documents` (Public bucket, reference files & briefs) — Configured via `sql/2026-10-11_storage_documents_rls.sql` with authenticated insert/update/delete and public select for browser previews.
+
+---
+
+### 13. Realtime Publication (`supabase_realtime`)
+The following public tables are published in the Supabase Realtime publication (`supabase_realtime`):
+* `contents`
+* `team_members`
+* `notifications`
+* `notices`
+* `bookings`
+* `content_ads` (added 19 Nov 2026, record: `sql/2026-11-19_realtime_content_ads.sql`)

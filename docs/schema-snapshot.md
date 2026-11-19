@@ -28,6 +28,11 @@
 > - ইউনিক ইনডেক্স `photo_card_templates_current_file_name_uq` (organization_id, lower(btrim(current_file_name)))।
 > - নতুন হিস্ট্রি টেবিল `photo_card_template_history` (id, organization_id, template_id, action, version_no, changed_by, changed_at, note, template_channel, template_number, template_name, changes jsonb; RLS: template managers select; insert/update/delete revoked)।
 > - ট্রিগার `photo_card_template_track_trg` (function `photo_card_template_track()`): ফাইল তথ্য পরিবর্তনে নোট আবশ্যক, ফাইল পরিবর্তনে version_no বৃদ্ধি এবং স্বয়ংক্রিয় হিস্ট্রি লগ।
+>
+> ১৯ নভেম্বর ২০২৬ হালনাগাদ (২) (রেকর্ড: `sql/2026-11-19_contents_updated_at.sql` ও `sql/2026-11-19_realtime_content_ads.sql`):
+> - contents টেবিলে `updated_at timestamptz not null default now()` কলাম যোগ; নতুন ইনডেক্স `contents_org_updated_at_idx` on `(organization_id, updated_at)`।
+> - নতুন ট্রিগার `zz_contents_touch_updated_at` (ফাংশন `touch_contents_updated_at()`): প্রতি আপডেটে `updated_at` অটো-আপডেট হয়; ট্রিগার নাম 'zz_' দিয়ে শুরু হওয়ায় বর্ণানুক্রমে সবার শেষে রান করে; `script_saved_at` শুধুমাত্র `trg_contents_script_saved_at` দিয়ে নিয়ন্ত্রিত থাকে।
+> - `supabase_realtime` প্রকাশনায় `content_ads` টেবিল যুক্ত করা হয়েছে। এখন প্রকাশনার অন্তর্ভুক্ত টেবিল: `contents`, `team_members`, `notifications`, `notices`, `bookings`, `content_ads`।
  
 > ⚠️ localhost ও লাইভ সাইট একই ডেটাবেস। SQL চালালে সঙ্গে সঙ্গে লাইভে কার্যকর। তাই SQL সবসময়: ছোট, যোগ-ভিত্তিক (additive), ফিরিয়ে নেওয়া যায় এমন, এবং আগে আমি পর্যালোচনা করে দেব।
  
@@ -41,7 +46,7 @@
 - **notifications**: id bigint, organization_id, member_id(fk→team_members, cascade), content_id **text**, message, read, created_at; ইনডেক্স (member_id, created_at desc).
 - **content_uid_counters**: UID কাউন্টার (`org_key, day, last_n`), `WAVECON-YYYYMMDD_XXXX`-এর জন্য প্রতিদিন 0001 থেকে কাউন্টার শুরু হয়; IDs are never reused; `content_counters` পুরনো কাউন্টার।
 - **নেই:** shows, notices, প্ল্যাটফর্মভিত্তিক অবস্থা, **reference_files কলাম**।
-- সব টেবিলে RLS চালু। Realtime প্রকাশনা: **contents, team_members, notifications** (channels নেই)।
+- সব টেবিলে RLS চালু। Realtime প্রকাশনা: **contents, team_members, notifications, notices, bookings, content_ads**।
 - 11 Oct update: table notices ADDED (sql/2026-10-11_notices_table.sql; realtime enabled; read = active members, write = manager/owner). Storage bucket documents ADDED (sql/2026-10-11_storage_documents_rls.sql).
 - 12 Oct update: notices টেবিলে `notice_uid text unique` যুক্ত; `notice_uid_counters` টেবিল ও `notices_assign_uid` ট্রিগার যোগ (NOTICE-YYYYMMDD_NNN দৈনিক কাউন্টার, Asia/Dhaka সময়); মাইগ্রেশন ও ব্যাকফিল: `sql/2026-10-12_notices_uid_and_counter.sql`।
 - 1 Nov update: tables `advertisers` ও `content_ads` ADDED (`sql/2026-11-01_advertisers.sql`):

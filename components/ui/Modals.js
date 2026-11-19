@@ -1843,15 +1843,21 @@ function PublishTimeModal({ row, defaultIso, onClose, onConfirm, platforms = PLA
     : ['facebook'];
   const existingLinks = isCard ? getPublishedLinks(row) : {};
   const [cardLinks, setCardLinks] = useState(() => ({ ...existingLinks }));
+  const editedPlatformsRef = useRef(new Set());
 
   const handleConfirm = () => {
     if (isCard) {
-      const trimmedLinks = {};
-      Object.entries(cardLinks).forEach(([pId, val]) => {
-        const v = (val || '').trim();
-        if (v) trimmedLinks[pId] = v;
+      const latestLinks = getPublishedLinks(row);
+      const mergedLinks = { ...latestLinks };
+      editedPlatformsRef.current.forEach((pId) => {
+        const v = (cardLinks[pId] || '').trim();
+        if (v) {
+          mergedLinks[pId] = v;
+        } else {
+          delete mergedLinks[pId];
+        }
       });
-      onConfirm(iso, { publishedLinks: trimmedLinks });
+      onConfirm(iso, { publishedLinks: mergedLinks });
     } else {
       onConfirm(iso);
     }
@@ -1888,7 +1894,10 @@ function PublishTimeModal({ row, defaultIso, onClose, onConfirm, platforms = PLA
                   <input
                     type="url"
                     value={cardLinks[pId] || ''}
-                    onChange={(e) => setCardLinks((prev) => ({ ...prev, [pId]: e.target.value }))}
+                    onChange={(e) => {
+                      editedPlatformsRef.current.add(pId);
+                      setCardLinks((prev) => ({ ...prev, [pId]: e.target.value }));
+                    }}
                     className={inputBase}
                     placeholder="https://..."
                   />

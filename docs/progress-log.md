@@ -5,6 +5,31 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 19 Nov 2026 — Real-time auto-refresh for all users (N159)
+
+- **Stable realtime channel engine**:
+  - Replaced per-state channel re-creation with one stable channel `newsroom-<org.id>` that stays alive across date range changes and UI interactions. Handlers invoke fresh state via refs (`fetchRowsRef`, `reloadTeamRef`, `reloadAdsRef`, `loadNoticesRef`).
+  - Connection status handling with exponential backoff (3s, 6s, 12s, 30s), online/offline listeners, and tab visibility change handlers (`document.visibilityState === 'visible'`). If the channel was lost while hidden, it resets backoff and reconnects immediately; if already healthy, it triggers catch-up.
+  - Periodic 30-second catch-up query using server-derived `updated_at` timestamps, plus a 10-minute full `fetchRows` backstop.
+  - Header connection indicator showing `Live` (green) / `Reconnecting` (amber) / `Offline` (zinc) / `Connecting` (amber) with a "Last sync" tooltip showing formatted server time; internal logs prefixed with `[wavedesk-realtime]`.
+- **Targeted row updates and batching**:
+  - Realtime `INSERT`/`UPDATE` events queue changed IDs and re-fetch full rows in batches of 250ms (or fallback to full reload if > 200 IDs are queued).
+  - State updates merge rows functionally by ID (`setRows(prev => ...)`): replaces when incoming `updated_at` is newer or equal, inserts when `rowBelongsInView` matches, or removes if the row no longer belongs in view.
+  - `DELETE` events remove the deleted row from state and automatically close any open drawer or dialog referencing that row with an informative notification ("This item was deleted by another user").
+  - `catchUp` checks missing or newer IDs by querying `id, updated_at` since `lastSync - 1000ms`, fetching full rows only when differences exist.
+- **Rundown and Photo Card loading fix (N157 gap)**:
+  - `fetchRows` and `rowBelongsInView` now explicitly load open Photo Cards (Draft..Scheduled) across any date range and Published cards by real publish time (`went_live_at`, fallback `published_at`), ensuring open cards carry over accurately.
+- **Typing protection and conflict handling**:
+  - `BlurInput` and `ShootDateTimeInput` use a dirty flag (`dirtyRef`): they do not overwrite user draft input with remote changes while focused, and only commit on blur if the user actively modified the input.
+  - Script editing in `Drawer.js` (`ScriptTab`) is protected from remote overwrite. Saving checks for newer server versions; on conflict, it offers "Save mine anyway", "Take theirs (my text stays as a saved draft)", or "Cancel". Script saved timestamp is set strictly from the database trigger, eliminating client clock drift.
+  - `PublishTimeModal` merges only the platform link fields that the user explicitly edited.
+- **Database changes (already run live)**:
+  - Added `updated_at timestamptz not null default now()` to `public.contents`, indexed on `(organization_id, updated_at)` with trigger `zz_contents_touch_updated_at` executing `touch_contents_updated_at()`. Trigger name starts with `zz_` to ensure it fires last alphabetically.
+  - Added `content_ads` to `supabase_realtime` publication (now includes `contents`, `team_members`, `notifications`, `notices`, `bookings`, `content_ads`).
+  - Recorded in `sql/2026-11-19_contents_updated_at.sql` and `sql/2026-11-19_realtime_content_ads.sql`.
+- **Known limits**:
+  - Deletes that occurred while a client was offline are picked up by the 10-minute backstop full reload, not by the 30-second `updated_at` catch-up (since deleted rows do not exist in the table).
+
 ## 19 Nov 2026 — Photo Card template tracking SQL recorded (N158)
 
 - **SQL executed by the owner on 19 Nov 2026**:

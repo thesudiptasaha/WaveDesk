@@ -1,5 +1,24 @@
 # Photocard idea (2026-11-01)
 
+## Real-time & Rundown Loading Rules (19 Nov 2026, N159)
+
+- **Open cards and Published cards loading rules**:
+  - `fetchRows` in `app/page.js` loads:
+    1. Contents within `scheduled_publish_time` in `[from, to)`.
+    2. Contents whose shorts are due in range (`overlaps('short_days', days)`).
+    3. Parked/Bin items (`status = 'On Hold'`, null `scheduled_publish_time`, or missing channel/slug).
+    4. Open Photo Cards (`content_type = 'PHOTO CARD'` with `status IN ('Draft','Requested','Designing','In Review','Ready to Publish','Scheduled')`) across any date, ensuring open cards carry over seamlessly.
+    5. Published Photo Cards by real publish time (`went_live_at` in `[from, to)` or fallback `published_at` in `[from, to)` when `went_live_at IS NULL`).
+- **`rowBelongsInView(row, rStart, rEnd)` helper in `lib/core.js`**:
+  - Used during incremental realtime merges to determine whether an incoming/updated row belongs in the client's current rundown state without full reload:
+    - Parked/Bin items (`On Hold`, null publish time, missing channel/slug) always belong.
+    - Open Photo Cards (`isOpenCard(row)`) belong if `openCardInRange(row, rStart, rEnd)` is true.
+    - Published Photo Cards belong if their real publish time (`went_live_at || published_at`) falls within `[rStart, rEnd)`.
+    - Normal contents belong if their `scheduled_publish_time` or `short_days` overlap `[rStart, rEnd)`.
+- **`updated_at` synchronization**:
+  - `contents.updated_at` is updated automatically on every insert and update in PostgreSQL via trigger `zz_contents_touch_updated_at`.
+  - Realtime state updates compare incoming `updated_at` against local `updated_at` to prevent stale overwrites, while `catchUp` queries rows modified since the last recorded server `updated_at`.
+
 ## Template tracking (19 Nov 2026)
 
 - **The owner's workflow**:

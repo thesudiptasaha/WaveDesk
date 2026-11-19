@@ -31,7 +31,8 @@ import {
   canRescheduleRow, publishCheckState, canAnswerPublishCheckNow,
   typeHasScript, typeIsCard, isUncutReporter, canManagePhotoTemplates,
   getPublishedLinks, canSeePhotoCardDesk,
-  isOpenCard, cardOpenDays, cardEffectiveTime, openCardInRange
+  isOpenCard, cardOpenDays, cardEffectiveTime, openCardInRange,
+  rowBelongsInView, OPEN_CARD_STATUSES
 } from '../lib/core';
 
 /* ------------------------------------------------------------------ */
@@ -704,6 +705,15 @@ function NewsroomApp({ authUser, onSignOut }) {
   const [publishCheckFor, setPublishCheckFor] = useState(null);
   const [deleteFor, setDeleteFor] = useState(null);
   const [toast, setToast] = useState(null);
+  const [liveState, setLiveState] = useState('connecting');
+  const [lastSyncAt, setLastSyncAt] = useState(null);
+  const lastSyncRef = useRef(null);
+  const channelRef = useRef(null);
+  const pendingContentIdsRef = useRef(new Set());
+  const flushBatchTimerRef = useRef(null);
+  const backoffIndexRef = useRef(0);
+  const reconnectTimerRef = useRef(null);
+  const BACKOFF_DELAYS = [3000, 6000, 12000, 30000];
   const nowTick = useNow(30000);
 
   const rowsRef = useRef([]);
@@ -713,6 +723,20 @@ function NewsroomApp({ authUser, onSignOut }) {
   const actorIdRef = useRef(null);
   rowsRef.current = rows;
   teamRef.current = team;
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
+  const deleteForRef = useRef(deleteFor);
+  deleteForRef.current = deleteFor;
+  const reasonForRef = useRef(reasonFor);
+  reasonForRef.current = reasonFor;
+  const publishForRef = useRef(publishFor);
+  publishForRef.current = publishFor;
+  const publishCheckForRef = useRef(publishCheckFor);
+  publishCheckForRef.current = publishCheckFor;
+  const orgRef = useRef(org);
+  orgRef.current = org;
+  const rangeRef = useRef(range);
+  rangeRef.current = range;
 
   const authId = authUser ? authUser.id : null;
   const authRef = useRef({ id: null, email: '' });
@@ -888,6 +912,16 @@ function NewsroomApp({ authUser, onSignOut }) {
     loadWorkspace();
   }, [loadWorkspace]);
 
+  const recordServerTime = useCallback((iso) => {
+    if (!iso) return;
+    const t = new Date(iso).getTime();
+    if (isNaN(t)) return;
+    if (!lastSyncRef.current || t > new Date(lastSyncRef.current).getTime()) {
+      lastSyncRef.current = iso;
+      setLastSyncAt(new Date(iso));
+    }
+  }, []);
+
   const fetchRows = useCallback(async () => {
     if (!supabase || !org) return;
     const req = ++reqRef.current;
@@ -921,15 +955,18 @@ function NewsroomApp({ authUser, onSignOut }) {
     );
     if (req !== reqRef.current) return;
         /* Parked / Bin content (On Hold, no date, or missing channel/slug) is not tied to the date range, so load it separately. */
-    const [heldRes, nodateRes, emptyMetaRes] = await Promise.all([
+    const [heldRes, nodateRes, emptyMetaRes, openCardsRes, liveCardsRes, pubCardsRes] = await Promise.all([
       fetchAllPages(() => supabase.from('contents').select('*').eq('organization_id', org.id).eq('status', 'On Hold').order('id', { ascending: true })),
       fetchAllPages(() => supabase.from('contents').select('*').eq('organization_id', org.id).is('scheduled_publish_time', null).order('id', { ascending: true })),
       fetchAllPages(() => supabase.from('contents').select('*').eq('organization_id', org.id).or('channel.is.null,channel.eq.,slug_name.is.null,slug_name.eq.').order('id', { ascending: true })),
+      fetchAllPages(() => supabase.from('contents').select('*').or(`organization_id.eq.${org.id},organization_id.is.null`).eq('content_type', 'PHOTO CARD').in('status', OPEN_CARD_STATUSES).order('id', { ascending: true })),
+      fetchAllPages(() => supabase.from('contents').select('*').or(`organization_id.eq.${org.id},organization_id.is.null`).eq('content_type', 'PHOTO CARD').eq('status', 'Published').gte('went_live_at', from).lt('went_live_at', to).order('id', { ascending: true })),
+      fetchAllPages(() => supabase.from('contents').select('*').or(`organization_id.eq.${org.id},organization_id.is.null`).eq('content_type', 'PHOTO CARD').eq('status', 'Published').is('went_live_at', null).gte('published_at', from).lt('published_at', to).order('id', { ascending: true })),
     ]);
     if (req !== reqRef.current) return;
     const seen = new Set();
     const merged = [];
-    [data || [], extra || [], heldRes.data || [], nodateRes.data || [], emptyMetaRes.data || []].forEach((list) =>
+    [data || [], extra || [], heldRes.data || [], nodateRes.data || [], emptyMetaRes.data || [], openCardsRes.data || [], liveCardsRes.data || [], pubCardsRes.data || []].forEach((list) =>
       list.forEach((r) => {
         if (!seen.has(r.id)) {
           seen.add(r.id);
@@ -937,8 +974,22 @@ function NewsroomApp({ authUser, onSignOut }) {
         }
       })
     );
-    setRows(merged.map(normalizeRow));
-  }, [org, range, notify]);
+    const normalized = merged.map(normalizeRow);
+    setRows(normalized);
+    let maxUpdated = null;
+    let maxTime = 0;
+    normalized.forEach((r) => {
+      const stamp = r.updated_at || r.created_at;
+      if (stamp) {
+        const t = new Date(stamp).getTime();
+        if (t > maxTime) {
+          maxTime = t;
+          maxUpdated = stamp;
+        }
+      }
+    });
+    if (maxUpdated) recordServerTime(maxUpdated);
+  }, [org, range, notify, recordServerTime]);
 
   const reloadAds = useCallback(async () => {
     if (!supabase || !org) return;
@@ -967,6 +1018,215 @@ function NewsroomApp({ authUser, onSignOut }) {
     }
   }, [org]);
 
+  const fetchRowsRef = useRef(fetchRows);
+  fetchRowsRef.current = fetchRows;
+  const reloadTeamRef = useRef(reloadTeam);
+  reloadTeamRef.current = reloadTeam;
+  const reloadAdsRef = useRef(reloadAds);
+  reloadAdsRef.current = reloadAds;
+  const loadNoticesRef = useRef(loadNotices);
+  loadNoticesRef.current = loadNotices;
+  const notifyRef = useRef(notify);
+  notifyRef.current = notify;
+  const catchUpRef = useRef(null);
+
+  const fetchScriptMeta = useCallback(async (id) => {
+    if (!id || !supabase) return null;
+    const { data, error } = await supabase
+      .from('contents')
+      .select('script, script_saved_at')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) {
+      console.warn('[wavedesk-realtime] fetchScriptMeta error:', error);
+      return null;
+    }
+    return data;
+  }, [supabase]);
+
+  const applyIncomingRows = useCallback((incomingRawRows) => {
+    if (!incomingRawRows || !incomingRawRows.length) return;
+    const rStart = rangeRef.current.start;
+    const rEnd = addDays(rangeRef.current.end, 1);
+    incomingRawRows.forEach((raw) => {
+      if (raw.updated_at) recordServerTime(raw.updated_at);
+    });
+
+    setRows((prev) => {
+      const map = new Map(prev.map((r) => [r.id, r]));
+      let changed = false;
+
+      incomingRawRows.forEach((raw) => {
+        const incoming = normalizeRow(raw);
+        const existing = map.get(incoming.id);
+
+        if (existing && existing.updated_at && incoming.updated_at) {
+          const existingTime = new Date(existing.updated_at).getTime();
+          const incomingTime = new Date(incoming.updated_at).getTime();
+          if (incomingTime < existingTime) return;
+        }
+
+        const belongs = rowBelongsInView(incoming, rStart, rEnd);
+        if (belongs) {
+          map.set(incoming.id, incoming);
+          changed = true;
+        } else if (existing) {
+          map.delete(incoming.id);
+          changed = true;
+        }
+      });
+
+      if (!changed) return prev;
+      const next = Array.from(map.values());
+      rowsRef.current = next;
+      return next;
+    });
+  }, [recordServerTime]);
+
+  const handleContentDelete = useCallback((deletedId) => {
+    if (!deletedId) return;
+    setRows((rs) => rs.filter((r) => r.id !== deletedId));
+    let closedAny = false;
+    if (selectedIdRef.current === deletedId) {
+      setSelectedId(null);
+      lastSelectedRowRef.current = null;
+      closedAny = true;
+    }
+    if (deleteForRef.current === deletedId) {
+      setDeleteFor(null);
+      lastDeleteRowRef.current = null;
+      closedAny = true;
+    }
+    if (reasonForRef.current?.rowId === deletedId) {
+      setReasonFor(null);
+      lastReasonRowRef.current = null;
+      closedAny = true;
+    }
+    if (publishForRef.current?.rowId === deletedId) {
+      setPublishFor(null);
+      lastPublishRowRef.current = null;
+      closedAny = true;
+    }
+    if (publishCheckForRef.current === deletedId) {
+      setPublishCheckFor(null);
+      lastPublishCheckRowRef.current = null;
+      closedAny = true;
+    }
+    if (closedAny) {
+      notifyRef.current?.('This item was deleted by another user', 'info');
+    }
+  }, []);
+
+  const flushBatch = useCallback(async () => {
+    if (flushBatchTimerRef.current) {
+      clearTimeout(flushBatchTimerRef.current);
+      flushBatchTimerRef.current = null;
+    }
+    const ids = Array.from(pendingContentIdsRef.current);
+    pendingContentIdsRef.current.clear();
+    if (!ids.length || !supabase || !orgRef.current) return;
+
+    if (ids.length > 200) {
+      fetchRowsRef.current?.();
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('contents')
+        .select('*')
+        .in('id', ids);
+      if (!error && data) {
+        applyIncomingRows(data);
+      }
+    } catch (err) {
+      console.warn('[wavedesk-realtime] batch fetch error:', err);
+    }
+  }, [applyIncomingRows, supabase]);
+
+  const queueContentId = useCallback((id) => {
+    if (!id) return;
+    pendingContentIdsRef.current.add(id);
+    if (!flushBatchTimerRef.current) {
+      flushBatchTimerRef.current = setTimeout(() => {
+        flushBatch();
+      }, 250);
+    }
+  }, [flushBatch]);
+
+  const catchUp = useCallback(async () => {
+    if (!supabase || !orgRef.current) return;
+    if (!lastSyncRef.current) {
+      fetchRowsRef.current?.();
+      return;
+    }
+    try {
+      const sinceIso = new Date(new Date(lastSyncRef.current).getTime() - 1000).toISOString();
+      const { data: changedList, error } = await supabase
+        .from('contents')
+        .select('id, updated_at')
+        .eq('organization_id', orgRef.current.id)
+        .gte('updated_at', sinceIso);
+      if (error) {
+        console.warn('[wavedesk-realtime] catchUp list error:', error);
+        return;
+      }
+      if (!changedList || !changedList.length) return;
+
+      changedList.forEach((c) => {
+        if (c.updated_at) recordServerTime(c.updated_at);
+      });
+
+      const localMap = new Map((rowsRef.current || []).map((r) => [r.id, r]));
+      const diffIds = [];
+      changedList.forEach((c) => {
+        const local = localMap.get(c.id);
+        if (!local) {
+          diffIds.push(c.id);
+        } else if (c.updated_at) {
+          const sTime = new Date(c.updated_at).getTime();
+          const lTime = local.updated_at ? new Date(local.updated_at).getTime() : 0;
+          if (sTime > lTime) diffIds.push(c.id);
+        }
+      });
+
+      if (!diffIds.length) return;
+
+      if (diffIds.length > 200) {
+        fetchRowsRef.current?.();
+        return;
+      }
+
+      const { data: rowsData, error: rowsErr } = await supabase
+        .from('contents')
+        .select('*')
+        .in('id', diffIds);
+      if (!rowsErr && rowsData) {
+        applyIncomingRows(rowsData);
+      }
+    } catch (err) {
+      console.warn('[wavedesk-realtime] catchUp error:', err);
+    }
+  }, [applyIncomingRows, recordServerTime, supabase]);
+
+  const handleContentChange = useCallback((payload) => {
+    if (payload.eventType === 'DELETE') {
+      handleContentDelete(payload.old?.id);
+    } else if (payload.new?.id) {
+      queueContentId(payload.new.id);
+    }
+  }, [handleContentDelete, queueContentId]);
+
+  const handleNoticePayload = useCallback((pl) => {
+    if (pl.eventType === 'INSERT' && isFeatureEnabled('notif_sound') && pl.new?.author_id !== actorIdRef.current) {
+      if (typeof playChime === 'function') playChime();
+      notifyRef.current?.(`New notice: ${pl.new?.title || ''}`, 'info');
+    }
+    loadNoticesRef.current?.();
+  }, []);
+
+  catchUpRef.current = catchUp;
+
   useEffect(() => {
     if (boot.phase === 'ready') {
       fetchRows();
@@ -975,24 +1235,132 @@ function NewsroomApp({ authUser, onSignOut }) {
   }, [boot.phase, fetchRows, loadNotices]);
 
   useEffect(() => {
-    if (!supabase || boot.phase !== 'ready' || !org) return undefined;
-    const ch = supabase
-      .channel(`newsroom-${org.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contents' }, () => fetchRows())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, () => reloadTeam())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'content_ads' }, () => reloadAds())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notices', filter: `organization_id=eq.${org.id}` }, (payload) => {
-        if (payload.eventType === 'INSERT' && isFeatureEnabled('notif_sound') && payload.new?.author_id !== actorIdRef.current) {
-          playChime();
-          notify(`New notice: ${payload.new?.title || ''}`, 'info');
-        }
-        loadNotices();
-      })
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
+    if (!supabase || boot.phase !== 'ready' || !org?.id) return undefined;
+    const orgId = org.id;
+    let cancelled = false;
+
+    const clearReconnectTimer = () => {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
     };
-  }, [boot.phase, org, fetchRows, reloadTeam, reloadAds, loadNotices, notify]);
+
+    const setupChannel = () => {
+      if (cancelled) return;
+      clearReconnectTimer();
+      if (channelRef.current) {
+        try { supabase.removeChannel(channelRef.current); } catch (e) {}
+        channelRef.current = null;
+      }
+
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setLiveState('offline');
+        console.warn('[wavedesk-realtime] offline detected, waiting for network');
+        return;
+      }
+
+      setLiveState((curr) => (curr === 'live' ? 'reconnecting' : curr));
+      console.warn(`[wavedesk-realtime] subscribing to newsroom-${orgId}`);
+
+      const newsroomChannel = supabase
+        .channel(`newsroom-${orgId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'contents' }, handleContentChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, () => reloadTeamRef.current?.())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'content_ads' }, () => reloadAdsRef.current?.())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notices', filter: `organization_id=eq.${orgId}` }, handleNoticePayload);
+
+      channelRef.current = newsroomChannel;
+
+      newsroomChannel.subscribe((status, err) => {
+        console.warn(`[wavedesk-realtime] newsroom-${orgId} status:`, status, err || '');
+        if (cancelled || newsroomChannel !== channelRef.current) return;
+        if (status === 'SUBSCRIBED') {
+          backoffIndexRef.current = 0;
+          setLiveState('live');
+          catchUpRef.current?.();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setLiveState(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'reconnecting');
+          clearReconnectTimer();
+          if (channelRef.current) {
+            try { supabase.removeChannel(channelRef.current); } catch (e) {}
+            channelRef.current = null;
+          }
+          if (!cancelled && (typeof navigator === 'undefined' || navigator.onLine)) {
+            const delay = BACKOFF_DELAYS[Math.min(backoffIndexRef.current, BACKOFF_DELAYS.length - 1)];
+            backoffIndexRef.current += 1;
+            console.warn(`[wavedesk-realtime] reconnecting in ${delay}ms (attempt ${backoffIndexRef.current})`);
+            reconnectTimerRef.current = setTimeout(() => {
+              if (!cancelled) setupChannel();
+            }, delay);
+          }
+        }
+      });
+    };
+
+    setupChannel();
+
+    const handleOnline = () => {
+      console.warn('[wavedesk-realtime] browser came online');
+      clearReconnectTimer();
+      setLiveState('connecting');
+      backoffIndexRef.current = 0;
+      setupChannel();
+    };
+
+    const handleOffline = () => {
+      console.warn('[wavedesk-realtime] browser went offline');
+      setLiveState('offline');
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setLiveState('offline');
+          return;
+        }
+        if (!channelRef.current) {
+          console.warn('[wavedesk-realtime] tab visible, reconnecting');
+          setLiveState('connecting');
+          backoffIndexRef.current = 0;
+          setupChannel();
+        } else {
+          console.warn('[wavedesk-realtime] tab visible, running catchUp');
+          clearReconnectTimer();
+          catchUpRef.current?.();
+        }
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const catchUpInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') catchUpRef.current?.();
+    }, 30000);
+
+    const backstopInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        console.warn('[wavedesk-realtime] 10m backstop full fetchRows');
+        fetchRowsRef.current?.();
+      }
+    }, 600000);
+
+    return () => {
+      cancelled = true;
+      clearReconnectTimer();
+      clearInterval(catchUpInterval);
+      clearInterval(backstopInterval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (channelRef.current) {
+        try { supabase.removeChannel(channelRef.current); } catch (e) {}
+        channelRef.current = null;
+      }
+    };
+  }, [boot.phase, org?.id, supabase, queueContentId, handleContentDelete]);
 
   const handlePostNotice = async ({ title, body, priority }) => {
     if (!org?.id || !actor) return false;
@@ -2059,10 +2427,60 @@ function NewsroomApp({ authUser, onSignOut }) {
     [rundownRows, openCardIds, pinnedIds, range]
   );
 
-  const selected = rows.find((r) => r.id === selectedId) || null;
-  const reasonRow = reasonFor ? rows.find((r) => r.id === reasonFor.rowId) : null;
-  const publishRow = publishFor ? rows.find((r) => r.id === publishFor.rowId) : null;
-  const publishCheckRow = publishCheckFor ? rows.find((r) => r.id === publishCheckFor) : null;
+  const lastSelectedRowRef = useRef(null);
+  const selected = useMemo(() => {
+    if (!selectedId) {
+      lastSelectedRowRef.current = null;
+      return null;
+    }
+    const found = rows.find((r) => r.id === selectedId);
+    if (found) lastSelectedRowRef.current = found;
+    return found || (lastSelectedRowRef.current?.id === selectedId ? lastSelectedRowRef.current : null);
+  }, [selectedId, rows]);
+
+  const lastDeleteRowRef = useRef(null);
+  const deleteRow = useMemo(() => {
+    if (!deleteFor) {
+      lastDeleteRowRef.current = null;
+      return null;
+    }
+    const found = rows.find((r) => r.id === deleteFor);
+    if (found) lastDeleteRowRef.current = found;
+    return found || (lastDeleteRowRef.current?.id === deleteFor ? lastDeleteRowRef.current : null);
+  }, [deleteFor, rows]);
+
+  const lastReasonRowRef = useRef(null);
+  const reasonRow = useMemo(() => {
+    if (!reasonFor) {
+      lastReasonRowRef.current = null;
+      return null;
+    }
+    const found = rows.find((r) => r.id === reasonFor.rowId);
+    if (found) lastReasonRowRef.current = found;
+    return found || (lastReasonRowRef.current?.id === reasonFor.rowId ? lastReasonRowRef.current : null);
+  }, [reasonFor, rows]);
+
+  const lastPublishRowRef = useRef(null);
+  const publishRow = useMemo(() => {
+    if (!publishFor) {
+      lastPublishRowRef.current = null;
+      return null;
+    }
+    const found = rows.find((r) => r.id === publishFor.rowId);
+    if (found) lastPublishRowRef.current = found;
+    return found || (lastPublishRowRef.current?.id === publishFor.rowId ? lastPublishRowRef.current : null);
+  }, [publishFor, rows]);
+
+  const lastPublishCheckRowRef = useRef(null);
+  const publishCheckRow = useMemo(() => {
+    if (!publishCheckFor) {
+      lastPublishCheckRowRef.current = null;
+      return null;
+    }
+    const found = rows.find((r) => r.id === publishCheckFor);
+    if (found) lastPublishCheckRowRef.current = found;
+    return found || (lastPublishCheckRowRef.current?.id === publishCheckFor ? lastPublishCheckRowRef.current : null);
+  }, [publishCheckFor, rows]);
 
   const locationOptions = useMemo(() => {
     const map = new Map();
@@ -2288,6 +2706,29 @@ function NewsroomApp({ authUser, onSignOut }) {
                   <Icon name="lock" className="h-3 w-3" /> {lockedCount}
                 </span>
               ) : null}
+            </div>
+            <div
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-zinc-400 select-none"
+              title={lastSyncAt ? `Last sync ${lastSyncAt.toLocaleTimeString()}` : 'Connecting…'}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  liveState === 'live'
+                    ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                    : liveState === 'offline'
+                    ? 'bg-zinc-500'
+                    : 'bg-amber-400 animate-pulse'
+                }`}
+              />
+              <span className="hidden sm:inline text-zinc-300">
+                {liveState === 'live'
+                  ? 'Live'
+                  : liveState === 'offline'
+                  ? 'Offline'
+                  : liveState === 'reconnecting'
+                  ? 'Reconnecting…'
+                  : 'Connecting…'}
+              </span>
             </div>
             
             {isFeatureEnabled('notices') ? (
@@ -2953,6 +3394,7 @@ function NewsroomApp({ authUser, onSignOut }) {
           onPublishCheck={(r) => setPublishCheckFor(r.id)}
           locationOptions={locationOptions}
           photoTemplates={photoTemplates}
+          fetchScriptMeta={fetchScriptMeta}
         />
       ) : null}
       
@@ -3102,8 +3544,8 @@ function NewsroomApp({ authUser, onSignOut }) {
           </div>
         </ModalShell>
       ) : null}
-            {deleteFor && rows.find((r) => r.id === deleteFor) ? (
-        <DeleteModal row={rows.find((r) => r.id === deleteFor)} onClose={() => setDeleteFor(null)} onConfirm={deleteContent} />
+      {deleteFor && deleteRow ? (
+        <DeleteModal row={deleteRow} onClose={() => setDeleteFor(null)} onConfirm={deleteContent} />
       ) : null}
         {reasonFor && reasonRow ? (
           <ReasonModal
@@ -3312,7 +3754,9 @@ function NotificationBell({ memberId, onOpenContent }) {
         }
         load();
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        console.warn('[wavedesk-realtime] notifications channel status:', status, err || '');
+      });
     return () => {
       supabase.removeChannel(ch);
     };

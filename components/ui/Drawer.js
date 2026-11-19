@@ -499,7 +499,7 @@ function ScriptPaperHeader({ row, team }) {
   );
 }
 
-function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
+function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS, fetchScriptMeta }) {
   const locked = row.is_script_locked === true;
   const mgr = isManager(actor);
   const canEdit = can(actor, 'can_write_edit_scripts') && (!locked || mgr);
@@ -511,7 +511,9 @@ function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
   const draftKey = `wd-script-draft:${row.id}`;
   const draftsEnabled = isFeatureEnabled('script_drafts');
   const [storedDraft, setStoredDraft] = useState(null);
+  const [conflictData, setConflictData] = useState(null);
   const baseScriptRef = useRef(row.script || '');
+  const baseSavedAtRef = useRef(row.script_saved_at || null);
 
   useEffect(() => {
     if (!draftsEnabled || !canEdit) return;
@@ -526,6 +528,10 @@ function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
   useEffect(() => {
     if (!editing) baseScriptRef.current = row.script || '';
   }, [row.script, editing]);
+
+  useEffect(() => {
+    if (!editing) baseSavedAtRef.current = row.script_saved_at || null;
+  }, [row.script_saved_at, editing]);
 
   useEffect(() => {
     if (!draftsEnabled || !canEdit || !editing) return;
@@ -574,6 +580,7 @@ function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
   const richEnabled = isFeatureEnabled('rich_editor');
   const text = scriptToPlainText(row.script || '');
   const stats = scriptStats(editing ? draft : row.script);
+  const hasConflictNotice = editing && (row.script_saved_at || null) !== baseSavedAtRef.current;
 
   const doCopy = async () => {
     if (!text) return;
@@ -615,6 +622,21 @@ function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
       }
       return;
     }
+    let latest = null;
+    if (typeof fetchScriptMeta === 'function') {
+      try {
+        latest = await fetchScriptMeta(row.id);
+      } catch (e) {
+        latest = null;
+      }
+    }
+    const serverSavedAt = latest?.script_saved_at ?? (row.script_saved_at || null);
+    const serverScript = latest ? (latest.script || '') : (row.script || '');
+    const isConflict = latest && serverSavedAt !== baseSavedAtRef.current && serverScript !== draft;
+    if (isConflict) {
+      setConflictData({ latestScript: serverScript, latestSavedAt: serverSavedAt });
+      return;
+    }
     const ok = await patch({ script: draft });
     setEditing(false);
     if (draftsEnabled) {
@@ -627,6 +649,38 @@ function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
         setStoredDraft(record);
       }
     }
+    if (ok && typeof fetchScriptMeta === 'function') {
+      const fresh = await fetchScriptMeta(row.id);
+      if (fresh?.script_saved_at) baseSavedAtRef.current = fresh.script_saved_at;
+    }
+  };
+
+  const handleSaveMineAnyway = async () => {
+    const ok = await patch({ script: draft });
+    setEditing(false);
+    if (draftsEnabled && ok) {
+      clearDraft(window.localStorage, draftKey);
+      setStoredDraft(null);
+    }
+    if (ok && typeof fetchScriptMeta === 'function') {
+      const fresh = await fetchScriptMeta(row.id);
+      if (fresh?.script_saved_at) baseSavedAtRef.current = fresh.script_saved_at;
+    }
+    setConflictData(null);
+  };
+
+  const handleTakeTheirs = () => {
+    const theirDraft = { text: draft, savedAt: new Date().toISOString(), baseScript: baseScriptRef.current };
+    saveDraft(window.localStorage, draftKey, theirDraft);
+    setStoredDraft(theirDraft);
+    setDraft(conflictData?.latestScript || '');
+    baseSavedAtRef.current = conflictData?.latestSavedAt || null;
+    setEditing(false);
+    setConflictData(null);
+  };
+
+  const handleCancelConflict = () => {
+    setConflictData(null);
   };
 
   return (
@@ -741,6 +795,14 @@ function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
       ) : null}
       {editing ? (
         <div>
+          {hasConflictNotice ? (
+            <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-[13px] text-amber-200">
+              <div className="flex items-start gap-2">
+                <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                <p>Someone saved a new version of this script while you were editing. Your text is kept. When you save you will be asked what to do.</p>
+              </div>
+            </div>
+          ) : null}
           <div className="script-paper">
             <ScriptPaperHeader row={row} team={team} />
             <div className="script-paper-body">
@@ -826,6 +888,43 @@ function ScriptTab({ row, actor, patch, team, platforms = PLATFORMS }) {
         printing={printing}
         onAfterPrint={() => setPrinting(false)}
       />
+      {conflictData ? (
+        <ModalShell
+          title="This script was changed by someone else"
+          subtitle="Someone else saved a new version of this script while you were editing."
+          onClose={handleCancelConflict}
+          footer={
+            <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+              <button
+                type="button"
+                className={btnGhost}
+                onClick={handleCancelConflict}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${btnGhost} !border-amber-500/30 !text-amber-200 hover:!bg-amber-500/10`}
+                onClick={handleTakeTheirs}
+              >
+                Take theirs (my text stays as a saved draft)
+              </button>
+              <button
+                type="button"
+                className={btnPrimary}
+                onClick={handleSaveMineAnyway}
+              >
+                Save mine anyway
+              </button>
+            </div>
+          }
+        >
+          <div className="text-[13px] text-zinc-300 space-y-2">
+            <p>Another user updated this script. If you save yours, their changes will be overwritten.</p>
+            <p className="text-zinc-400 text-[12px]">You can cancel to copy your text, take their version (your draft is preserved), or save yours anyway.</p>
+          </div>
+        </ModalShell>
+      ) : null}
       </div>
     );
   }
@@ -947,20 +1046,28 @@ function formatShootDuration(startIso, endIso) {
 
 function ShootDateTimeInput({ label, value, disabled, lockMessage, onCommit }) {
   const [localVal, setLocalVal] = useState(toLocalInput(value));
+  const isFocusedRef = useRef(false);
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
-    setLocalVal(toLocalInput(value));
+    if (!isFocusedRef.current) setLocalVal(toLocalInput(value));
   }, [value]);
 
   const handleBlur = () => {
-    const nextIso = fromLocalInput(localVal);
-    const currIso = value || null;
-    if (nextIso !== currIso) {
-      onCommit(nextIso);
+    isFocusedRef.current = false;
+    if (dirtyRef.current) {
+      dirtyRef.current = false;
+      const targetIso = fromLocalInput(localVal);
+      if (targetIso !== (value || null)) {
+        onCommit(targetIso);
+      }
+    } else {
+      setLocalVal(toLocalInput(value));
     }
   };
 
   const handleChange = (e) => {
+    dirtyRef.current = true;
     const v = e.target.value;
     setLocalVal(v);
     if (!v) {
@@ -979,6 +1086,7 @@ function ShootDateTimeInput({ label, value, disabled, lockMessage, onCommit }) {
         type="datetime-local"
         disabled={disabled}
         value={localVal}
+        onFocus={() => { isFocusedRef.current = true; }}
         onChange={handleChange}
         onBlur={handleBlur}
         className={`${!disabled ? inputBase : inputLocked} [color-scheme:dark]`}
@@ -3328,7 +3436,7 @@ function PublishCheckBanner({ row, actor, onAnswer }) {
   return null;
 }
 
-function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd, onPublishCheck, locationOptions = [], photoTemplates = [] }) {
+function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, onPatch, onRun, onDelete, onAddPlatform, advertisers = [], ads = [], onAddAd, onUpdateAd, onDeleteAd, onPublishCheck, locationOptions = [], photoTemplates = [], fetchScriptMeta }) {
   const bookings = useContentBookings(row?.id);
   const savedScriptStats = scriptStats(row.script);
   const isCard = typeIsCard(row.content_type);
@@ -3567,7 +3675,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
               isCard ? (
                 <PhotoCardEditorialTab row={row} actor={actor} patch={patch} photoTemplates={photoTemplates} />
               ) : (
-                <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} />
+                <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} fetchScriptMeta={fetchScriptMeta} />
               )
             ) : null}
             {currentTab === 'production' ? (

@@ -1,6 +1,6 @@
 # WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ১৯ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N159** (N158 ব্যবহৃত; N159 সংরক্ষিত: Templates page)। শেষ যাচাই-করা কমিট: 811239b (N157, verified on GitHub 19 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N160** (N159 ব্যবহৃত: Real-time auto-refresh for all users)। শেষ যাচাই-করা কমিট: 2b51497 (N158, verified on GitHub 19 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -66,12 +66,12 @@
 | N155 (b, c, d) | Photo Card Desk page: menu page for Owner/Managers and people with request/approve/design/publish power; sections Waiting for a designer, My work, Waiting for my review, My requests & drafts, All cards; inline buttons; '+ New Photo Card' | 2d864a1 |
 | N156 (c) | Removed Breaking from the app, Photo Card Desk 'Ready to publish' section, publish check off for all photo cards | 8b56892 |
 | N157 (c) | Photo Card request form without date/time (time = creation moment), real publish time shown from went_live_at, open cards (Draft..Scheduled) carried over and pinned at the top of their channel from the request day through today in Photo Cards and All views, grey 'Open · Nd' tag | 811239b |
-| N158 (c) | Photo Card template tracking SQL recorded (new template columns source_package, source_file_name, current_file_name, designed_by, archive_location, version_no, updated_by, updated_at, last_change_note; unique current file name per organization; history table photo_card_template_history written by a trigger) | this commit |
+| N158 (c) | Photo Card template tracking SQL recorded (new template columns source_package, source_file_name, current_file_name, designed_by, archive_location, version_no, updated_by, updated_at, last_change_note; unique current file name per organization; history table photo_card_template_history written by a trigger) | 2b51497 |
+| N159 (c) | Real-time auto-refresh for all users (stable channel, batched row refetch, catch-up, typing protection, script conflict check, contents.updated_at, content_ads in publication) | committed, not pushed |
 
 পরিকল্পিত ক্রম:
-- N159 = Templates page (new fields, note on change, version and history view, access tick label renamed "Graphic Template Management")
-- N160 = card drawer tidy (Production tab hidden for cards, no Production notes/History, Real upload time strip removed and the side panel field labelled "Published at", Card folder moved to the Publish tab, compact caption + hashtags with a "Copy caption + hashtags" button, Credits tab with Requested by / Designed by / Approved by / Published by / Template by)
-- N161 = REAL-TIME auto-refresh for all users (URGENT; the owner may move it earlier)
+- N160 = Templates page (new fields, note on change, version + history view, access tick label renamed "Graphic Template Management")
+- N161 = Card drawer tidy (Production tab hidden until the canvas exists then "Design"; no Production notes/History; "Real upload time" strip removed and side field labelled "Published at"; Card folder moved to the Publish tab; compact caption + hashtags with a "Copy caption + hashtags" button; Credits tab with Requested by / Designed by / Approved by / Published by / Template by)
 - Later = report page, card preview for approval, in-app card editor
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।
