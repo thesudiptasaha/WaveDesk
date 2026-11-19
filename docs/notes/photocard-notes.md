@@ -1,5 +1,30 @@
 # Photocard idea (2026-11-01)
 
+## Template tracking (19 Nov 2026)
+
+- **The owner's workflow**:
+  - A graphic designer sends a PSD file.
+  - The owner renames it, restructures and organizes the layers, and then hands the organized template file to the editors.
+- **The three names**:
+  1. `source_package`: name of the incoming package zip/folder, e.g. `RONY_202611` (representing one designer's month package).
+  2. `source_file_name`: original filename from the designer (e.g. `Template_01.psd`). This may repeat across different source packages.
+  3. `current_file_name`: the owner's own unique naming system carrying channel code, channel name, card type, source package name, and card name. Must be globally unique across the whole organization (enforced by DB index `photo_card_templates_current_file_name_uq`).
+- **Metadata and tracking**:
+  - `designed_by`: the template graphic designer's name.
+  - `archive_location`: folder or storage location where the master template file is archived.
+  - `version_no` and history: database trigger `photo_card_template_track_trg` increments `version_no` whenever package/source/current file name changes, requires a `last_change_note` when any file information changes, and records a structured row into `photo_card_template_history`.
+- **Permissions**:
+  - Only users with the "Graphic Template Management" tick (database column `can_manage_photo_templates`, label to be renamed in N159) plus Owner/Managers can create, update, or delete templates.
+- **Drawer/tab decisions for cards**:
+  - The Production tab will be hidden for cards until the in-app canvas exists.
+  - When the in-app editor is added, the tab will be named "Design" featuring the canvas on top, the template name displayed prominently above it with the template designer's name beside it, console buttons below, and the layer panel on the right.
+  - Designers will be allowed to modify only editable layers (text, photo slot); locked layers (such as logo, brand frame) are fixed by the template.
+  - Photos will be uploaded by the designer, not linked from outside URLs.
+- **The owner's folder advice**:
+  - Shared drive directory structure: `Templates/<channel code>/<card type>/<current file name>` and `_Source/<package>.zip` (kept read-only).
+  - Use instant filename search tools for quick lookups.
+  - Use clean ASCII names (letters, digits, underscores, hyphens) to prevent cross-platform encoding issues.
+
 ## Update 19 Nov 2026 — Request form without date/time, open cards pinned & real publish time (N157)
 
 - **Request form without date/time**:
@@ -12,13 +37,15 @@
   - Open cards (`Draft`, `Requested`, `Designing`, `In Review`, `Ready to Publish`, `Scheduled`) are carried over and pinned at the top of their channel in the "Photo Cards" and "All" views on every day from the request day through today.
   - They never appear in the "Videos" view, and are not carried over into future-only date ranges.
   - Pinned open cards are sorted by creation time (`scheduled_publish_time || created_at`), and display creation time with the date flag.
-  - Each pinned open card displays an `OpenTag` pill badge: "Open" (< 1 day) or "Open · Nd" (`cardOpenDays(row, nowMs)`).
+  - Each pinned open card displays an `OpenTag` pill badge: "Open" (< 1 day) or "Open · Nd" (`cardOpenDays(row, nowMs)`, counting the number of full days from `created_at` with fallback `scheduled_publish_time`).
 - **Effective time rule**:
   - The real publish time of a card is `went_live_at` (fallback `published_at`).
   - `cardEffectiveTime(row)`: for a Published card returns `went_live_at || published_at`; for all other statuses returns `scheduled_publish_time`.
   - Date filtering (`visible`) and time display (`rowTimeIn`) use `cardEffectiveTime(r)`.
 - **Planned next tasks**:
-  - N158: Real-time auto-refresh for all users (URGENT).
+  - N159: Templates page (new fields, note on change, version and history view, access tick label renamed "Graphic Template Management").
+  - N160: Card drawer tidy (Production tab hidden for cards, no Production notes/History, Real upload time strip removed and the side panel field labelled "Published at", Card folder moved to the Publish tab, compact caption + hashtags with a "Copy caption + hashtags" button, Credits tab with Requested by / Designed by / Approved by / Published by / Template by).
+  - N161: Real-time auto-refresh for all users (URGENT; owner may move it earlier).
   - Later: report page (Owner/Manager full; designers see their own row through profile My Work; Excel download), card preview for approval (kept 7 days after Published/Dropped; scheduled deletion through Storage API), in-app card editor (Konva; fonts and PNG layers uploaded by Owner/Manager; phone console; JPEG sRGB 72 PPI with full metadata; file name = content ID with -001, -002 counter).
 
 ## Rules to keep card data ready for the future in-app editor

@@ -5,6 +5,22 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 19 Nov 2026 — Photo Card template tracking SQL recorded (N158)
+
+- **SQL executed by the owner on 19 Nov 2026**:
+  - Recorded in `sql/2026-11-19_photocard_template_tracking.sql`.
+  - Added 9 new optional columns on `photo_card_templates`: `source_package`, `source_file_name`, `current_file_name`, `designed_by`, `archive_location`, `version_no` (int not null default 1), `updated_by`, `updated_at`, `last_change_note`.
+  - Created unique partial index `photo_card_templates_current_file_name_uq` on `(organization_id, lower(btrim(current_file_name)))` ensuring current file names are globally unique per organization (case- and whitespace-insensitive).
+  - Created history table `photo_card_template_history` with RLS (`photo_card_template_history_select`), allowing read access only to users who can manage templates (`i_can_manage_photo_templates()`).
+  - Added trigger function `photo_card_template_track()` and trigger `photo_card_template_track_trg` executing `BEFORE INSERT OR UPDATE OR DELETE` on `photo_card_templates`.
+- **Database rules enforced by trigger**:
+  - File information changes (`source_package`, `source_file_name`, `current_file_name`, `designed_by`) strictly require a note (`last_change_note`), raising a check violation exception if omitted.
+  - Version number bumps (`version_no + 1`) only when file names change (`source_package`, `source_file_name`, or `current_file_name`).
+  - History is written automatically for every insert, update, or delete, recording actor, timestamp, note, version, and structured JSON change diffs (`changes`).
+  - History is visible only to template managers.
+  - The app and database store names and file paths only, not raw PSD files.
+  - `current_file_name` must be unique per organization, while `source_file_name` may repeat across different source packages.
+
 ## 19 Nov 2026 — Photo Card request form without date/time, open cards pinned at top of channel, real publish time (N157)
 
 - **Photo Card request form without date/time**:
