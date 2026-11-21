@@ -5,6 +5,29 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 21 Nov 2026 — Templates page upgrade: Photo Card template file tracking & history (N160)
+
+- **Template editor 5 new required fields**:
+  - Added 5 required file-tracking fields under Name / Sample link: Source package name (`source_package`), Source file name (`source_file_name`), Current file name (`current_file_name`), Designed by (`designed_by`), and Archive location (`archive_location` with an inline "Open ↗" link when http/https). Shown only to users with template management permission.
+- **Change note requirement ("What changed?")**:
+  - When editing a template, if `source_package`, `source_file_name`, `current_file_name`, or `designed_by` changes from its original trimmed value, a non-empty "What changed? *" note is strictly required to save.
+  - For new templates, a "Note (optional)" field is shown.
+  - Helper text reads "Saved in the template history." Archive location changes do not require a note and do not bump the version.
+- **Version badge and list details**:
+  - Each template card in the list displays `v{version_no}`, the current file name in monospace, `Package: {source_package}`, `Designed by {designed_by}`, `Archive: {archive_location}` (clickable link if http/https), and `Updated by {updated_by} · {time}`.
+  - Old templates with missing metadata show a subtle "Details missing" tag until the owner fills them. Version number bumps (+1) automatically only when package, source file, or current file name changes.
+- **Unique current file name check**:
+  - `current_file_name` must be unique across the organization (case-insensitive and trimmed). Checked client-side against loaded templates and enforced by PostgreSQL unique index `photo_card_templates_current_file_name_uq` (mapped to a clear error message).
+- **In-modal History view**:
+  - "History" button on each template row (visible to permission holders only) opens an in-modal audit log view querying `photo_card_template_history` with "← Back to templates".
+  - Shows action tag (`Created`, `Updated`, `Deleted`), `v{version_no}`, actor name, formatted timestamp, change note, and readable diffs of changed values (`from → to`, with friendly labels and `(empty)` for empty values).
+- **Permission tick label renamed**:
+  - Renamed the visible tick label in `lib/core.js` (`ACCESS_LIST`) from "Manage Photo Card Templates" to "Graphic Template Management". Database column (`can_manage_photo_templates`) and internal keys remain unchanged.
+- **Known limits**:
+  - PSD files are not stored in the app or database (file names and an archive path/link only).
+  - Current file name pattern is shown as a suggestion/hint, not strictly enforced by regex.
+  - The 9 existing templates have empty new fields until the owner fills them.
+
 ## 19 Nov 2026 — Real-time auto-refresh for all users (N159)
 
 - **Stable realtime channel engine**:

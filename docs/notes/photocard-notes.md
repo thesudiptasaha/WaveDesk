@@ -34,6 +34,20 @@
   - `version_no` and history: database trigger `photo_card_template_track_trg` increments `version_no` whenever package/source/current file name changes, requires a `last_change_note` when any file information changes, and records a structured row into `photo_card_template_history`.
 - **Permissions**:
   - Only users with the "Graphic Template Management" tick (database column `can_manage_photo_templates`, label to be renamed in N159) plus Owner/Managers can create, update, or delete templates.
+
+## Template tracking in the app (21 Nov 2026, N160)
+
+- **The 5 required fields**:
+  - In the template editor (`PhotoTemplatesModal`), 5 required fields are tracked under Name / Sample link: Source package name (`source_package`), Source file name (`source_file_name`), Current file name (`current_file_name`), Designed by (`designed_by`), and Archive location (`archive_location` with "Open ↗" link when http/https).
+- **Change note rule**:
+  - Editing requires a "What changed? *" note if source package, source file name, current file name, or designed by is modified (optional when creating a new template). Archive location can be updated without a note and without a version bump.
+- **Version rule and list details**:
+  - Version (`v{version_no}`) bumps (+1) automatically only when package, source file, or current file name changes.
+  - Templates list shows version badge, current file name, package, designer, archive location, and update timestamp. Old templates display a "Details missing" tag until filled.
+- **History view**:
+  - Users with template management permission can click "History" on any template row to view past actions (`Created`, `Updated`, `Deleted`), who changed it, timestamp, change note, and readable `from → to` diffs from `photo_card_template_history`.
+- **Files not stored**:
+  - PSD files are not stored in the database or app; file names and archive links/paths only.
 - **Drawer/tab decisions for cards**:
   - The Production tab will be hidden for cards until the in-app canvas exists.
   - When the in-app editor is added, the tab will be named "Design" featuring the canvas on top, the template name displayed prominently above it with the template designer's name beside it, console buttons below, and the layer panel on the right.

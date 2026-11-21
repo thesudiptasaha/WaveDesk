@@ -2785,6 +2785,27 @@ function makeFieldKey() {
   return res;
 }
 
+const HISTORY_FIELD_LABELS = {
+  source_package: 'Source package',
+  source_file_name: 'Source file',
+  current_file_name: 'Current file',
+  designed_by: 'Designed by',
+  archive_location: 'Archive location',
+  name: 'Name',
+  channel: 'Channel',
+  number: 'Number',
+  active: 'Active',
+  sample_url: 'Sample link',
+  fields: 'Card fields changed',
+};
+
+const renderHistoryVal = (v) => {
+  if (v === '' || v === null || v === undefined) return '(empty)';
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+};
+
 export function PhotoTemplatesModal({
   templates = [],
   channels = [],
@@ -2801,6 +2822,38 @@ export function PhotoTemplatesModal({
   const [editorError, setEditorError] = useState('');
   const [editorBusy, setEditorBusy] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [historyTemplate, setHistoryTemplate] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [historyEntries, setHistoryEntries] = useState([]);
+
+  const openHistory = async (t) => {
+    setHistoryTemplate(t);
+    setHistoryLoading(true);
+    setHistoryError('');
+    setHistoryEntries([]);
+    try {
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('photo_card_template_history')
+          .select('*')
+          .eq('template_id', t.id)
+          .order('changed_at', { ascending: false })
+          .limit(100);
+        if (error) {
+          setHistoryError(error.message || 'Could not load history');
+        } else {
+          setHistoryEntries(data || []);
+        }
+      } else {
+        setHistoryEntries([]);
+      }
+    } catch (err) {
+      setHistoryError(err?.message || 'Could not load history');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const startNewTemplate = () => {
     if (!canManage) return;
@@ -2814,6 +2867,18 @@ export function PhotoTemplatesModal({
       number: String(maxNum + 1),
       name: '',
       sample_url: '',
+      source_package: '',
+      source_file_name: '',
+      current_file_name: '',
+      designed_by: '',
+      archive_location: '',
+      last_change_note: '',
+      originalInfo: {
+        source_package: '',
+        source_file_name: '',
+        current_file_name: '',
+        designed_by: '',
+      },
       fields: [
         { key: makeFieldKey(), label: '', type: 'short', required: true, max_length: '' },
       ],
@@ -2830,6 +2895,18 @@ export function PhotoTemplatesModal({
       number: String(t.number),
       name: t.name || '',
       sample_url: t.sample_url || '',
+      source_package: t.source_package || '',
+      source_file_name: t.source_file_name || '',
+      current_file_name: t.current_file_name || '',
+      designed_by: t.designed_by || '',
+      archive_location: t.archive_location || '',
+      last_change_note: '',
+      originalInfo: {
+        source_package: (t.source_package || '').trim(),
+        source_file_name: (t.source_file_name || '').trim(),
+        current_file_name: (t.current_file_name || '').trim(),
+        designed_by: (t.designed_by || '').trim(),
+      },
       fields: Array.isArray(t.fields) && t.fields.length > 0
         ? t.fields.map((f) => ({
             key: f.key || makeFieldKey(),
@@ -2926,6 +3003,55 @@ export function PhotoTemplatesModal({
       setEditorError('Sample picture link must start with http:// or https://');
       return;
     }
+    const cleanSourcePkg = (editing.source_package || '').trim();
+    if (!cleanSourcePkg) {
+      setEditorError('Source package name is required');
+      return;
+    }
+    const cleanSourceFile = (editing.source_file_name || '').trim();
+    if (!cleanSourceFile) {
+      setEditorError('Source file name is required');
+      return;
+    }
+    const cleanCurrentFile = (editing.current_file_name || '').trim();
+    if (!cleanCurrentFile) {
+      setEditorError('Current file name is required');
+      return;
+    }
+    const cleanDesignedBy = (editing.designed_by || '').trim();
+    if (!cleanDesignedBy) {
+      setEditorError('Designed by is required');
+      return;
+    }
+    const cleanArchiveLoc = (editing.archive_location || '').trim();
+    if (!cleanArchiveLoc) {
+      setEditorError('Archive location is required');
+      return;
+    }
+
+    const cleanCurLower = cleanCurrentFile.toLowerCase();
+    const isDup = (templates || []).some(
+      (t) => (!editing.isNew ? t.id !== editing.id : true) &&
+             (t.current_file_name || '').trim().toLowerCase() === cleanCurLower
+    );
+    if (isDup) {
+      setEditorError('This current file name is already used by another template');
+      return;
+    }
+
+    const orig = editing.originalInfo || {};
+    const fileDetailsChanged = !editing.isNew && (
+      cleanSourcePkg !== (orig.source_package || '') ||
+      cleanSourceFile !== (orig.source_file_name || '') ||
+      cleanCurrentFile !== (orig.current_file_name || '') ||
+      cleanDesignedBy !== (orig.designed_by || '')
+    );
+    const cleanNote = (editing.last_change_note || '').trim();
+    if (fileDetailsChanged && !cleanNote) {
+      setEditorError('Please write a short note about what changed in the template file information');
+      return;
+    }
+
     if (!editing.fields || editing.fields.length === 0) {
       setEditorError('At least one field is required');
       return;
@@ -2977,7 +3103,13 @@ export function PhotoTemplatesModal({
           number: num,
           name: cleanName,
           sample_url: cleanSample || null,
+          source_package: cleanSourcePkg,
+          source_file_name: cleanSourceFile,
+          current_file_name: cleanCurrentFile,
+          designed_by: cleanDesignedBy,
+          archive_location: cleanArchiveLoc,
           fields: cleanedFields,
+          ...(cleanNote ? { last_change_note: cleanNote } : {}),
         });
       } else {
         ok = await onUpdate(editing.id, {
@@ -2985,7 +3117,13 @@ export function PhotoTemplatesModal({
           number: num,
           name: cleanName,
           sample_url: cleanSample || null,
+          source_package: cleanSourcePkg,
+          source_file_name: cleanSourceFile,
+          current_file_name: cleanCurrentFile,
+          designed_by: cleanDesignedBy,
+          archive_location: cleanArchiveLoc,
           fields: cleanedFields,
+          ...(cleanNote ? { last_change_note: cleanNote } : {}),
         });
       }
       if (ok) {
@@ -3020,11 +3158,118 @@ export function PhotoTemplatesModal({
   return (
     <ModalShell
       title="Photo Card Templates"
-      subtitle={editing ? (editing.isNew ? 'Create a template for writers' : `Editing template #${editing.number}`) : 'Templates used by writers to request photo cards.'}
+      subtitle={
+        historyTemplate
+          ? `Change history for template #${historyTemplate.number} · ${historyTemplate.name}`
+          : editing
+            ? (editing.isNew ? 'Create a template for writers' : `Editing template #${editing.number}`)
+            : 'Templates used by writers to request photo cards.'
+      }
       onClose={onClose}
       wide
     >
-      {editing ? (
+      {historyTemplate ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+            <button
+              type="button"
+              onClick={() => setHistoryTemplate(null)}
+              className={`${btnGhost} min-h-[44px] px-3 text-[13px] text-zinc-400 hover:text-white flex items-center gap-1.5`}
+            >
+              ← Back to templates
+            </button>
+            <span className="text-[13px] font-semibold text-zinc-300">
+              Template #{historyTemplate.number} · {historyTemplate.name}
+            </span>
+          </div>
+
+          {historyLoading ? (
+            <div className="py-12 text-center text-[13px] text-zinc-400">Loading history…</div>
+          ) : historyError ? (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-[13px] text-red-300">
+              Could not load history: {historyError}
+            </div>
+          ) : historyEntries.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/[0.1] p-8 text-center text-[13px] text-zinc-500">
+              No history yet
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+              {historyEntries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 space-y-2 text-[12px]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.04] pb-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                          entry.action === 'created'
+                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20'
+                            : entry.action === 'deleted'
+                              ? 'bg-red-500/15 text-red-300 border border-red-500/20'
+                              : 'bg-sky-500/15 text-sky-300 border border-sky-500/20'
+                        }`}
+                      >
+                        {entry.action === 'created' ? 'Created' : entry.action === 'deleted' ? 'Deleted' : 'Updated'}
+                      </span>
+                      <span className="font-semibold text-zinc-300">v{entry.version_no || 1}</span>
+                      <span className="text-zinc-400">by {entry.changed_by || 'Unknown'}</span>
+                    </div>
+                    <span className="text-[11px] text-zinc-500">{formatStamp(entry.changed_at)}</span>
+                  </div>
+
+                  {entry.note && (
+                    <div className="rounded-lg bg-white/[0.03] px-2.5 py-1.5 text-zinc-300 italic border border-white/[0.04]">
+                      “{entry.note}”
+                    </div>
+                  )}
+
+                  {entry.changes && Object.keys(entry.changes).length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      {Object.entries(entry.changes).map(([k, change]) => {
+                        const label = HISTORY_FIELD_LABELS[k] || k;
+                        if (entry.action === 'created') {
+                          return (
+                            <div key={k} className="flex flex-wrap gap-1 text-[11px] text-zinc-400">
+                              <span className="font-medium text-zinc-300">{label}:</span>
+                              <span>{k === 'fields' ? 'Card fields configured' : renderHistoryVal(change)}</span>
+                            </div>
+                          );
+                        }
+                        if (k === 'fields' || (change && change.changed === true)) {
+                          return (
+                            <div key={k} className="flex flex-wrap gap-1 text-[11px] text-zinc-400">
+                              <span className="font-medium text-zinc-300">Card fields:</span>
+                              <span className="text-sky-300">Card fields changed</span>
+                            </div>
+                          );
+                        }
+                        if (change && typeof change === 'object' && ('from' in change || 'to' in change)) {
+                          return (
+                            <div key={k} className="flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-400">
+                              <span className="font-medium text-zinc-300">{label}:</span>
+                              <span className="text-zinc-500">{renderHistoryVal(change.from)}</span>
+                              <span className="text-zinc-600">→</span>
+                              <span className="text-zinc-200">{renderHistoryVal(change.to)}</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={k} className="flex flex-wrap gap-1 text-[11px] text-zinc-400">
+                            <span className="font-medium text-zinc-300">{label}:</span>
+                            <span>{renderHistoryVal(change)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : editing ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
             <button
@@ -3114,6 +3359,106 @@ export function PhotoTemplatesModal({
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                Source package name *
+              </label>
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="e.g. RONY_202611"
+                value={editing.source_package}
+                onChange={(e) => setEditing((prev) => ({ ...prev, source_package: e.target.value }))}
+                disabled={!canManage}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                Source file name *
+              </label>
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="e.g. Template_01.psd"
+                value={editing.source_file_name}
+                onChange={(e) => setEditing((prev) => ({ ...prev, source_file_name: e.target.value }))}
+                disabled={!canManage}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                Current file name *
+              </label>
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="Channel Code, Channel Name, Card Type, Source Package Name, Card name"
+                value={editing.current_file_name}
+                onChange={(e) => setEditing((prev) => ({ ...prev, current_file_name: e.target.value }))}
+                disabled={!canManage}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                Designed by *
+              </label>
+              <input
+                className={`${inputBase} min-h-[44px]`}
+                placeholder="Designer's full name"
+                value={editing.designed_by}
+                onChange={(e) => setEditing((prev) => ({ ...prev, designed_by: e.target.value }))}
+                disabled={!canManage}
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                Archive location *
+              </label>
+              {/^https?:\/\//i.test((editing.archive_location || '').trim()) && (
+                <a
+                  href={editing.archive_location.trim()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[12px] text-sky-400 hover:text-sky-300 font-medium"
+                >
+                  Open ↗
+                </a>
+              )}
+            </div>
+            <input
+              className={`${inputBase} min-h-[44px]`}
+              placeholder="Folder path or storage link"
+              value={editing.archive_location}
+              onChange={(e) => setEditing((prev) => ({ ...prev, archive_location: e.target.value }))}
+              disabled={!canManage}
+            />
+          </div>
+
+          {(editing.isNew || (
+            (editing.source_package || '').trim() !== ((editing.originalInfo || {}).source_package || '') ||
+            (editing.source_file_name || '').trim() !== ((editing.originalInfo || {}).source_file_name || '') ||
+            (editing.current_file_name || '').trim() !== ((editing.originalInfo || {}).current_file_name || '') ||
+            (editing.designed_by || '').trim() !== ((editing.originalInfo || {}).designed_by || '')
+          )) && (
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                {editing.isNew ? 'Note (optional)' : 'What changed? *'}
+              </label>
+              <textarea
+                className={`${inputBase} min-h-[72px] text-[13px] py-2`}
+                placeholder={editing.isNew ? 'Optional note about this template…' : 'Explain what changed in the template file information…'}
+                value={editing.last_change_note}
+                onChange={(e) => setEditing((prev) => ({ ...prev, last_change_note: e.target.value }))}
+                disabled={!canManage}
+              />
+              <p className="mt-1 text-[11px] text-zinc-500">Saved in the template history.</p>
+            </div>
+          )}
 
           <p className="text-[12px] text-zinc-500">
             Writers will fill these fields when they request a Photo Card. Image fields take a link, not a file.
@@ -3323,15 +3668,23 @@ export function PhotoTemplatesModal({
                           key={t.id}
                           className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 hover:border-white/[0.12] transition"
                         >
-                          <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-start gap-3 min-w-0">
                             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-[12px] font-bold text-zinc-300">
                               #{t.number}
                             </span>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <span className="truncate text-[14px] font-semibold text-white">
                                   {t.name}
                                 </span>
+                                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-white/[0.06] text-zinc-300">
+                                  v{t.version_no || 1}
+                                </span>
+                                {!(t.source_package && t.source_file_name && t.current_file_name && t.designed_by && t.archive_location) && (
+                                  <span className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/20">
+                                    Details missing
+                                  </span>
+                                )}
                                 {t.active === false && (
                                   <span className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-zinc-800 text-zinc-400">
                                     Inactive
@@ -3355,11 +3708,56 @@ export function PhotoTemplatesModal({
                                   </>
                                 )}
                               </div>
+                              {(t.source_package || t.source_file_name || t.current_file_name || t.designed_by || t.archive_location) ? (
+                                <div className="mt-1 space-y-0.5 text-[11px] text-zinc-400">
+                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                    {t.current_file_name && (
+                                      <span className="font-mono text-zinc-300 break-all">{t.current_file_name}</span>
+                                    )}
+                                    {t.source_package && (
+                                      <span>Package: <span className="text-zinc-300">{t.source_package}</span></span>
+                                    )}
+                                    {t.designed_by && (
+                                      <span>Designed by <span className="text-zinc-300">{t.designed_by}</span></span>
+                                    )}
+                                    {t.archive_location && (
+                                      <span>
+                                        Archive:{' '}
+                                        {/^https?:\/\//i.test(t.archive_location.trim()) ? (
+                                          <a
+                                            href={t.archive_location.trim()}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sky-400 hover:text-sky-300 underline"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            Link ↗
+                                          </a>
+                                        ) : (
+                                          <span className="text-zinc-300">{t.archive_location}</span>
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {t.updated_at && (
+                                    <div className="text-[10px] text-zinc-500">
+                                      Updated by {t.updated_by || 'Unknown'} · {formatStamp(t.updated_at)}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : null}
                             </div>
                           </div>
 
                           {canManage && (
                             <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => openHistory(t)}
+                                className={`${btnGhost} min-h-[44px] px-3 text-[12px]`}
+                              >
+                                History
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => startEditTemplate(t)}

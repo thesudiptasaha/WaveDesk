@@ -508,7 +508,8 @@ const errText = (e) => {
   if (msg.includes('team_members_name_unique')) return 'Someone with this name already exists. Add a small difference to the name.';
   if (msg.includes('team_members_external_rules')) return 'External people need a nickname and a valid phone number, and cannot have a login or access permissions';
   if (msg.includes('advertisers_org_name_uq')) return 'An advertiser with this name already exists';
-  if (msg.includes('photo_card_templates_org_chan_num_uq') || (msg.includes('photo_card_templates') && (msg.includes('unique') || msg.includes('duplicate')))) return 'A template with this number already exists in this channel';
+  if (msg.includes('photo_card_templates_current_file_name_uq') || (msg.includes('photo_card_templates') && msg.includes('current_file_name'))) return 'This current file name is already used by another template';
+  if (msg.includes('photo_card_templates_org_chan_num_uq') || msg.includes('photo_card_templates_organization_id_channel_number_key') || (msg.includes('photo_card_templates') && (msg.includes('unique') || msg.includes('duplicate')))) return 'A template with this number already exists in this channel';
   if (msg.includes('contents_template_id_fkey') || (msg.includes('photo_card_templates') && msg.includes('foreign key'))) return 'This template is used by Photo Cards. Deactivate it instead of deleting';
   if (raw === 'Not allowed') return 'You are not allowed to do this.';
   if (has('failed to fetch', 'networkerror', 'load failed', 'network request failed')) return 'No internet connection. Check your network and try again.';
@@ -1784,7 +1785,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       return (Number(a.number) || 0) - (Number(b.number) || 0);
     });
 
-  const addPhotoTemplate = async ({ channel, number, name, sample_url, fields }) => {
+  const addPhotoTemplate = async ({ channel, number, name, sample_url, fields, source_package, source_file_name, current_file_name, designed_by, archive_location, last_change_note }) => {
     if (!canManagePhotoTemplates(actor)) {
       notify('Only the Owner, Managers and members with permission can manage templates', 'error');
       return false;
@@ -1803,12 +1804,42 @@ function NewsroomApp({ authUser, onSignOut }) {
       notify('Channel is required', 'error');
       return false;
     }
+    const cleanSourcePkg = (source_package || '').trim();
+    if (!cleanSourcePkg) {
+      notify('Source package name is required', 'error');
+      return false;
+    }
+    const cleanSourceFile = (source_file_name || '').trim();
+    if (!cleanSourceFile) {
+      notify('Source file name is required', 'error');
+      return false;
+    }
+    const cleanCurrentFile = (current_file_name || '').trim();
+    if (!cleanCurrentFile) {
+      notify('Current file name is required', 'error');
+      return false;
+    }
+    const cleanDesignedBy = (designed_by || '').trim();
+    if (!cleanDesignedBy) {
+      notify('Designed by is required', 'error');
+      return false;
+    }
+    const cleanArchiveLoc = (archive_location || '').trim();
+    if (!cleanArchiveLoc) {
+      notify('Archive location is required', 'error');
+      return false;
+    }
     if (!Array.isArray(fields) || fields.length === 0) {
       notify('At least one field is required', 'error');
       return false;
     }
     if (photoTemplates.some((t) => t.channel === channel && Number(t.number) === num)) {
       notify('A template with this number already exists in this channel', 'error');
+      return false;
+    }
+    const cleanCurLower = cleanCurrentFile.toLowerCase();
+    if (photoTemplates.some((t) => (t.current_file_name || '').trim().toLowerCase() === cleanCurLower)) {
+      notify('This current file name is already used by another template', 'error');
       return false;
     }
     const payload = {
@@ -1818,19 +1849,29 @@ function NewsroomApp({ authUser, onSignOut }) {
       name: cleanName,
       fields,
       sample_url: (sample_url || '').trim() || null,
+      source_package: cleanSourcePkg,
+      source_file_name: cleanSourceFile,
+      current_file_name: cleanCurrentFile,
+      designed_by: cleanDesignedBy,
+      archive_location: cleanArchiveLoc,
       active: true,
       created_by: actor?.full_name || 'System',
     };
+    if (last_change_note && last_change_note.trim()) {
+      payload.last_change_note = last_change_note.trim();
+    }
     if (supabase) {
       const { data, error } = await supabase.from('photo_card_templates').insert(payload).select().single();
       if (error) {
-        const isUq = (error.message || '').toLowerCase().includes('unique') || error.code === '23505';
-        notify(isUq ? 'A template with this number already exists in this channel' : `Could not add template: ${errText(error)}`, 'error');
+        const isCurUq = (error.message || '').toLowerCase().includes('current_file_name') || (error.message || '').includes('photo_card_templates_current_file_name_uq');
+        const isNumUq = (error.message || '').toLowerCase().includes('photo_card_templates_org_chan_num_uq') || (error.message || '').includes('photo_card_templates_organization_id_channel_number_key') || (error.message || '').toLowerCase().includes('unique') || error.code === '23505';
+        const msg = isCurUq ? 'This current file name is already used by another template' : isNumUq ? 'A template with this number already exists in this channel' : `Could not add template: ${errText(error)}`;
+        notify(msg, 'error');
         return false;
       }
       setPhotoTemplates((list) => sortPhotoTemplates([...list, data]));
     } else {
-      const mock = { id: `demo-pt-${Date.now()}`, ...payload, created_at: new Date().toISOString() };
+      const mock = { id: `demo-pt-${Date.now()}`, ...payload, version_no: 1, created_at: new Date().toISOString() };
       setPhotoTemplates((list) => sortPhotoTemplates([...list, mock]));
     }
     notify(`Template “${cleanName}” added`, 'success');
@@ -1865,18 +1906,45 @@ function NewsroomApp({ authUser, onSignOut }) {
     if ('sample_url' in cleaned) {
       cleaned.sample_url = (cleaned.sample_url || '').trim() || null;
     }
+    if ('source_package' in cleaned) {
+      cleaned.source_package = (cleaned.source_package || '').trim();
+    }
+    if ('source_file_name' in cleaned) {
+      cleaned.source_file_name = (cleaned.source_file_name || '').trim();
+    }
+    if ('current_file_name' in cleaned) {
+      cleaned.current_file_name = (cleaned.current_file_name || '').trim();
+    }
+    if ('designed_by' in cleaned) {
+      cleaned.designed_by = (cleaned.designed_by || '').trim();
+    }
+    if ('archive_location' in cleaned) {
+      cleaned.archive_location = (cleaned.archive_location || '').trim();
+    }
+    if ('last_change_note' in cleaned) {
+      const cn = (cleaned.last_change_note || '').trim();
+      if (cn) cleaned.last_change_note = cn;
+      else delete cleaned.last_change_note;
+    }
     const ch = cleaned.channel || target.channel;
     const nm = cleaned.number !== undefined ? cleaned.number : target.number;
     if (photoTemplates.some((t) => t.id !== id && t.channel === ch && Number(t.number) === Number(nm))) {
       notify('A template with this number already exists in this channel', 'error');
       return false;
     }
+    const cleanCur = cleaned.current_file_name !== undefined ? cleaned.current_file_name.trim().toLowerCase() : (target.current_file_name || '').trim().toLowerCase();
+    if (cleanCur && photoTemplates.some((t) => t.id !== id && (t.current_file_name || '').trim().toLowerCase() === cleanCur)) {
+      notify('This current file name is already used by another template', 'error');
+      return false;
+    }
 
     if (supabase) {
       const { data, error } = await supabase.from('photo_card_templates').update(cleaned).eq('id', id).select().single();
       if (error) {
-        const isUq = (error.message || '').toLowerCase().includes('unique') || error.code === '23505';
-        notify(isUq ? 'A template with this number already exists in this channel' : `Could not update template: ${errText(error)}`, 'error');
+        const isCurUq = (error.message || '').toLowerCase().includes('current_file_name') || (error.message || '').includes('photo_card_templates_current_file_name_uq');
+        const isNumUq = (error.message || '').toLowerCase().includes('photo_card_templates_org_chan_num_uq') || (error.message || '').includes('photo_card_templates_organization_id_channel_number_key') || (error.message || '').toLowerCase().includes('unique') || error.code === '23505';
+        const msg = isCurUq ? 'This current file name is already used by another template' : isNumUq ? 'A template with this number already exists in this channel' : `Could not update template: ${errText(error)}`;
+        notify(msg, 'error');
         return false;
       }
       setPhotoTemplates((list) => sortPhotoTemplates(list.map((t) => (t.id === id ? data : t))));
