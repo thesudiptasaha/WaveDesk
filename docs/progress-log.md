@@ -5,6 +5,30 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 21 Nov 2026 — Photo Card drawer tidy (N161)
+
+- **Production tab hidden for Photo Cards**:
+  - The Production tab is excluded from the drawer tabs list for Photo Cards (it will return as the "Design" tab when the in-app canvas exists).
+  - Production notes and History & Workflow are no longer rendered for cards (QC & Audit maintains the full activity and audit trail); the underlying `production_notes` database column and data remain intact.
+- **Side Details field "Published at" & upload strip cleanup**:
+  - Removed the "Real upload time" strip from the card Publish tab.
+  - The left Details panel field is renamed "Published at" for cards ("Set when it is published" before publishing, and real publish time once published); videos keep "Scheduled publish" unchanged.
+- **Card folder relocated to Publish tab**:
+  - Moved the "Card folder" field to `PhotoCardPublishTab` directly above "Linked content".
+  - Configured with `canEditCardFolder` permission: editable by Graphic Designer, Publisher, and Managers/Owner.
+  - Displays an "Open ↗" link when the value is a valid http(s) URL.
+- **Compact caption, hashtags & combined copy button**:
+  - Made social copy compact: caption textarea set to 3 rows (was 5), hashtags textarea set to 2 rows (was 3).
+  - Added "Copy caption + hashtags" button in the section header that copies caption, a blank line, and hashtags (or just one if only one is present; disabled if both are empty), with short "Copied!" feedback. The two individual copy buttons remain.
+- **Dedicated read-only Credits tab for cards**:
+  - Added compact `CardCreditsTab` for cards displaying five read-only rows: Requested by, Designed by, Approved by, Published by, and Template by (resolved from the template's designer via `photoTemplates`).
+  - Displays timestamps where known (Requested at, Approved at, and real publish time).
+  - Includes a "Credit line" textarea and "Copy credits" button joining non-empty roles with " · " (shows "No one is credited yet." when empty).
+  - Excluded video-specific Production Crew notes. Video `CreditsTab` remains completely unchanged.
+- **Known limits**:
+  - Template by shows the template's current designer from `photo_card_templates`.
+  - Copy buttons copy the saved value (click outside an active input field first to commit).
+
 ## 21 Nov 2026 — Templates page upgrade: Photo Card template file tracking & history (N160)
 
 - **Template editor 5 new required fields**:

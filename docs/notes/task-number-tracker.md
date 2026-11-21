@@ -1,6 +1,6 @@
 # WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ২১ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N161** (N160 ব্যবহৃত: Templates page: required file-tracking fields, change note, version badge, History view, Graphic Template Management label)। শেষ যাচাই-করা কমিট: 5535f3e (N159, verified on GitHub 21 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N162** (N161 ব্যবহৃত: Photo Card drawer tidy: Production tab hidden, Card folder in Publish tab, Published at label, compact caption with combined copy, card Credits tab)। শেষ যাচাই-করা কমিট: d3aad53 (N160, verified on GitHub 21 Nov 2026, tested OK by the owner)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -68,10 +68,11 @@
 | N157 (c) | Photo Card request form without date/time (time = creation moment), real publish time shown from went_live_at, open cards (Draft..Scheduled) carried over and pinned at the top of their channel from the request day through today in Photo Cards and All views, grey 'Open · Nd' tag | 811239b |
 | N158 (c) | Photo Card template tracking SQL recorded (new template columns source_package, source_file_name, current_file_name, designed_by, archive_location, version_no, updated_by, updated_at, last_change_note; unique current file name per organization; history table photo_card_template_history written by a trigger) | 2b51497 |
 | N159 (c, d) | Real-time auto-refresh for all users (stable channel, batched row refetch, catch-up, typing protection, script conflict check, contents.updated_at, content_ads in publication) | 5535f3e (verified on GitHub 21 Nov 2026) |
-| N160 (c) | Templates page: required file-tracking fields (source package, source file, current file, designed by, archive location), change note, version badge, History view, access tick label renamed 'Graphic Template Management' | committed, not pushed |
+| N160 (c, d) | Templates page: required file-tracking fields (source package, source file, current file, designed by, archive location), change note, version badge, History view, access tick label renamed 'Graphic Template Management' | d3aad53 (verified on GitHub 21 Nov 2026, tested OK by the owner) |
+| N161 (c) | Photo Card drawer tidy: Production tab hidden for cards, Card folder moved to Publish tab, 'Real upload time' strip removed (side field 'Published at'), compact caption + hashtags with 'Copy caption + hashtags', new card Credits tab (Requested/Designed/Approved/Published/Template by) | committed, not pushed |
 
 পরিকল্পিত ক্রম:
-- N161 = Card drawer tidy (Production tab hidden until the canvas exists then "Design"; no Production notes/History; "Real upload time" strip removed and side field labelled "Published at"; Card folder moved to the Publish tab; compact caption + hashtags with a "Copy caption + hashtags" button; Credits tab with Requested by / Designed by / Approved by / Published by / Template by)
+- N162 = to be decided with the owner (candidates: Report page, card preview for approval, in-app card editor, sample folder structure for the 7 channels, Next.js security upgrade as a separate careful step, notifications for cards)
 - Later = report page, card preview for approval, in-app card editor
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।

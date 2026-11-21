@@ -48,6 +48,17 @@
   - Users with template management permission can click "History" on any template row to view past actions (`Created`, `Updated`, `Deleted`), who changed it, timestamp, change note, and readable `from → to` diffs from `photo_card_template_history`.
 - **Files not stored**:
   - PSD files are not stored in the database or app; file names and archive links/paths only.
+
+## Card drawer layout (N161, 21 Nov 2026)
+
+- **Drawer tabs for Photo Cards**:
+  - The tabs for Photo Cards are strictly: **Editorial**, **Publish**, **QC & Audit**, and **Credits**.
+  - The Production tab is hidden for cards; it will return in a future milestone as the **Design** tab once the in-app editor and canvas exist.
+- **Where key fields live**:
+  - **Published at**: in the left Details panel (shows "Set when it is published" before publishing, and real publish time once published; "Real upload time" strip removed from Publish tab).
+  - **Card folder**: in the Publish tab right above "Linked content" (editable by Graphic Designer, Publisher, and Managers; has an "Open ↗" link when http/https).
+  - **Caption & Hashtags**: in the Publish tab in a compact layout (3 rows caption, 2 rows hashtags) with a top-right "Copy caption + hashtags" button that copies both with a blank line separator.
+  - **Credits**: in the dedicated card Credits tab with five read-only stamped rows (Requested by, Designed by, Approved by, Published by, and Template by) and a copyable credit line.
 - **Drawer/tab decisions for cards**:
   - The Production tab will be hidden for cards until the in-app canvas exists.
   - When the in-app editor is added, the tab will be named "Design" featuring the canvas on top, the template name displayed prominently above it with the template designer's name beside it, console buttons below, and the layer panel on the right.

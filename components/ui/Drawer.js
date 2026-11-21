@@ -387,7 +387,7 @@ function ContentDetailsFields({ row, actor, channels, platforms = PLATFORMS, pat
             <SelectBox value={row.channel} disabled={!okChan} options={channels} onChange={(v) => patch({ channel: v })} />
           </Field>
           {isCard ? (
-            <Field label="Scheduled publish">
+            <Field label="Published at">
               <div className="flex min-h-[42px] items-center text-[13px]">
                 {row.status === 'Published' ? (
                   <span className="font-medium text-emerald-400">
@@ -2181,6 +2181,16 @@ function canEditCardProduction(actor, row) {
   return false;
 }
 
+function canEditCardFolder(actor, row) {
+  if (!actor || actor.active === false) return false;
+  if (isManager(actor)) return true;
+  if (actor.role_graphic_designer === true) return true;
+  if (row.graphic_designer && row.graphic_designer === actor.full_name) return true;
+  if (actor.role_publisher === true) return true;
+  if (row.publisher && row.publisher === actor.full_name) return true;
+  return false;
+}
+
 function canEditLinkedContent(actor, row) {
   if (!actor || actor.active === false) return false;
   if (isManager(actor)) return true;
@@ -2400,6 +2410,7 @@ function PhotoCardEditorialTab({ row, actor, patch, photoTemplates = [] }) {
   );
 }
 
+// PhotoCardProductionTab: kept for the future Design tab
 function PhotoCardProductionTab({ row, actor, patch }) {
   const okProd = canEditCardProduction(actor, row);
   const prodLockMsg = 'Graphic Designer or Managers only';
@@ -2500,6 +2511,34 @@ function PhotoCardPublishTab({ row, actor, team, patch, platforms = PLATFORMS })
   const captionLockMsg = 'You need permission to edit content details, request photo cards, or publish';
   const okLinked = canEditLinkedContent(actor, row);
   const linkedLockMsg = 'Publisher, Request Photo Cards holders, or Managers only';
+  const okFolder = canEditCardFolder(actor, row);
+  const folderLockMsg = 'Graphic Designer, Publisher or Managers only';
+
+  const [copiedCombined, setCopiedCombined] = useState(false);
+  const copyCombinedTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyCombinedTimerRef.current) clearTimeout(copyCombinedTimerRef.current);
+    };
+  }, []);
+
+  const cleanCap = (row.post_caption || '').trim();
+  const cleanTags = (row.hashtags || '').trim();
+  const combinedText = cleanCap && cleanTags ? `${cleanCap}\n\n${cleanTags}` : (cleanCap || cleanTags);
+  const canCopyCombined = Boolean(cleanCap || cleanTags);
+
+  const handleCopyCombined = async () => {
+    if (!canCopyCombined) return;
+    const ok = await copyText(combinedText);
+    if (ok) {
+      setCopiedCombined(true);
+      if (copyCombinedTimerRef.current) clearTimeout(copyCombinedTimerRef.current);
+      copyCombinedTimerRef.current = setTimeout(() => {
+        setCopiedCombined(false);
+      }, 1800);
+    }
+  };
 
   const pubLinks = getPublishedLinks(row);
   const allPlatforms = platforms || PLATFORMS;
@@ -2530,14 +2569,6 @@ function PhotoCardPublishTab({ row, actor, team, patch, platforms = PLATFORMS })
       {/* a) Publisher */}
       <div className="w-full lg:w-1/2">
         <StaffGroupCard group="publish" row={row} actor={actor} team={team} patch={patch} />
-      </div>
-
-      {/* Real upload time */}
-      <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Real upload time</span>
-        <span className={`text-[13px] ${row.went_live_at ? 'font-medium text-emerald-400' : 'text-zinc-500 italic'}`}>
-          {row.went_live_at ? formatStamp(row.went_live_at) : 'Not published yet'}
-        </span>
       </div>
 
       {/* b) Target Platforms (read-only chips) */}
@@ -2602,6 +2633,23 @@ function PhotoCardPublishTab({ row, actor, team, patch, platforms = PLATFORMS })
 
       {/* d) Caption & Hashtags */}
       <section className="space-y-4 border-t border-white/[0.08] pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Caption & Hashtags</div>
+          <button
+            type="button"
+            disabled={!canCopyCombined}
+            onClick={handleCopyCombined}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
+              copiedCombined
+                ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
+                : 'border-white/10 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.09] hover:text-white'
+            }`}
+          >
+            <Icon name={copiedCombined ? 'check' : 'copy'} className="h-3 w-3" />
+            <span>{copiedCombined ? 'Copied!' : 'Copy caption + hashtags'}</span>
+          </button>
+        </div>
+
         <div>
           <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-zinc-500">
             <span className="flex items-center gap-1.5">
@@ -2615,7 +2663,7 @@ function PhotoCardPublishTab({ row, actor, team, patch, platforms = PLATFORMS })
           </div>
           <BlurInput
             multiline
-            rows={5}
+            rows={3}
             value={row.post_caption}
             disabled={!okCaption}
             onCommit={(v) => patch({ post_caption: v })}
@@ -2638,13 +2686,44 @@ function PhotoCardPublishTab({ row, actor, team, patch, platforms = PLATFORMS })
           </div>
           <BlurInput
             multiline
-            rows={3}
+            rows={2}
             value={row.hashtags}
             disabled={!okCaption}
             onCommit={(v) => patch({ hashtags: normalizeHashtags(v) })}
             placeholder="#budget #economy"
           />
         </div>
+      </section>
+
+      {/* Card folder */}
+      <section className="border-t border-white/[0.08] pt-4">
+        <Field
+          label={
+            <span className="flex items-center justify-between w-full">
+              <span>Card folder</span>
+              {safeHttpUrl(row.card_folder) ? (
+                <a
+                  href={safeHttpUrl(row.card_folder)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-medium text-sky-400 hover:text-sky-300 hover:underline lowercase tracking-normal"
+                >
+                  Open ↗
+                </a>
+              ) : null}
+            </span>
+          }
+          hint="Where is the finished card on the shared drive"
+          locked={!okFolder}
+          lockMessage={folderLockMsg}
+        >
+          <BlurInput
+            value={row.card_folder}
+            disabled={!okFolder}
+            onCommit={(v) => patch({ card_folder: v.trim() })}
+            placeholder="e.g. Google Drive link or folder path"
+          />
+        </Field>
       </section>
 
       {/* e) Linked Content */}
@@ -2895,6 +2974,119 @@ function CreditsTab({ row, actor, team, patch }) {
       <p className="text-[12px] text-zinc-500 pt-2">
         Every role of every stage is here. The Production tab shows the Production Crew again and the Publish tab shows the Publisher again. The same rules apply everywhere.
       </p>
+    </div>
+  );
+}
+
+function CardCreditsTab({ row, photoTemplates = [] }) {
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
+  const tpl = (photoTemplates || []).find((t) => String(t.id) === String(row.template_id));
+  const templateDesigner = tpl?.designed_by || '';
+
+  const creditRows = [
+    {
+      label: 'Requested by',
+      name: row.requested_by ? String(row.requested_by).trim() : '',
+      time: row.requested_at ? formatStamp(row.requested_at) : '',
+    },
+    {
+      label: 'Designed by',
+      name: row.graphic_designer ? String(row.graphic_designer).trim() : '',
+      time: '',
+    },
+    {
+      label: 'Approved by',
+      name: row.approved_by ? String(row.approved_by).trim() : '',
+      time: row.approved_at ? formatStamp(row.approved_at) : '',
+    },
+    {
+      label: 'Published by',
+      name: (row.publisher || row.published_by) ? String(row.publisher || row.published_by).trim() : '',
+      time: (row.went_live_at || row.published_at) ? formatStamp(row.went_live_at || row.published_at) : '',
+    },
+    {
+      label: 'Template by',
+      name: templateDesigner ? String(templateDesigner).trim() : '',
+      time: '',
+    },
+  ];
+
+  const creditParts = creditRows
+    .filter((r) => !!r.name)
+    .map((r) => `${r.label}: ${r.name}`);
+
+  const hasCredits = creditParts.length > 0;
+  const creditLineText = hasCredits ? creditParts.join(' · ') : '';
+
+  const handleCopyCredits = async () => {
+    if (!hasCredits) return;
+    const ok = await copyText(creditLineText);
+    if (ok) {
+      setCopied(true);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => {
+        setCopied(false);
+      }, 1800);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 sm:p-5">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">Photo Card Credits</div>
+        <div className="space-y-3 text-[13px]">
+          {creditRows.map((r, idx) => (
+            <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-white/[0.04] pb-2.5 last:border-0 last:pb-0">
+              <span className="text-zinc-400 font-medium">{r.label}</span>
+              <div className="flex items-center gap-2">
+                <span className={r.name ? 'font-semibold text-zinc-100' : 'text-zinc-500'}>
+                  {r.name || '—'}
+                </span>
+                {r.time ? (
+                  <span className="text-[11px] text-zinc-500">· {r.time}</span>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] py-4 pl-6 pr-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Credit line</span>
+          <button
+            type="button"
+            disabled={!hasCredits}
+            onClick={handleCopyCredits}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
+              copied
+                ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
+                : 'border-white/10 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.09] hover:text-white'
+            }`}
+          >
+            <Icon name={copied ? 'check' : 'copy'} className="h-3 w-3" />
+            <span>{copied ? 'Copied!' : 'Copy credits'}</span>
+          </button>
+        </div>
+        <textarea
+          readOnly
+          rows={3}
+          value={hasCredits ? creditLineText : 'No one is credited yet.'}
+          onFocus={(e) => e.target.select()}
+          className={`w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5 text-[13px] leading-relaxed outline-none resize-none transition focus:border-sky-400/60 focus:bg-white/[0.06] select-all ${
+            hasCredits ? 'text-zinc-200' : 'text-zinc-500 italic'
+          }`}
+        />
+        <p className="mt-2 text-[12px] text-zinc-500">Everyone who worked on this photo card, in one place.</p>
+      </div>
     </div>
   );
 }
@@ -3508,11 +3700,13 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
   const dangerActions = ['hold', 'drop']
     .map((id) => actions.find((a) => a.id === id))
     .filter(Boolean);
-  const currentTab = (!hasEditorial && tab === 'editorial') ? 'production' : tab;
+  const currentTab = isCard
+    ? (tab === 'production' || tab === 'postproduction' ? 'editorial' : tab)
+    : (!hasEditorial && tab === 'editorial') ? 'production' : tab;
   const prog = stepProgress(row);
   const tabs = [
     ...(hasEditorial ? [{ id: 'editorial', label: 'Editorial', done: prog.editorial }] : []),
-    { id: 'production', label: 'Production', done: prog.production },
+    ...(!isCard ? [{ id: 'production', label: 'Production', done: prog.production }] : []),
     ...(!isCard ? [{ id: 'postproduction', label: 'Post-production', done: prog.post }] : []),
     { id: 'packaging', label: 'Publish', done: prog.publish },
     { id: 'qc', label: 'QC & Audit', done: false },
@@ -3678,12 +3872,8 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
                 <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} fetchScriptMeta={fetchScriptMeta} />
               )
             ) : null}
-            {currentTab === 'production' ? (
-              isCard ? (
-                <PhotoCardProductionTab row={row} actor={actor} patch={patch} />
-              ) : (
+            {currentTab === 'production' && !isCard ? (
                 <ProductionTab row={row} actor={actor} team={team} patch={patch} locationOptions={locationOptions} />
-              )
             ) : null}
             {currentTab === 'postproduction' && !isCard ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
             {currentTab === 'packaging' ? (
@@ -3694,7 +3884,13 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
               )
             ) : null}
             {currentTab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
-            {currentTab === 'credits' ? <CreditsTab row={row} actor={actor} team={team} patch={patch} /> : null}
+            {currentTab === 'credits' ? (
+              isCard ? (
+                <CardCreditsTab row={row} photoTemplates={photoTemplates} />
+              ) : (
+                <CreditsTab row={row} actor={actor} team={team} patch={patch} />
+              )
+            ) : null}
           </div>
         </div>
         <footer className="border-t border-white/[0.08] bg-black/70 backdrop-blur-xl flex flex-col lg:flex-row">
