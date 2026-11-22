@@ -1,6 +1,6 @@
 # WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ২২ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N163** (N162 ব্যবহৃত: Photo Card own content ID WAVECARD-YYYYMMDD_0001, demo-mode prefix)। শেষ যাচাই-করা কমিট: 4d5f342 (N161, verified on GitHub 22 Nov 2026, tested OK by the owner)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N164** (N163 ব্যবহৃত: Update Next.js 16.4.2 -> 16.4.6, Nov 2026 security release)। শেষ যাচাই-করা কমিট: 8281f4b (N162, verified on GitHub 22 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -70,11 +70,12 @@
 | N159 (c, d) | Real-time auto-refresh for all users (stable channel, batched row refetch, catch-up, typing protection, script conflict check, contents.updated_at, content_ads in publication) | 5535f3e (verified on GitHub 21 Nov 2026) |
 | N160 (c, d) | Templates page: required file-tracking fields (source package, source file, current file, designed by, archive location), change note, version badge, History view, access tick label renamed 'Graphic Template Management' | d3aad53 (verified on GitHub 21 Nov 2026, tested OK by the owner) |
 | N161 (c, d) | Photo Card drawer tidy: Production tab hidden for cards, Card folder moved to Publish tab, 'Real upload time' strip removed (side field 'Published at'), compact caption + hashtags with 'Copy caption + hashtags', new card Credits tab (Requested/Designed/Approved/Published/Template by) | 4d5f342 (verified on GitHub 22 Nov 2026, tested OK by the owner) |
-| N162 (c) | Photo Card own content ID WAVECARD-YYYYMMDD_0001 (SQL run live 22 Nov 2026, recorded), demo-mode ID prefix for cards | committed, not pushed |
+| N162 (c, d) | Photo Card own content ID WAVECARD-YYYYMMDD_0001 (SQL run live 22 Nov 2026, recorded), demo-mode ID prefix for cards | 8281f4b (pushed) |
+| N163 | Update Next.js 16.4.2 -> 16.4.6 (Nov 2026 security release); dependency bump only; build passes first run; committed | committed |
 
 পরিকল্পিত ক্রম:
-- N163 = In-app card editor E1 (admin side: layer PNG upload, canvas size, layer order, text boxes, template design data, storage bucket)
-- Later = E2 canvas (Design tab), E3 export (one JPEG with metadata), E4 preview + 7-day cleanup, report page, sample folder structure for the 7 channels, Next.js security upgrade (separate careful step), notifications for cards
+- N164 = in-app card editor E1 (on hold; the owner returns to it after other work)
+- Later = E2 canvas (Design tab), E3 export (one JPEG with metadata), E4 preview + 7-day cleanup, report page, sample folder structure for the 7 channels, notifications for cards
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।
 

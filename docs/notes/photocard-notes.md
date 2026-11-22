@@ -89,11 +89,10 @@
   - In daily work, graphic designers can only edit designated unlocked layers: editable text blocks and photo slots.
   - Typography: Noto Serif Bengali only at launch to ensure crisp, predictable typography without font-load discrepancies.
 - **Export & Metadata**:
-  - Output is strictly a single JPEG image, sRGB, 72 PPI, with full copyright, channel, credit, and story metadata injected into EXIF/XMP/IPTC headers.
+  - Output is strictly a single JPEG image, sRGB, 72 PPI, with full channel, credit, and story metadata injected into EXIF/XMP/IPTC headers.
   - Export filename matches the content ID without extraneous suffixes.
 - **Honest limits**:
   - Facebook and social networks strip EXIF/IPTC metadata on upload, so embedded metadata primarily protects the downloaded archive copy.
-  - Invisible digital watermarks do not reliably survive social media recompression; internal provenance is proven by the immutable database record.
 
 ## Update 19 Nov 2026 — Request form without date/time, open cards pinned & real publish time (N157)
 

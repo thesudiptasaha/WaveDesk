@@ -15,6 +15,8 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 5. ~~N12 নোটিশ বোর্ড~~ ✅ **সম্পন্ন ও কমিট (১১ অক্টোবর, 094c881):** `notices` টেবিল, RLS, Realtime, `NoticeModal.js`, `noticeService.js`, `app/page.js` বাটন ও লিসেনার; ১২ অক্টোবর আপডেট: `notice_uid` (`NOTICE-YYYYMMDD_NNN`), দৈনিক কাউন্টার টেবিল ও নোটিশ মোডালে লাইভ ইনস্ট্যান্ট সার্চ ও কপি যোগ।
 6. `git pull` এর শীর্ষ কোড কমিট এখন **b8be752** (R6, ২২ অক্টোবর); এর পরে শুধু SQL-রেকর্ড ও ডকুমেন্ট কমিট।
 7. তারপর নিচের "গ" ক্রম (N14 Show/Channel আইডি → N10 Show ফর্ম...)।
+8. npm audit shows 1 low issue (dompurify <=3.4.16, via @tiptap). Review in a later dependency step; not part of N163.
+9. After any npm install, the undefined-variable check tools are removed (not project dependencies); reinstall them with the command in docs/RULES.md before running the check.
 
 ## ক. আপনার চোখে-দেখা টেস্ট বাকি
 Fill the 5 new details for the 9 existing templates (first save needs a note) · My Work (role নাম+সংখ্যা) · কর্মী রিপোর্ট কলাম · History-তে "Research & Script" · কর্তৃপক্ষ প্যানেলের বাটন + ফোনের মাপ · N27 সবুজ বার্তা · DB-0 পরে নোটিফিকেশনে "Research & Script" · N28 (৫টা পরিস্থিতি) · N28c (ধূসর "still missing" বার্তা) · N29 (ফুটারে থিম/কর্তৃপক্ষ/KPI) · N30 (প্রোফাইলে My Work, কর্মী ও Manager দুই রোলে) · N31 ("Bin (N)" বাটন, পপআপ, Restore, Esc) · N32 (সংখ্যা আগের মতোই, তারিখ বদলে লোড) · N33 (কর্তৃপক্ষ → Data → Backup → JSON নামে, পাঁচ টেবিল, "failed" নেই) · টেলিপ্রম্পটার চলাকালীন অন্য ব্রাউজারে স্ক্রিপ্ট Save করলে লেখা বদলায় কিনা (কোড পড়ে "হ্যাঁ, Save-এর ১–২ সেকেন্ড পরে" — লাইভে দেখা হয়নি) · লাইভ সাইটে Ctrl+Shift+R।

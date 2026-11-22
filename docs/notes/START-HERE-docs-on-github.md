@@ -19,7 +19,7 @@
 | Continue with a new Claude account | `docs/notes/HANDOVER.md` |
 
 ## প্রজেক্ট
-Next.js 16.4.2 (App Router) + React 19 + Supabase (RLS, ট্রিগার, Realtime) + Vercel। Vercel প্রজেক্ট `wavedesk`, Supabase প্রজেক্ট `wavedesk`, GitHub `thesudiptasaha/wavedesk`। প্যাকেজ বদল শুধু মালিকের অনুমতিতে, আলাদা কমিটে।
+Next.js 16.4.6 (App Router) + React 19 + Supabase (RLS, ট্রিগার, Realtime) + Vercel। Vercel প্রজেক্ট `wavedesk`, Supabase প্রজেক্ট `wavedesk`, GitHub `thesudiptasaha/wavedesk`। প্যাকেজ বদল শুধু মালিকের অনুমতিতে, আলাদা কমিটে।
 
 ## পদ, রোল ও অ্যাক্সেস
 - **Authority:** Owner / Manager / General। **Access:** ১২টা অনুমতি (`can_write_edit_scripts`, `can_approve_scripts`, `can_edit_content_details`, `can_change_channel`, `can_reschedule_content`, `can_assign_video_editor`, `can_assign_presenter`, `can_review_videos`, `can_manage_sponsors`, `can_request_photo_cards`, `can_approve_photo_cards`, `can_manage_photo_templates`)।

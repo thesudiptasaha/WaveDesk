@@ -5,6 +5,13 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 22 Nov 2026 — Next.js 16.4.6 security release update (N163)
+
+- **Next.js updated to 16.4.6**:
+  - Next.js updated from 16.4.2 to 16.4.6 in `package.json` and `package-lock.json` for the November 2026 security release.
+  - Dependency bump only; no application code changes.
+  - First production build (`npm run build`) now passes cleanly without the security reminder prompt.
+
 ## 22 Nov 2026 — Photo Card content ID WAVECARD-YYYYMMDD_0001 (N162)
 
 - **Dedicated content ID prefix for Photo Cards**:
