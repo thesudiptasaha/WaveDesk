@@ -5,6 +5,17 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 22 Nov 2026 — Home "Today's work" panel, phase 1 (N164)
+
+- **Personal & repeating tasks panel (phase 1)**:
+  - **Who sees it**: Active internal members only (not external); private to the owner (Owner and Managers do NOT see other people's tasks).
+  - **Fields**: Title, note, date, time, content ID (chip opens content drawer if loaded in rundown), repeat settings.
+  - **Repeating tasks**: Daily (optional skip Fridays; missed daily task not shown next day), weekly (Sat-Fri; missed day stays red until the week ends), monthly (day 31 falls on last day of shorter months; missed stays red until the month ends). Ticking a missed occurrence records its own date.
+  - **Sections**: Pending now (overdue first, in red), Later (next 7 days, one-time only, "+N more later"), Done today.
+  - **Limits & cleanup**: 200 tasks per person limit; completed one-time tasks and stopped repeating tasks kept 30 days; repeat occurrence completion ticks kept 45 days (automatic cleanup RPC `cleanup_my_task_history` on panel load); no realtime (refreshes on open, tab visibility change, every 5 min, and midnight Asia/Dhaka).
+  - **Honest limit**: Reminders from outside need notifications or a Telegram bot (phase 3).
+  - **Database & layout**: New tables `personal_tasks` and `personal_task_done` with owner-only RLS policies; SQL executed live on 22 Nov 2026 and recorded in `sql/2026-11-22_personal_tasks.sql`. Rendered as a persistent right column next to the Rundown on wide screens (>= 1536px) and as a collapsible bar above the Rundown on smaller screens.
+
 ## 22 Nov 2026 — Next.js 16.4.6 security release update (N163)
 
 - **Next.js updated to 16.4.6**:

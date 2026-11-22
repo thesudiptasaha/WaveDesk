@@ -35,6 +35,12 @@
 > - নতুন ট্রিগার `zz_contents_touch_updated_at` (ফাংশন `touch_contents_updated_at()`): প্রতি আপডেটে `updated_at` অটো-আপডেট হয়; ট্রিগার নাম 'zz_' দিয়ে শুরু হওয়ায় বর্ণানুক্রমে সবার শেষে রান করে; `script_saved_at` শুধুমাত্র `trg_contents_script_saved_at` দিয়ে নিয়ন্ত্রিত থাকে।
 > - `supabase_realtime` প্রকাশনায় `content_ads` টেবিল যুক্ত করা হয়েছে। এখন প্রকাশনার অন্তর্ভুক্ত টেবিল: `contents`, `team_members`, `notifications`, `notices`, `bookings`, `content_ads`।
  
+> ২২ নভেম্বর ২০২৬ হালনাগাদ (২) (রেকর্ড: `sql/2026-11-22_personal_tasks.sql`):
+> - নতুন টেবিল `personal_tasks` (id uuid pk, organization_id uuid, member_id uuid fk, title text, note text, due_date date, due_time time, content_id text, status text, done_at timestamptz, repeat_kind text, repeat_weekdays smallint[], repeat_month_day smallint, skip_friday bool, stopped bool, created_at, updated_at; constraints pt_title_len, pt_note_len, pt_content_len, pt_status, pt_repeat_kind, pt_time_needs_date, pt_month_day, pt_weekdays, pt_repeat_shape, pt_repeat_needs_start, pt_repeat_stays_open; সর্বোচ্চ ২০০ টাস্ক প্রতি সদস্য; triggers personal_tasks_bi, personal_tasks_bu; RLS pt_select/insert/update/delete owner-only member_id = my_member_id()).
+> - নতুন টেবিল `personal_task_done` (task_id uuid fk, done_on date, member_id uuid, created_at timestamptz, pk(task_id, done_on); trigger personal_task_done_bi; RLS ptd_select/insert/delete owner-only member_id = my_member_id()).
+> - RPC `cleanup_my_task_history()`: ৩০ দিন পুরনো সম্পন্ন/বন্ধ টাস্ক ও ৪৫ দিন পুরনো পুনরাবৃত্তির টিক মোছে।
+> - টেবিল দুটি Realtime প্রকাশনায় নেই (deliberately NOT in realtime publication)।
+ 
 > ⚠️ localhost ও লাইভ সাইট একই ডেটাবেস। SQL চালালে সঙ্গে সঙ্গে লাইভে কার্যকর। তাই SQL সবসময়: ছোট, যোগ-ভিত্তিক (additive), ফিরিয়ে নেওয়া যায় এমন, এবং আগে আমি পর্যালোচনা করে দেব।
  
 ## টেবিল
@@ -46,8 +52,10 @@
   - **পুরনো ডুপ্লিকেট কলাম (অ্যাপ ব্যবহার করে না):** writer_name, editor_name, script_body, raw_footage_url, presenter, script_locked, is_emergency, review_skipped (N156-এর পর অ্যাপ আর ব্যবহার করে না)।
 - **notifications**: id bigint, organization_id, member_id(fk→team_members, cascade), content_id **text**, message, read, created_at; ইনডেক্স (member_id, created_at desc).
 - **content_uid_counters**: UID কাউন্টার (`org_key, day, last_n`), `WAVECON-YYYYMMDD_XXXX` (কি `<org>`) ও `WAVECARD-YYYYMMDD_XXXX` (কি `card:<org>`)-এর জন্য প্রতিদিন 0001 থেকে কাউন্টার শুরু হয়; IDs are never reused; `content_counters` পুরনো কাউন্টার।
+- **personal_tasks**: id uuid(pk), organization_id uuid, member_id uuid(fk), title text(1..200), note text(<=1000), due_date date, due_time time, content_id text(<=60), status text('open'|'done'), done_at timestamptz, repeat_kind text('none'|'daily'|'weekly'|'monthly'), repeat_weekdays smallint[], repeat_month_day smallint(1..31), skip_friday bool, stopped bool, created_at, updated_at. RLS owner-only (member_id = my_member_id()).
+- **personal_task_done**: task_id uuid(fk), done_on date, member_id uuid, created_at timestamptz; pk(task_id, done_on). RLS owner-only.
 - **নেই:** shows, notices, প্ল্যাটফর্মভিত্তিক অবস্থা, **reference_files কলাম**।
-- সব টেবিলে RLS চালু। Realtime প্রকাশনা: **contents, team_members, notifications, notices, bookings, content_ads**।
+- সব টেবিলে RLS চালু। Realtime প্রকাশনা: **contents, team_members, notifications, notices, bookings, content_ads** (personal_tasks ও personal_task_done Realtime প্রকাশনায় নেই)।
 - 11 Oct update: table notices ADDED (sql/2026-10-11_notices_table.sql; realtime enabled; read = active members, write = manager/owner). Storage bucket documents ADDED (sql/2026-10-11_storage_documents_rls.sql).
 - 12 Oct update: notices টেবিলে `notice_uid text unique` যুক্ত; `notice_uid_counters` টেবিল ও `notices_assign_uid` ট্রিগার যোগ (NOTICE-YYYYMMDD_NNN দৈনিক কাউন্টার, Asia/Dhaka সময়); মাইগ্রেশন ও ব্যাকফিল: `sql/2026-10-12_notices_uid_and_counter.sql`।
 - 1 Nov update: tables `advertisers` ও `content_ads` ADDED (`sql/2026-11-01_advertisers.sql`):

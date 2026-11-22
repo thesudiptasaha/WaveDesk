@@ -15,6 +15,10 @@ WaveDesk operates around 5 primary tables in Supabase (PostgreSQL):
 8. `advertisers` (Commercial sponsors and advertisers)
 9. `content_ads` (Sponsorship placements on contents)
 10. `bookings` (External crew invites and bookings)
+11. `photo_card_templates` (Templates for photo cards)
+12. `photo_card_template_history` (Audit history of template file updates)
+13. `personal_tasks` (Private personal and repeating tasks)
+14. `personal_task_done` (Daily completion records for repeating tasks)
 
 ---
 
@@ -296,13 +300,52 @@ History and audit log for photo card template modifications. Added on 19 Nov 202
 
 ---
 
+### 13. `personal_tasks`
+Private personal and repeating tasks for team members (phase 1 of Today's work panel; recorded in `sql/2026-11-22_personal_tasks.sql`). Deliberately NOT in the realtime publication.
+* `id` (`uuid`, PRIMARY KEY, default `gen_random_uuid()`)
+* `organization_id` (`uuid`, NOT NULL)
+* `member_id` (`uuid`, NOT NULL, FK to `team_members.id` ON DELETE CASCADE)
+* `title` (`text`, NOT NULL, 1–200 chars)
+* `note` (`text`, nullable, <= 1000 chars)
+* `due_date` (`date`, nullable; required for repeating tasks)
+* `due_time` (`time`, nullable; only valid with `due_date`)
+* `content_id` (`text`, nullable, <= 60 chars)
+* `status` (`text`, NOT NULL, default `'open'`, CHECK `status in ('open','done')`; repeating tasks must remain `'open'`)
+* `done_at` (`timestamptz`, nullable; set automatically when marked done)
+* `repeat_kind` (`text`, NOT NULL, default `'none'`, CHECK `repeat_kind in ('none','daily','weekly','monthly')`)
+* `repeat_weekdays` (`smallint[]`, nullable; required for weekly: array of 0..6)
+* `repeat_month_day` (`smallint`, nullable; 1..31, required for monthly)
+* `skip_friday` (`boolean`, NOT NULL, default `false`; for daily)
+* `stopped` (`boolean`, NOT NULL, default `false`; to pause/stop repeating)
+* `created_at` (`timestamptz`, NOT NULL, default `now()`)
+* `updated_at` (`timestamptz`, NOT NULL, default `now()`)
+* **Constraints**: `pt_title_len`, `pt_note_len`, `pt_content_len`, `pt_status`, `pt_repeat_kind`, `pt_time_needs_date`, `pt_month_day`, `pt_weekdays`, `pt_repeat_shape`, `pt_repeat_needs_start`, `pt_repeat_stays_open`.
+* **Triggers**: `personal_tasks_bi` (`personal_tasks_before_insert()`, enforces 200 task limit per member, sets member_id/org_id/done_at), `personal_tasks_bu` (`personal_tasks_before_update()`, manages done_at and updated_at).
+* **RLS**: Owner-only policies (`pt_select`, `pt_insert`, `pt_update`, `pt_delete`) strictly checking `member_id = my_member_id()`. Even Managers/Owners cannot see other members' personal tasks.
+* **RPC**: `cleanup_my_task_history()` (SECURITY DEFINER, purges done one-time tasks and stopped repeating tasks older than 30 days, and repeat ticks older than 45 days).
+
+---
+
+### 14. `personal_task_done`
+Daily completion records for repeating tasks (recorded in `sql/2026-11-22_personal_tasks.sql`). Deliberately NOT in the realtime publication.
+* `task_id` (`uuid`, NOT NULL, FK to `personal_tasks.id` ON DELETE CASCADE)
+* `done_on` (`date`, NOT NULL)
+* `member_id` (`uuid`, NOT NULL)
+* `created_at` (`timestamptz`, NOT NULL, default `now()`)
+* **Primary Key**: `(task_id, done_on)`
+* **Index**: `personal_task_done_member_idx` on `(member_id, done_on)`
+* **Triggers**: `personal_task_done_bi` (`personal_task_done_before_insert()`, sets member_id to `my_member_id()`).
+* **RLS**: Owner-only policies (`ptd_select`, `ptd_insert`, `ptd_delete`) strictly checking `member_id = my_member_id()`.
+
+---
+
 ## Storage Buckets
 * `avatars` (Public bucket) — Stores user profile photos.
 * `documents` (Public bucket, reference files & briefs) — Configured via `sql/2026-10-11_storage_documents_rls.sql` with authenticated insert/update/delete and public select for browser previews.
 
 ---
 
-### 13. Realtime Publication (`supabase_realtime`)
+### 15. Realtime Publication (`supabase_realtime`)
 The following public tables are published in the Supabase Realtime publication (`supabase_realtime`):
 * `contents`
 * `team_members`
@@ -310,3 +353,5 @@ The following public tables are published in the Supabase Realtime publication (
 * `notices`
 * `bookings`
 * `content_ads` (added 19 Nov 2026, record: `sql/2026-11-19_realtime_content_ads.sql`)
+
+*(Note: `personal_tasks` and `personal_task_done` are deliberately NOT in the realtime publication).*

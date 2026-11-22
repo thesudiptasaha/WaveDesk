@@ -1,8 +1,9 @@
 # WaveDesk — পরিকল্পনা ও কাজের তালিকা (হালনাগাদ: ২২ নভেম্বর ২০২৬)
 
-শেষ যাচাই-করা কমিট: 4d5f342 (N161); N162 committed (not pushed); পরবর্তী কাজ N163 = In-app card editor E1 (ফাউন্ডেশন ও ডেটা মডেল)। বিস্তারিত অগ্রগতি রিপোর `docs/progress-log.md`, বাকি কাজ `docs/open-tasks.md`, নম্বর-কমিট মিল `task-number-tracker.md`। এখানে শুধু দিক ও ক্রম।
+শেষ যাচাই-করা কমিট: 6a312c2 (N163); N164 committed (not pushed); পরবর্তী কাজ N165 = in-app card editor E1 (on hold; the owner returns to it after other work)। বিস্তারিত অগ্রগতি রিপোর `docs/progress-log.md`, বাকি কাজ `docs/open-tasks.md`, নম্বর-কমিট মিল `task-number-tracker.md`। এখানে শুধু দিক ও ক্রম।
 
 ## ২৭ অক্টোবরের পর যা হয়ে গেছে
+- হোম পেজে ব্যক্তিগত "Today's work" প্যানেল (ফেজ ১: নিজস্ব কাজ ও দৈনিক/সাপ্তাহিক/মাসিক টাস্ক টিক, new tables personal_tasks ও personal_task_done, RPC cleanup_my_task_history; >= 1536px স্ক্রিনে ডান কলাম, ছোট স্ক্রিনে টগল বার)।
 - ড্রয়ার: বড় আইডি + Copy ID, Details প্যানেল (উচ্চতা অনুযায়ী), ৬ ট্যাব (Editorial, Production, Post-production, Publish, QC & Audit, Credits), StepBar-এ সবুজ গ্লো (ধাপ পেরোলে)।
 - A4 স্ক্রিপ্ট প্রিন্ট পুনর্গঠন, ফিক্স, অটো লাইন-স্পেসিং ফিট ও এডিটরে পাতা-শেষের দাগ (N142, N145, N143 ও N144; ২য় পেজ বাদ, ১ম পেজে লোগো হেডার ও ডাবল রুল, প্রতি পেজে মার্জিন ফুটার — বাঁয়ে আইডি ডানে পাতা, পাবলিক বুকিং পেজের ব্ল্যাঙ্ক প্রিন্ট ফিক্স, পাতা বাঁচাতে লাইন স্পেসিং ২.০ থেকে ১.৬ অটো ফিট utils/printFit.js, ড্রয়ার এডিটরে পাতা-শেষের দাগ ও সামারি লাইন; টেস্ট বাকি); প্রকাশিত কনটেন্ট Drop ("Published, later removed"); নতুন কনটেন্ট আইডি `WAVECON-YYYYMMDD_XXXX`।
 - ২১ রোল (`ROLE_LIST` একক উৎস); সংযুক্তদের নোটিফিকেশন; Production crew/Shoot নিয়ম ও Shoot কার্ড; Publisher পাহারা; Files delivered; Post-production Received/Problem/Problem fixed; এডিটিং ক্রু ডিফল্ট ফিল।

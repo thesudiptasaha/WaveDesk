@@ -18,6 +18,7 @@ import { NoticeModal } from '../components/ui/NoticeModal';
 import { HowItWorksModal } from '../components/ui/HowItWorksModal';
 import { PhotoCardDeskModal } from '../components/ui/PhotoCardDesk';
 import { PhoneCard, PhoneRow, ShortNote } from '../components/ui/RundownCards';
+import TodayPanel from '../components/ui/TodayPanel';
 import { fetchNotices, createNotice, deleteNotice } from '../services/noticeService';
 
 import {
@@ -794,6 +795,24 @@ function NewsroomApp({ authUser, onSignOut }) {
     toastTimer.current = setTimeout(() => setToast(null), 2800);
   }, []);
   useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  const canSeeTodayPanel = !!actor && actor.active !== false && !isExternal(actor);
+  const handleOpenContentUid = useCallback((cuid) => {
+    if (!cuid) return;
+    const r = rowsRef.current.find((x) => String(x.content_uid || '').trim().toLowerCase() === String(cuid).trim().toLowerCase());
+    if (r) setSelectedId(r.id);
+    else notify('Change the date range to find this item', 'info');
+  }, [notify]);
+
+  const [isWide, setIsWide] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 1536px)');
+    setIsWide(mq.matches);
+    const handler = (e) => setIsWide(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   /* ---------------- data loading ---------------- */
   const mergeChannels = (names) => {
@@ -2936,8 +2955,22 @@ function NewsroomApp({ authUser, onSignOut }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1500px] px-5 py-6 pb-24 sm:pb-24">
-        <div className="mb-4 relative flex flex-col items-center">
+      <main className={`mx-auto ${canSeeTodayPanel ? 'max-w-[1500px] 2xl:max-w-[1840px]' : 'max-w-[1500px]'} px-5 py-6 pb-24 sm:pb-24`}>
+        {/* Collapsible bar above the Rundown on screens < 1536px */}
+        {canSeeTodayPanel && !isWide && (
+          <div className="mb-6 2xl:hidden">
+            <TodayPanel
+              actor={actor}
+              onOpenContentId={handleOpenContentUid}
+              collapsible
+              defaultCollapsed={typeof window !== 'undefined' ? window.innerWidth < 768 : true}
+            />
+          </div>
+        )}
+
+        <div className={canSeeTodayPanel ? '2xl:flex 2xl:items-start 2xl:gap-6' : ''}>
+          <div className="flex-1 min-w-0">
+            <div className="mb-4 relative flex flex-col items-center">
           <h1 className="text-[22px] font-semibold tracking-tight text-white text-center">RUNDOWN</h1>
           <div className="w-full flex justify-end mt-2 md:mt-0 md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2">
           <span className="text-[13px] text-zinc-500">
@@ -3434,6 +3467,18 @@ function NewsroomApp({ authUser, onSignOut }) {
         </section>
 
 
+          </div>
+
+          {/* Right-hand column next to the Rundown on screens >= 1536px */}
+          {canSeeTodayPanel && isWide && (
+            <aside className="hidden 2xl:block w-[300px] shrink-0 sticky top-20 self-start">
+              <TodayPanel
+                actor={actor}
+                onOpenContentId={handleOpenContentUid}
+              />
+            </aside>
+          )}
+        </div>
       </main>
 
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.08] bg-black/70 backdrop-blur-xl">

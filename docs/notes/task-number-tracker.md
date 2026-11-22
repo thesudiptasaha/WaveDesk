@@ -1,6 +1,6 @@
 # WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ২২ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N164** (N163 ব্যবহৃত: Update Next.js 16.4.2 -> 16.4.6, Nov 2026 security release)। শেষ যাচাই-করা কমিট: 8281f4b (N162, verified on GitHub 22 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N165** (N164 ব্যবহৃত: Home Today's work panel, phase 1)। শেষ যাচাই-করা কমিট: 6a312c2 (N163, verified on GitHub 22 Nov 2026)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -71,11 +71,12 @@
 | N160 (c, d) | Templates page: required file-tracking fields (source package, source file, current file, designed by, archive location), change note, version badge, History view, access tick label renamed 'Graphic Template Management' | d3aad53 (verified on GitHub 21 Nov 2026, tested OK by the owner) |
 | N161 (c, d) | Photo Card drawer tidy: Production tab hidden for cards, Card folder moved to Publish tab, 'Real upload time' strip removed (side field 'Published at'), compact caption + hashtags with 'Copy caption + hashtags', new card Credits tab (Requested/Designed/Approved/Published/Template by) | 4d5f342 (verified on GitHub 22 Nov 2026, tested OK by the owner) |
 | N162 (c, d) | Photo Card own content ID WAVECARD-YYYYMMDD_0001 (SQL run live 22 Nov 2026, recorded), demo-mode ID prefix for cards | 8281f4b (pushed) |
-| N163 | Update Next.js 16.4.2 -> 16.4.6 (Nov 2026 security release); dependency bump only; build passes first run; committed | committed |
+| N163 | Update Next.js 16.4.2 -> 16.4.6 (Nov 2026 security release); dependency bump only; build passes first run; committed | 6a312c2 (pushed, verified on GitHub 22 Nov 2026, tested OK by the owner) |
+| N164 | Home 'Today's work' panel, phase 1: own tasks, repeating tasks (daily / weekly / monthly), ticks; new tables personal_tasks + personal_task_done (owner-only RLS), RPC cleanup_my_task_history; SQL run live 22 Nov 2026, recorded in sql/2026-11-22_personal_tasks.sql; panel in a right column next to the Rundown at >= 1536px, collapsible bar above it on smaller screens | committed |
 
 পরিকল্পিত ক্রম:
-- N164 = in-app card editor E1 (on hold; the owner returns to it after other work)
-- Later = E2 canvas (Design tab), E3 export (one JPEG with metadata), E4 preview + 7-day cleanup, report page, sample folder structure for the 7 channels, notifications for cards
+- N165 = in-app card editor E1 (on hold; the owner returns to it after other work)
+- Later = Today's work phase 2 (automatic content work per role), phase 3 (give tasks to others, team tasks, notifications / Telegram reminders, calendar), report page, sample folder structure for the 7 channels, notifications for cards, E2 canvas, E3 export, E4 preview + 7-day cleanup
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।
 

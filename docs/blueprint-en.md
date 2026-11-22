@@ -18,6 +18,7 @@ NewsroomOps (brand name NewsWave) is a web app that runs the daily content rundo
 - A 12-status pipeline with role and permission checks, enforced in the database
 - Content IDs such as `WAVECON-20261029_0002` (videos) and `WAVECARD-20261122_0001` (Photo Cards), and per-short IDs such as `WAVECON-20261029_0002-short_0001`
 - A separate "On hold & unscheduled" table for parked items, with resume and schedule actions
+- Personal "Today's work" panel on Home: private one-time and repeating tasks (daily, weekly, monthly), overdue tracking, content link chip, and automatic history cleanup (phase 1)
 - Team management with roles, 8 permissions, photos, and login by email and password
 - Drawer per content with script, metadata, assets, revisions and history
 - KPI view, Excel export, dark and light theme, Bengali-friendly fonts, live updates

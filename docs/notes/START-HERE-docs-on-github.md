@@ -1,6 +1,6 @@
 # WaveDesk — মূল ডকুমেন্ট কোথায় ও কাজের ধরন (হালনাগাদ: ২২ নভেম্বর ২০২৬)
 
-**মূল ডকুমেন্ট GitHub রিপোর `docs/` ফোল্ডারে** (github.com/thesudiptasaha/wavedesk, ব্রাঞ্চ main; রিপো Public)। ডকুমেন্ট একাধিক জায়গায় রাখা হবে না; বিরোধ হলে GitHub-ই সঠিক। পরিকল্পনার নোট (সিদ্ধান্ত ও ধারণা) `docs/notes/`-এ। শেষ যাচাই-করা কমিট: **4d5f342** (N161); N162 committed (not pushed); পরবর্তী কাজ N163 = In-app card editor E1 (ফাউন্ডেশন ও ডেটা মডেল)। লাইভ: https://wavedesk-manager.vercel.app
+**মূল ডকুমেন্ট GitHub রিপোর `docs/` ফোল্ডারে** (github.com/thesudiptasaha/wavedesk, ব্রাঞ্চ main; রিপো Public)। ডকুমেন্ট একাধিক জায়গায় রাখা হবে না; বিরোধ হলে GitHub-ই সঠিক। পরিকল্পনার নোট (সিদ্ধান্ত ও ধারণা) `docs/notes/`-এ। শেষ যাচাই-করা কমিট: **6a312c2** (N163); N164 committed (not pushed: Home Today's work panel phase 1, new tables personal_tasks ও personal_task_done); পরবর্তী কাজ N165 = In-app card editor E1 (on hold; the owner returns to it after other work)। লাইভ: https://wavedesk-manager.vercel.app
 
 ## কোন কাজের জন্য কোন ফাইল
 | বিষয় | ফাইল |
