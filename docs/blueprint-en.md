@@ -16,7 +16,7 @@ NewsroomOps (brand name NewsWave) is a web app that runs the daily content rundo
 
 - Daily rundown table with date range, channel, status and text search
 - A 12-status pipeline with role and permission checks, enforced in the database
-- Content IDs such as `WAVECON-20261029_0002`, and per-short IDs such as `WAVECON-20261029_0002-short_0001`
+- Content IDs such as `WAVECON-20261029_0002` (videos) and `WAVECARD-20261122_0001` (Photo Cards), and per-short IDs such as `WAVECON-20261029_0002-short_0001`
 - A separate "On hold & unscheduled" table for parked items, with resume and schedule actions
 - Team management with roles, 8 permissions, photos, and login by email and password
 - Drawer per content with script, metadata, assets, revisions and history
@@ -261,7 +261,7 @@ The top two rows are the full pipeline. The cards underneath list the moves that
 
 ## 7. Content IDs, shorts, scheduling and parked items
 
-**Content ID.** Every content gets a readable ID of the form `WAVECON-YYYYMMDD_XXXX`, for example `WAVECON-20261029_0002`. A database trigger (`contents_assign_uid`) assigns it on insert, using the Asia/Dhaka calendar date of the day the content was created and a per-day counter table (`content_uid_counters: org_key, day, last_n`), restarting at 0001 each day, so two people creating at the same moment never get the same number. IDs are never reused. Once an ID starts with `WAVECON-`, the update guard (`guard_contents_update`) refuses to change it; the ID cannot change once set. The ID is shown in the drawer header beside the slug (with a folder icon indicating the storage folder name and a Copy ID button). The folder on the storage drive is named exactly the content ID (no slug). Old `CON-` IDs were all converted once on 29 Oct 2026 by `sql/2026-10-29_wavecon_content_id.sql`.
+**Content ID.** Every content gets a readable ID: videos receive `WAVECON-YYYYMMDD_XXXX` (e.g. `WAVECON-20261029_0002`), while Photo Cards receive their own `WAVECARD-YYYYMMDD_XXXX` ID (e.g. `WAVECARD-20261122_0001`). A database trigger (`contents_assign_uid`) assigns it on insert, using the Asia/Dhaka calendar date of the day the content was created and a per-day counter table (`content_uid_counters: org_key, day, last_n`), restarting at 0001 each day (Photo Cards have an independent daily counter shared by all channels under key `card:<org>`), so two people creating at the same moment never get the same number. IDs are never reused. Once an ID starts with `WAVECON-` or `WAVECARD-`, the update guard (`guard_contents_update`) refuses to change it; the ID cannot change once set. The ID is shown in the drawer header beside the slug (with a folder icon indicating the storage folder name and a Copy ID button). The folder on the storage drive is named exactly the content ID (no slug). Old `CON-` IDs were all converted once on 29 Oct 2026 by `sql/2026-10-29_wavecon_content_id.sql`. Photo Card own ID format added 22 Nov 2026 via `sql/2026-11-22_photocard_content_id.sql`.
 
 **Shorts and reels.** One content can have many shorts. They live in the `contents.shorts` JSON array, one object each: `id`, `n` (sequence), `title`, `thumb_text`, `platform` (youtube, facebook, instagram, tiktok, web), `url`, `publish_at` and `published`.
 
@@ -302,7 +302,7 @@ The database is Supabase Postgres, schema `public`. People are stored on content
 | `contents` | One row per video, the heart of the app | see below |
 | `channels` | Channels added from the app (the 7 defaults live in code) | `id`, `organization_id`, `name` (unique per organization, case-insensitive) |
 | `notifications` | In-app bell | `id`, `organization_id`, `member_id`, `content_id`, `message`, `read`, `created_at` |
-| `content_uid_counters` | Per-day counter behind `WAVECON-YYYYMMDD_XXXX` (`org_key, day, last_n`) | restarts at 0001 each day, Asia/Dhaka |
+| `content_uid_counters` | Per-day counter behind `WAVECON-YYYYMMDD_XXXX` and `WAVECARD-YYYYMMDD_XXXX` (`org_key, day, last_n`) | restarts at 0001 each day, Asia/Dhaka (key `<org>` for videos, `card:<org>` for cards) |
 | `content_counters` | Counter from an earlier ID scheme, kept |  |
 | `team_members_legacy` | The first version's team table, renamed and kept, not used |  |
 |  |  |  |
@@ -330,7 +330,7 @@ Indexes: `(organization_id, scheduled_publish_time)` and `content_uid` on conten
 
 | Trigger | On | What it does |
 | --- | --- | --- |
-| `contents_assign_uid` | contents, before insert or update | Assigns `WAVECON-YYYYMMDD_XXXX` (creation day in Asia/Dhaka) |
+| `contents_assign_uid` | contents, before insert or update | Assigns `WAVECON-YYYYMMDD_XXXX` for videos or `WAVECARD-YYYYMMDD_XXXX` for cards (creation day in Asia/Dhaka) |
 | `contents_set_short_days` | contents, before insert or update | Fills `short_days` from the shorts' upload times |
 | `contents_guard_insert` | contents, before insert | New content must start as Draft with no `published_at` |
 | `contents_guard_update` | contents, before update | Field permissions, script lock, append-only history, workflow whitelist, immutable content ID (details in section 9) |

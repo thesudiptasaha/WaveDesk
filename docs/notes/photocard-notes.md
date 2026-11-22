@@ -69,6 +69,32 @@
   - Use instant filename search tools for quick lookups.
   - Use clean ASCII names (letters, digits, underscores, hyphens) to prevent cross-platform encoding issues.
 
+## Card content ID (N162, 22 Nov 2026)
+
+- **Dedicated prefix**: Photo Cards get their own human-readable content ID of the form `WAVECARD-YYYYMMDD_XXXX` (e.g. `WAVECARD-20261122_0001`).
+- **Separate counter**: Based on the creation day in Asia/Dhaka. Uses an independent daily counter starting at 0001 across all channels under key `card:<org>` in `content_uid_counters` (separate from the video counter `WAVECON-` under key `<org>`).
+- **Database enforcement**: Database trigger `assign_content_uid()` picks `WAVECARD-` for `PHOTO CARD` and `WAVECON-` for videos. The update guard `guard_contents_update` protects both `WAVECON-` and `WAVECARD-` IDs as immutable once set.
+- **Demo mode**: Mirrored in demo mode via `makeContentUid(iso, n, type)`.
+
+## Editor decisions (21-22 Nov 2026)
+
+- **Phased plan**:
+  - **E1 (Foundation & Data Model)**: Template layer schema (JSON layout of locked and editable layers), storage bucket preparation, and database plumbing.
+  - **E2 (Canvas & Design Tab)**: In-app interactive canvas using Konva.js rendered on the revived "Design" tab of the card drawer.
+  - **E3 (Export Engine)**: Client-side rendering and export producing ONE high-quality JPEG (sRGB, 72 PPI) embedded with full EXIF/XMP/IPTC metadata; download filename equals content ID (`<content_uid>.jpg`, e.g. `WAVECARD-20261122_0001.jpg`).
+  - **E4 (Preview & 7-Day Storage Cleanup)**: Card preview in approval workflow; uploaded source photos compressed to ~2000px on the longest side and automatically deleted 7 days after card is Published or Dropped.
+- **Canvas architecture & permissions**:
+  - Built with Konva.
+  - Master template layers (background, frames, brand logos, default text positions) are uploaded and managed exclusively by Owner/Manager and holders of the "Graphic Template Management" tick.
+  - In daily work, graphic designers can only edit designated unlocked layers: editable text blocks and photo slots.
+  - Typography: Noto Serif Bengali only at launch to ensure crisp, predictable typography without font-load discrepancies.
+- **Export & Metadata**:
+  - Output is strictly a single JPEG image, sRGB, 72 PPI, with full copyright, channel, credit, and story metadata injected into EXIF/XMP/IPTC headers.
+  - Export filename matches the content ID without extraneous suffixes.
+- **Honest limits**:
+  - Facebook and social networks strip EXIF/IPTC metadata on upload, so embedded metadata primarily protects the downloaded archive copy.
+  - Invisible digital watermarks do not reliably survive social media recompression; internal provenance is proven by the immutable database record.
+
 ## Update 19 Nov 2026 — Request form without date/time, open cards pinned & real publish time (N157)
 
 - **Request form without date/time**:

@@ -5,6 +5,19 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 22 Nov 2026 — Photo Card content ID WAVECARD-YYYYMMDD_0001 (N162)
+
+- **Dedicated content ID prefix for Photo Cards**:
+  - Photo Cards now have their own distinct content ID format: `WAVECARD-YYYYMMDD_0001` (assigned on creation based on Asia/Dhaka day, with its own daily atomic counter shared across all channels under key `card:<org>`).
+  - Videos and other content types keep the existing `WAVECON-YYYYMMDD_0001` format.
+  - Database trigger `assign_content_uid()` automatically chooses the prefix by `content_type` (`WAVECARD-` for `PHOTO CARD`, `WAVECON-` otherwise).
+  - Database trigger `guard_contents_update` protects both `WAVECON-` and `WAVECARD-` prefixes from modification once assigned.
+  - SQL executed live on Supabase on 22 Nov 2026 and recorded in `sql/2026-11-22_photocard_content_id.sql`.
+- **App changes**:
+  - The live app required no changes in real mode because it already treats content IDs as opaque strings.
+  - Demo mode (`lib/core.js` `makeContentUid` and `app/page.js` demo seed / create paths) updated to support the optional `type` argument, using the `WAVECARD-` prefix and a separate card counter for demo Photo Cards.
+  - The exported card file name for the upcoming in-app editor will use this exact content ID (e.g. `WAVECARD-20261122_0001.jpg`).
+
 ## 21 Nov 2026 — Photo Card drawer tidy (N161)
 
 - **Production tab hidden for Photo Cards**:

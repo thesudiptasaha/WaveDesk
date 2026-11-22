@@ -58,7 +58,8 @@ function buildDemo() {
   const today = startOfDay(new Date());
   const at = (h, m) => new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m).toISOString();
     let demoSeq = 0;
-    const base = (o) => normalizeRow({ id: uid(), organization_id: orgId, content_uid: makeContentUid(undefined, ++demoSeq), target_platforms: ['youtube', 'facebook'], ...o });
+    let demoCardSeq = 0;
+    const base = (o) => normalizeRow({ id: uid(), organization_id: orgId, content_uid: makeContentUid(undefined, typeIsCard(o.content_type) ? ++demoCardSeq : ++demoSeq, o.content_type), target_platforms: ['youtube', 'facebook'], ...o });
   const rows = [
     base({ content_type: 'EXPLAINER', channel: 'The Wave Money', slug_name: 'BUDGET BREAKDOWN FISCAL YEAR', title: 'Budget Breakdown: What Changes This Fiscal Year', thumbnail_text: 'WHAT CHANGES?', concept_creator: 'Rahim Uddin', writer: 'Tanvir Ahmed', producer: 'Nusrat Jahan', presenter_name: 'Nusrat Jahan', video_editor: 'Imran Hossain', scheduled_publish_time: at(10, 0), status: 'Script Submitted', script_saved_at: at(9, 30), script: 'Opening line.\n\nThis year’s budget reshapes how households plan spending.\n\nThree things matter: taxes, subsidies, and interest rates.' }),
     base({ content_type: 'PACKAGE', channel: 'The Wave 24', slug_name: 'CITY FLOOD RELIEF', title: 'City Flood Relief Operations', thumbnail_text: 'RELIEF ON THE GROUND', concept_creator: 'Tanvir Ahmed', writer: 'Tanvir Ahmed', presenter_name: 'Rahim Uddin', camera_operator: 'Karim', scheduled_publish_time: at(13, 30), status: 'Ready for Shoot', script_saved_at: at(11, 45), script: 'Relief teams are moving through the worst-hit districts.' }),
@@ -1637,7 +1638,9 @@ function NewsroomApp({ authUser, onSignOut }) {
       }
       saved = normalizeRow(inserted);
     } else {
-    saved = normalizeRow({ id: uid(), content_uid: makeContentUid(payload.scheduled_publish_time, rowsRef.current.length + 1), ...payload });
+      const isCard = typeIsCard(payload.content_type);
+      const n = isCard ? rowsRef.current.filter((r) => typeIsCard(r.content_type)).length + 1 : rowsRef.current.length + 1;
+      saved = normalizeRow({ id: uid(), content_uid: makeContentUid(payload.scheduled_publish_time, n, payload.content_type), ...payload });
     }
     const when = saved.scheduled_publish_time ? new Date(saved.scheduled_publish_time) : null;
     const inRange = !when || (when >= range.start && when < addDays(range.end, 1));
