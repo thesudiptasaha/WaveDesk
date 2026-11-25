@@ -5,6 +5,15 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 25 Nov 2026 — Home "Today's work" panel, phase 2: automatic content work (N165)
+
+- **Automatic content work ("From contents") (phase 2)**:
+  - **New section**: "From contents" inside "Pending now" under personal tasks, displaying up to 30 actionable content items waiting for the signed-in member, with "+N more" text if more. Lines are not tickable; clicking a line (or Enter) opens the content in the drawer via `onOpenContentId`.
+  - **Item details**: Content ID chip, title, action label, Dhaka publish time, red "Late" / amber "Soon" urgency chips, grey blockedNote when an action is blocked or has a correction note.
+  - **Stage rules**: Non-managers see lines where they are assigned or in approval/pick-up queues (Draft writer/Uncut MMJ, Script Submitted, Ready for Shoot camera/producer/pm or pick-up, Shooting, Assign Editor, Editing, Video Review, Ready to Publish/Scheduled publisher, Re-Shoot, Photo Card Draft/Requested/Designing/In Review/Publish). Managers see only assigned slots, the three approval queues (Script Submitted, Video Review, card In Review), and Late/Soon items.
+  - **Done today**: Content status transitions made by the member today extracted from audit_log and shown in "Done today" as read-only items ("Moved to <status>").
+  - **Independent data loading**: Added queries for `PANEL_OPEN_STATUSES` and `PANEL_DONE_LOOKBACK_HOURS` (36h) in `fetchRows`; extended `rowBelongsInView` so realtime and 30s catch-up retain open rows. All existing consumers of `rows` confirmed unaffected or range-filtered.
+
 ## 22 Nov 2026 — Home "Today's work" panel, phase 1 (N164)
 
 - **Personal & repeating tasks panel (phase 1)**:

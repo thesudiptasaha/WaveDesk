@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '../../services/supabase';
 import {
   fetchMyTasks,
@@ -15,6 +15,7 @@ import {
 import {
   todayDhaka,
   buildTodayPanel,
+  buildContentWork,
   describeRepeat,
 } from '../../lib/core';
 import { inputBase, btnPrimary, btnGhost, btnDanger, ConfirmDialog } from './Shared';
@@ -40,6 +41,41 @@ const formatHeaderDate = (ymd) => {
   return `${days[utcDate.getUTCDay()]}, ${d} ${months[m - 1]}`;
 };
 
+const formatDhakaShortTime = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Dhaka',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
+};
+
+const formatDhakaPublishTime = (iso, todayYmd) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const dateDhaka = todayDhaka(d);
+  const currentToday = todayYmd || todayDhaka();
+  const timePart = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Dhaka',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
+  if (dateDhaka === currentToday) {
+    return timePart;
+  }
+  const dayMonthPart = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Dhaka',
+    day: 'numeric',
+    month: 'short',
+  }).format(d);
+  return `${dayMonthPart} ${timePart}`;
+};
+
 const WEEKDAYS = [
   { val: 6, label: 'Sat' },
   { val: 0, label: 'Sun' },
@@ -54,6 +90,8 @@ let cleanedForMemberId = null;
 
 export default function TodayPanel({
   actor,
+  rows = [],
+  photoTemplates = [],
   onOpenContentId,
   collapsible = false,
   defaultCollapsed = false,
@@ -63,6 +101,7 @@ export default function TodayPanel({
   const [todayDate, setTodayDate] = useState(() => todayDhaka());
   const todayRef = useRef(todayDate);
   todayRef.current = todayDate;
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -183,10 +222,16 @@ export default function TodayPanel({
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
+        setNowTick(Date.now());
         loadData();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
+
+    // Refresh nowTick every 60 seconds so urgency chips stay current
+    const tickInterval = setInterval(() => {
+      setNowTick(Date.now());
+    }, 60000);
 
     // Check Dhaka date change every 1 minute
     const dateInterval = setInterval(() => {
@@ -207,6 +252,7 @@ export default function TodayPanel({
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(tickInterval);
       clearInterval(dateInterval);
       clearInterval(pollInterval);
     };
@@ -219,7 +265,21 @@ export default function TodayPanel({
     today: todayDate,
   });
 
-  const pendingCount = panelData.overdue.length + panelData.today.length;
+  const contentWork = useMemo(() => {
+    if (!actor || !rows || !rows.length) return { items: [], doneToday: [] };
+    return buildContentWork({
+      rows,
+      actor,
+      now: new Date(nowTick),
+      ctx: { photoTemplates },
+    });
+  }, [rows, actor, photoTemplates, nowTick]);
+
+  const pendingCount = panelData.overdue.length + panelData.today.length + contentWork.items.length;
+
+  const allDoneToday = useMemo(() => {
+    return [...panelData.doneToday, ...contentWork.doneToday];
+  }, [panelData.doneToday, contentWork.doneToday]);
 
   useEffect(() => {
     if (onPendingCountChange) {
@@ -629,6 +689,126 @@ export default function TodayPanel({
     );
   };
 
+  const renderContentWorkRow = (item) => {
+    const cuid = item.row?.content_uid || '';
+    const title = item.row?.title || item.row?.slug_name || 'Untitled';
+    const publishTimeStr = item.publishAt ? formatDhakaPublishTime(item.publishAt, todayDate) : null;
+
+    const handleClick = () => {
+      if (onOpenContentId && cuid) {
+        onOpenContentId(cuid);
+      }
+    };
+
+    return (
+      <div
+        key={item.key}
+        role="button"
+        tabIndex={0}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        className="group flex flex-col gap-1 rounded-xl border border-white/[0.04] p-2.5 transition hover:border-white/[0.09] hover:bg-white/[0.02] cursor-pointer"
+      >
+        <div className="flex flex-wrap items-center gap-1.5 leading-snug">
+          {cuid && (
+            <span
+              className="rounded border border-sky-500/20 bg-sky-500/10 px-1.5 py-0.2 text-[10px] font-mono font-medium text-sky-400 shrink-0"
+            >
+              {cuid}
+            </span>
+          )}
+          <span className="text-[13px] font-medium text-zinc-100 break-words flex-1 min-w-0">
+            {title}
+          </span>
+          {item.urgency === 'late' && (
+            <span className="rounded border border-rose-500/30 bg-rose-500/20 px-1.5 py-0.2 text-[10px] font-semibold text-rose-300 shrink-0">
+              Late
+            </span>
+          )}
+          {item.urgency === 'soon' && (
+            <span className="rounded border border-amber-500/30 bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-semibold text-amber-300 shrink-0">
+              Soon
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-400">
+          <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-zinc-300">
+            {item.label}
+          </span>
+          {publishTimeStr && (
+            <span className="font-mono text-zinc-400">
+              {publishTimeStr}
+            </span>
+          )}
+          {item.blockedNote && (
+            <span className="text-zinc-500 truncate max-w-full italic" title={item.blockedNote}>
+              · {item.blockedNote}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderDoneItem = (item) => {
+    if (item.kind === 'content') {
+      const cuid = item.contentId || item.row?.content_uid || '';
+      const title = item.title || 'Untitled';
+      const doneTime = item.doneAt ? formatDhakaShortTime(item.doneAt) : '';
+
+      return (
+        <div
+          key={item.key}
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            if (onOpenContentId && cuid) onOpenContentId(cuid);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (onOpenContentId && cuid) onOpenContentId(cuid);
+            }
+          }}
+          className="group flex items-start gap-2.5 rounded-xl border border-white/[0.04] p-2.5 opacity-60 transition hover:border-white/[0.09] hover:bg-white/[0.02] cursor-pointer"
+        >
+          <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-emerald-500 bg-emerald-500 text-black">
+            <svg className="h-3 w-3 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 leading-snug">
+              <span className="text-[13px] font-medium text-zinc-500 line-through break-words">
+                {title}
+              </span>
+              {cuid && (
+                <span className="rounded border border-sky-500/20 bg-sky-500/10 px-1.5 py-0.2 text-[10px] font-mono font-medium text-sky-400">
+                  {cuid}
+                </span>
+              )}
+              {doneTime && (
+                <span className="rounded bg-white/[0.06] px-1.5 py-0.2 text-[10px] font-mono text-zinc-400">
+                  {doneTime}
+                </span>
+              )}
+            </div>
+            <div className="mt-1 text-[11px] text-zinc-400">
+              {item.label}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return renderRow(item, true);
+  };
+
   // Inner body content
   const panelBody = (
     <div className="space-y-4">
@@ -862,7 +1042,7 @@ export default function TodayPanel({
       {/* Main Sections */}
       {!loading && !errorMsg && (
         <>
-          {/* Section 1: Pending now (Overdue + Today) */}
+          {/* Section 1: Pending now (Overdue + Today + Content work) */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
@@ -884,9 +1064,28 @@ export default function TodayPanel({
                 Nothing for today.
               </div>
             ) : (
-              <div className="space-y-1.5">
-                {panelData.overdue.map((item) => renderRow(item, false))}
-                {panelData.today.map((item) => renderRow(item, false))}
+              <div className="space-y-3">
+                {(panelData.overdue.length > 0 || panelData.today.length > 0) && (
+                  <div className="space-y-1.5">
+                    {panelData.overdue.map((item) => renderRow(item, false))}
+                    {panelData.today.map((item) => renderRow(item, false))}
+                  </div>
+                )}
+                {contentWork.items.length > 0 && (
+                  <div className="pt-1">
+                    <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium text-zinc-400">
+                      <span>From contents ({contentWork.items.length})</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {contentWork.items.slice(0, 30).map((item) => renderContentWorkRow(item))}
+                      {contentWork.items.length > 30 && (
+                        <div className="pt-1 text-center text-[11px] text-zinc-500">
+                          +{contentWork.items.length - 30} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -909,13 +1108,13 @@ export default function TodayPanel({
           )}
 
           {/* Section 3: Done today */}
-          {panelData.doneToday.length > 0 && (
+          {allDoneToday.length > 0 && (
             <div>
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                Done today ({panelData.doneToday.length})
+                Done today ({allDoneToday.length})
               </div>
               <div className="space-y-1.5">
-                {panelData.doneToday.map((item) => renderRow(item, true))}
+                {allDoneToday.map((item) => renderDoneItem(item))}
               </div>
             </div>
           )}
