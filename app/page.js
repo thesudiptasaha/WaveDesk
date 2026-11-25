@@ -2764,7 +2764,7 @@ function NewsroomApp({ authUser, onSignOut }) {
       <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/60 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-[13px] font-bold text-black">N</div>
+            <img src="/icon.svg" alt="WaveDesk" className="h-9 w-9 shrink-0 rounded-lg" />
             <div className="min-w-0 leading-tight">
               <div className="truncate text-[15px] font-semibold tracking-tight text-white">{APP_NAME}</div>
               <div className="hidden text-[11px] text-zinc-500 sm:block">
@@ -2955,7 +2955,7 @@ function NewsroomApp({ authUser, onSignOut }) {
         </div>
       </header>
 
-      <main className={`mx-auto ${canSeeTodayPanel ? 'max-w-[1500px] 2xl:max-w-[1840px]' : 'max-w-[1500px]'} px-5 py-6 pb-24 sm:pb-24`}>
+      <main className="mx-auto max-w-[1500px] px-5 py-6 pb-24 sm:pb-24">
         {/* Collapsible bar above the Rundown on screens < 1536px */}
         {canSeeTodayPanel && !isWide && (
           <div className="mb-6 2xl:hidden">
@@ -3021,13 +3021,13 @@ function NewsroomApp({ authUser, onSignOut }) {
 
         {pcView === 'list' ? (
           <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#121215]">
-            <table className="w-full min-w-[1100px] text-left text-[13px]">
+            <table className="w-full table-fixed min-w-[1040px] text-left text-[13px]">
               <thead>
                 <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-zinc-500">
                   <th className="w-[110px] px-3 py-2 font-medium">Time</th>
-                  <th className="max-w-[280px] px-3 py-2 font-medium">Slug Name</th>
+                  <th className="min-w-[320px] px-3 py-2 font-medium">Slug Name</th>
                   <th className="w-[290px] px-3 py-2 font-medium">Staff Assignment</th>
-                  <th className="min-w-[220px] px-3 py-2 font-medium">Action</th>
+                  <th className="w-[320px] px-3 py-2 font-medium">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -3102,7 +3102,10 @@ function NewsroomApp({ authUser, onSignOut }) {
                               <OpenTag days={openDays} />
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <div className="uppercase text-[17px] font-bold tracking-wide text-white px-1 -ml-1 truncate w-full min-w-[150px]">
+                              <div
+                                title={r.slug_name || ''}
+                                className="uppercase text-[17px] font-bold tracking-wide text-white px-1 -ml-1 break-words line-clamp-2 w-full min-w-[150px]"
+                              >
                                 {r.slug_name || 'NO SLUG...'}
                               </div>
                               {r.is_script_locked && typeHasScript(r.content_type) ? <LockIcon message="Script locked" className="h-4 w-4 shrink-0 text-white" /> : null}
@@ -3471,7 +3474,7 @@ function NewsroomApp({ authUser, onSignOut }) {
 
           {/* Right-hand column next to the Rundown on screens >= 1536px */}
           {canSeeTodayPanel && isWide && (
-            <aside className="hidden 2xl:block w-[300px] shrink-0 sticky top-20 self-start">
+            <aside className="hidden 2xl:block w-[340px] shrink-0 sticky top-20 self-start">
               <TodayPanel
                 actor={actor}
                 onOpenContentId={handleOpenContentUid}

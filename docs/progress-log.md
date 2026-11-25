@@ -5,6 +5,13 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 25 Nov 2026 — Rundown layout tidy (N168)
+
+- **Rundown layout tidy**:
+  - One common page width 1500px (`max-w-[1500px]`) for header, filter bar, rundown, and the Today's work panel; right panel widened to 340px at >= 1536px.
+  - Fixed list-view column widths (Time 110px, Staff 290px, Action 320px) with table-fixed; Slug Name takes the rest with a sensible min width and 2-line wrap (`line-clamp-2 break-words`).
+  - Header logo is now the website icon (`app/icon.svg` with `shrink-0`), replacing the old hardcoded letter tile.
+
 ## 25 Nov 2026 — Website favicon (N167)
 
 - **Website favicon**:
