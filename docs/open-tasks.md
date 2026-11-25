@@ -17,7 +17,7 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 7. তারপর নিচের "গ" ক্রম (N14 Show/Channel আইডি → N10 Show ফর্ম...)।
 8. npm audit shows 1 low issue (dompurify <=3.4.16, via @tiptap). Review in a later dependency step; not part of N163.
 9. After any npm install, the undefined-variable check tools are removed (not project dependencies); reinstall them with the command in docs/RULES.md before running the check.
-10. Today's work panel: phase 2 (N165, automatic content work "From contents") built; next phase 3 (give tasks to others, team tasks, reminders).
+10. Today's work panel: phase 2 withdrawn by the owner (reverted in N166, panel is personal tasks only); next phase 3 (give tasks to others, team tasks, reminders).
 
 ## ক. আপনার চোখে-দেখা টেস্ট বাকি
 Today's work panel test (add a one-time task, tick and un-tick it, add daily/weekly/monthly tasks, edit, stop repeating, delete, content ID chip, phone bar, wide-screen right column, second person must not see my tasks) · Fill the 5 new details for the 9 existing templates (first save needs a note) · My Work (role নাম+সংখ্যা) · কর্মী রিপোর্ট কলাম · History-তে "Research & Script" · কর্তৃপক্ষ প্যানেলের বাটন + ফোনের মাপ · N27 সবুজ বার্তা · DB-0 পরে নোটিফিকেশনে "Research & Script" · N28 (৫টা পরিস্থিতি) · N28c (ধূসর "still missing" বার্তা) · N29 (ফুটারে থিম/কর্তৃপক্ষ/KPI) · N30 (প্রোফাইলে My Work, কর্মী ও Manager দুই রোলে) · N31 ("Bin (N)" বাটন, পপআপ, Restore, Esc) · N32 (সংখ্যা আগের মতোই, তারিখ বদলে লোড) · N33 (কর্তৃপক্ষ → Data → Backup → JSON নামে, পাঁচ টেবিল, "failed" নেই) · টেলিপ্রম্পটার চলাকালীন অন্য ব্রাউজারে স্ক্রিপ্ট Save করলে লেখা বদলায় কিনা (কোড পড়ে "হ্যাঁ, Save-এর ১–২ সেকেন্ড পরে" — লাইভে দেখা হয়নি) · লাইভ সাইটে Ctrl+Shift+R।

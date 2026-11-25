@@ -20,7 +20,6 @@ import { PhotoCardDeskModal } from '../components/ui/PhotoCardDesk';
 import { PhoneCard, PhoneRow, ShortNote } from '../components/ui/RundownCards';
 import TodayPanel from '../components/ui/TodayPanel';
 import { fetchNotices, createNotice, deleteNotice } from '../services/noticeService';
-import { PANEL_OPEN_STATUSES, PANEL_DONE_LOOKBACK_HOURS } from '../utils/constants';
 
 import {
   DEFAULT_CHANNELS, CONTENT_TYPES, CONTENT_TYPE_HINT, CONTENT_TYPE_COLORS, PLATFORMS, PERMISSIONS, ACCESS_LIST, ROLE_LIST, ROLE_LABEL,
@@ -977,21 +976,18 @@ function NewsroomApp({ authUser, onSignOut }) {
     );
     if (req !== reqRef.current) return;
         /* Parked / Bin content (On Hold, no date, or missing channel/slug) is not tied to the date range, so load it separately. */
-    const doneLookbackIso = new Date(Date.now() - PANEL_DONE_LOOKBACK_HOURS * 3600 * 1000).toISOString();
-    const [heldRes, nodateRes, emptyMetaRes, openCardsRes, liveCardsRes, pubCardsRes, panelOpenRes, panelDoneRes] = await Promise.all([
+    const [heldRes, nodateRes, emptyMetaRes, openCardsRes, liveCardsRes, pubCardsRes] = await Promise.all([
       fetchAllPages(() => supabase.from('contents').select('*').eq('organization_id', org.id).eq('status', 'On Hold').order('id', { ascending: true })),
       fetchAllPages(() => supabase.from('contents').select('*').eq('organization_id', org.id).is('scheduled_publish_time', null).order('id', { ascending: true })),
       fetchAllPages(() => supabase.from('contents').select('*').eq('organization_id', org.id).or('channel.is.null,channel.eq.,slug_name.is.null,slug_name.eq.').order('id', { ascending: true })),
       fetchAllPages(() => supabase.from('contents').select('*').or(`organization_id.eq.${org.id},organization_id.is.null`).eq('content_type', 'PHOTO CARD').in('status', OPEN_CARD_STATUSES).order('id', { ascending: true })),
       fetchAllPages(() => supabase.from('contents').select('*').or(`organization_id.eq.${org.id},organization_id.is.null`).eq('content_type', 'PHOTO CARD').eq('status', 'Published').gte('went_live_at', from).lt('went_live_at', to).order('id', { ascending: true })),
       fetchAllPages(() => supabase.from('contents').select('*').or(`organization_id.eq.${org.id},organization_id.is.null`).eq('content_type', 'PHOTO CARD').eq('status', 'Published').is('went_live_at', null).gte('published_at', from).lt('published_at', to).order('id', { ascending: true })),
-      fetchAllPages(() => supabase.from('contents').select('*').or(`organization_id.eq.${org.id},organization_id.is.null`).in('status', PANEL_OPEN_STATUSES).order('id', { ascending: true })),
-      fetchAllPages(() => supabase.from('contents').select('*').or(`organization_id.eq.${org.id},organization_id.is.null`).gte('updated_at', doneLookbackIso).order('id', { ascending: true })),
     ]);
     if (req !== reqRef.current) return;
     const seen = new Set();
     const merged = [];
-    [data || [], extra || [], heldRes.data || [], nodateRes.data || [], emptyMetaRes.data || [], openCardsRes.data || [], liveCardsRes.data || [], pubCardsRes.data || [], panelOpenRes.data || [], panelDoneRes.data || []].forEach((list) =>
+    [data || [], extra || [], heldRes.data || [], nodateRes.data || [], emptyMetaRes.data || [], openCardsRes.data || [], liveCardsRes.data || [], pubCardsRes.data || []].forEach((list) =>
       list.forEach((r) => {
         if (!seen.has(r.id)) {
           seen.add(r.id);
@@ -2965,8 +2961,6 @@ function NewsroomApp({ authUser, onSignOut }) {
           <div className="mb-6 2xl:hidden">
             <TodayPanel
               actor={actor}
-              rows={rows}
-              photoTemplates={photoTemplates}
               onOpenContentId={handleOpenContentUid}
               collapsible
               defaultCollapsed={typeof window !== 'undefined' ? window.innerWidth < 768 : true}
@@ -3480,8 +3474,6 @@ function NewsroomApp({ authUser, onSignOut }) {
             <aside className="hidden 2xl:block w-[300px] shrink-0 sticky top-20 self-start">
               <TodayPanel
                 actor={actor}
-                rows={rows}
-                photoTemplates={photoTemplates}
                 onOpenContentId={handleOpenContentUid}
               />
             </aside>

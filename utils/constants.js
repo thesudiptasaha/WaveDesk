@@ -40,24 +40,6 @@ export const STATUS_META = {
 };
 export const ALL_STATUSES = Object.keys(STATUS_META);
 
-export const PANEL_OPEN_STATUSES = [
-  'Draft',
-  'Requested',
-  'Designing',
-  'In Review',
-  'Script Submitted',
-  'Ready for Shoot',
-  'Shooting',
-  'Assign Editor',
-  'Editing',
-  'Video Review',
-  'Ready to Publish',
-  'Scheduled',
-  'Re-Shoot',
-];
-export const PANEL_SOON_MINUTES = 60;
-export const PANEL_DONE_LOOKBACK_HOURS = 36;
-
 export const APP_NAME = 'WaveDesk';
 export const APP_CREDIT = 'Programmer, Developer, Architect, Product Manager — Sudipta Shaha';
 export const APP_COPYRIGHT = '\u00A9 2026 Sudipta Shaha';

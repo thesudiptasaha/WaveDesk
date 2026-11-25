@@ -5,6 +5,12 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 25 Nov 2026 — Revert N165, Today's work panel is personal tasks only (N166)
+
+- **Revert of N165**:
+  - Today's work phase 2 ("From contents") withdrawn by the owner: the panel filled up with content lines and must remain strictly personal tasks (phase 1, N164).
+  - Reverted `app/page.js`, `components/ui/TodayPanel.js`, `lib/core.js`, `utils/constants.js`, and removed `tests/n165-content-work.mjs`. All code back to pre-N165 state.
+
 ## 25 Nov 2026 — Home "Today's work" panel, phase 2: automatic content work (N165)
 
 - **Automatic content work ("From contents") (phase 2)**:
@@ -13,6 +19,7 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
   - **Stage rules**: Non-managers see lines where they are assigned or in approval/pick-up queues (Draft writer/Uncut MMJ, Script Submitted, Ready for Shoot camera/producer/pm or pick-up, Shooting, Assign Editor, Editing, Video Review, Ready to Publish/Scheduled publisher, Re-Shoot, Photo Card Draft/Requested/Designing/In Review/Publish). Managers see only assigned slots, the three approval queues (Script Submitted, Video Review, card In Review), and Late/Soon items.
   - **Done today**: Content status transitions made by the member today extracted from audit_log and shown in "Done today" as read-only items ("Moved to <status>").
   - **Independent data loading**: Added queries for `PANEL_OPEN_STATUSES` and `PANEL_DONE_LOOKBACK_HOURS` (36h) in `fetchRows`; extended `rowBelongsInView` so realtime and 30s catch-up retain open rows. All existing consumers of `rows` confirmed unaffected or range-filtered.
+  - Withdrawn by the owner on 25 Nov 2026, reverted in N166.
 
 ## 22 Nov 2026 — Home "Today's work" panel, phase 1 (N164)
 
