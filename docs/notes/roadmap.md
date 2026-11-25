@@ -1,6 +1,6 @@
 # WaveDesk — পরিকল্পনা ও কাজের তালিকা (হালনাগাদ: ২২ নভেম্বর ২০২৬)
 
-শেষ যাচাই-করা কমিট: 630aec2 (N164); N164 pushed (630aec2, tested OK 24 Nov 2026); N165 (Today's work phase 2) প্রত্যাহার ও N166-এ রিভার্ট (প্যানেল শুধু ব্যক্তিগত টাস্কের); পরবর্তী কাজ N167 = in-app card editor E1 (on hold; the owner returns to it after other work)। বিস্তারিত অগ্রগতি রিপোর `docs/progress-log.md`, বাকি কাজ `docs/open-tasks.md`, নম্বর-কমিট মিল `task-number-tracker.md`। এখানে শুধু দিক ও ক্রম।
+শেষ যাচাই-করা কমিট: 630aec2 (N164); N164 pushed (630aec2, tested OK 24 Nov 2026); N165 (Today's work phase 2) প্রত্যাহার ও N166-এ রিভার্ট (প্যানেল শুধু ব্যক্তিগত টাস্কের); N167 = favicon (app/icon.svg); পরবর্তী কাজ N168 = rundown column widths, N169 = in-app card editor E1 (on hold; the owner returns to it after other work)। বিস্তারিত অগ্রগতি রিপোর `docs/progress-log.md`, বাকি কাজ `docs/open-tasks.md`, নম্বর-কমিট মিল `task-number-tracker.md`। এখানে শুধু দিক ও ক্রম।
 
 ## ২৭ অক্টোবরের পর যা হয়ে গেছে
 - হোম পেজে ব্যক্তিগত "Today's work" প্যানেল (ফেজ ১: নিজস্ব কাজ ও দৈনিক/সাপ্তাহিক/মাসিক টাস্ক টিক, new tables personal_tasks ও personal_task_done, RPC cleanup_my_task_history; >= 1536px স্ক্রিনে ডান কলাম, ছোট স্ক্রিনে টগল বার)।

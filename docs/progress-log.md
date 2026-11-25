@@ -5,6 +5,12 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 25 Nov 2026 — Website favicon (N167)
+
+- **Website favicon**:
+  - New icon file at `app/icon.svg` (Next.js picks it up automatically as `/icon.svg`).
+  - Old placeholder replaced, source file removed from `public/logos/`.
+
 ## 25 Nov 2026 — Revert N165, Today's work panel is personal tasks only (N166)
 
 - **Revert of N165**:
