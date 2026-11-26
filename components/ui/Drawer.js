@@ -3712,6 +3712,57 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
     { id: 'qc', label: 'QC & Audit', done: false },
     { id: 'credits', label: 'Credits', done: false },
   ];
+  const leftTabs = tabs.filter((t) => t.id !== 'qc' && t.id !== 'credits');
+  const rightTabs = tabs.filter((t) => t.id === 'qc' || t.id === 'credits');
+  const handleSelectTab = (id) => {
+    setTab(id);
+    setDetailsOpen(id === 'editorial');
+  };
+
+  const renderFolderIdChip = (wrapperClassName = '') => {
+    if (!row.content_uid) return null;
+    return (
+      <div className={wrapperClassName}>
+        <span className="inline-flex items-center gap-1.5 font-mono font-extrabold text-[14px] sm:text-[15px] lg:text-[16px] text-zinc-200 shrink-0 whitespace-nowrap">
+          <span title="Folder name on the storage drive" className="inline-flex items-center text-zinc-400">
+            <Icon name="folder" className="h-4 w-4" strokeWidth={2} />
+          </span>
+          <span>{row.content_uid}</span>
+        </span>
+        <button
+          type="button"
+          onClick={handleCopyId}
+          aria-label="Copy content ID"
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition active:scale-[0.98] ${
+            copiedId
+              ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
+              : 'border-white/10 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.09] hover:text-white'
+          }`}
+        >
+          <Icon name={copiedId ? 'check' : 'copy'} className="h-3 w-3" />
+          <span>{copiedId ? 'Copied!' : 'Copy ID'}</span>
+        </button>
+      </div>
+    );
+  };
+
+  const renderTabBar = ({ isDesktop = false } = {}) => {
+    if (isDesktop) {
+      return (
+        <div className="hidden lg:flex items-center justify-between border-b border-white/[0.06] px-6 shrink-0 z-20">
+          <StepBar tabs={leftTabs} active={currentTab} onSelect={handleSelectTab} />
+          <div className="ml-auto">
+            <StepBar tabs={rightTabs} active={currentTab} onSelect={handleSelectTab} />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 lg:hidden">
+        <StepBar tabs={tabs} active={currentTab} onSelect={handleSelectTab} />
+      </div>
+    );
+  };
   const publishedLinks = getPublishedLinks(row);
   const validLinkEntries = Object.entries(publishedLinks).filter(([_, u]) => safeHttpUrl(u));
   const hasPublishedLinks = validLinkEntries.length > 0 || safeHttpUrl(row.live_video_url);
@@ -3753,7 +3804,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
       <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-[580px] lg:w-[94vw] lg:max-w-[1600px] flex-col border-l border-white/[0.08] bg-black/60 shadow-2xl shadow-black backdrop-blur-xl">
-        <header className="border-b border-white/[0.06] px-4 sm:px-5 lg:px-6 pb-0 pt-3">
+        <header className="border-b border-white/[0.06] px-4 sm:px-5 lg:px-6 pt-3 pb-0 lg:pb-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 min-w-0">
               <TypeBadge type={row.content_type} />
@@ -3784,53 +3835,19 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
             <span className="shrink-0 text-[12px] lg:text-[13px] text-zinc-500 whitespace-nowrap">
               {row.channel || 'No channel'} · {formatDay(row.scheduled_publish_time)} {formatTime(row.scheduled_publish_time)}
             </span>
-            {row.content_uid ? (
-              <>
-                <div className="hidden lg:block lg:flex-grow" />
-                <div className="flex items-center gap-2 w-full lg:w-auto lg:ml-6 shrink-0 mt-0.5 lg:mt-0">
-                  <span className="inline-flex items-center gap-1.5 font-mono font-extrabold text-[14px] sm:text-[15px] lg:text-[19px] text-zinc-200 shrink-0 whitespace-nowrap">
-                    <span title="Folder name on the storage drive" className="inline-flex items-center text-zinc-400">
-                      <Icon name="folder" className="h-4 w-4" strokeWidth={2} />
-                    </span>
-                    <span>{row.content_uid}</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCopyId}
-                    aria-label="Copy content ID"
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition active:scale-[0.98] ${
-                      copiedId
-                        ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
-                        : 'border-white/10 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.09] hover:text-white'
-                    }`}
-                  >
-                    <Icon name={copiedId ? 'check' : 'copy'} className="h-3 w-3" />
-                    <span>{copiedId ? 'Copied!' : 'Copy ID'}</span>
-                  </button>
-                </div>
-              </>
+            {hasPublishedLinks ? (
+              <div className="hidden lg:flex ml-auto flex-wrap items-center gap-1.5 shrink-0">
+                {renderPublishedLinks()}
+              </div>
             ) : null}
+            {renderFolderIdChip('flex items-center gap-2 w-full shrink-0 mt-1 lg:hidden')}
           </div>
           {hasPublishedLinks ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 lg:hidden">
               {renderPublishedLinks()}
             </div>
           ) : null}
-          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-            <StepBar
-              tabs={tabs}
-              active={currentTab}
-              onSelect={(id) => {
-                setTab(id);
-                setDetailsOpen(id === 'editorial');
-              }}
-            />
-            {hasPublishedLinks ? (
-              <div className="hidden lg:flex flex-wrap items-center gap-1.5 pb-1">
-                {renderPublishedLinks()}
-              </div>
-            ) : null}
-          </div>
+          {renderTabBar({ isDesktop: false })}
         </header>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
           <div className="border-b border-white/[0.06] lg:border-b-0 drawer-left-col lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-white/[0.06] lg:bg-white/[0.02]">
@@ -3844,6 +3861,7 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
               <Icon name={detailsOpen ? 'chevronDown' : 'chevronRight'} className="h-4 w-4 text-zinc-400" />
             </button>
             <div className={`${detailsOpen ? 'block' : 'hidden'} lg:block px-6 py-6 lg:p-0`}>
+              {renderFolderIdChip('hidden lg:flex items-center justify-between gap-2 pb-4 mb-4 border-b border-white/[0.06]')}
               <ContentDetailsFields
                 row={row}
                 actor={actor}
@@ -3863,34 +3881,37 @@ function Drawer({ row, actor, team, channels, platforms = PLATFORMS, onClose, on
               />
             </div>
           </div>
-          <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
-            <PublishCheckBanner row={row} actor={actor} onAnswer={onPublishCheck} />
-            {currentTab === 'editorial' ? (
-              isCard ? (
-                <PhotoCardEditorialTab row={row} actor={actor} patch={patch} photoTemplates={photoTemplates} />
-              ) : (
-                <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} fetchScriptMeta={fetchScriptMeta} />
-              )
-            ) : null}
-            {currentTab === 'production' && !isCard ? (
-                <ProductionTab row={row} actor={actor} team={team} patch={patch} locationOptions={locationOptions} />
-            ) : null}
-            {currentTab === 'postproduction' && !isCard ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
-            {currentTab === 'packaging' ? (
-              isCard ? (
-                <PhotoCardPublishTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} />
-              ) : (
-                <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} />
-              )
-            ) : null}
-            {currentTab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
-            {currentTab === 'credits' ? (
-              isCard ? (
-                <CardCreditsTab row={row} photoTemplates={photoTemplates} />
-              ) : (
-                <CreditsTab row={row} actor={actor} team={team} patch={patch} />
-              )
-            ) : null}
+          <div className="flex min-w-0 flex-1 flex-col lg:overflow-hidden">
+            {renderTabBar({ isDesktop: true })}
+            <div className="min-w-0 flex-1 px-6 py-6 lg:overflow-y-auto">
+              <PublishCheckBanner row={row} actor={actor} onAnswer={onPublishCheck} />
+              {currentTab === 'editorial' ? (
+                isCard ? (
+                  <PhotoCardEditorialTab row={row} actor={actor} patch={patch} photoTemplates={photoTemplates} />
+                ) : (
+                  <ScriptTab row={row} actor={actor} patch={patch} team={team} platforms={platforms} fetchScriptMeta={fetchScriptMeta} />
+                )
+              ) : null}
+              {currentTab === 'production' && !isCard ? (
+                  <ProductionTab row={row} actor={actor} team={team} patch={patch} locationOptions={locationOptions} />
+              ) : null}
+              {currentTab === 'postproduction' && !isCard ? <PostProductionTab row={row} actor={actor} team={team} patch={patch} /> : null}
+              {currentTab === 'packaging' ? (
+                isCard ? (
+                  <PhotoCardPublishTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} />
+                ) : (
+                  <PackagingTab row={row} actor={actor} team={team} patch={patch} platforms={platforms} onAddPlatform={onAddPlatform} />
+                )
+              ) : null}
+              {currentTab === 'qc' ? <QcTab row={row} actor={actor} patch={patch} /> : null}
+              {currentTab === 'credits' ? (
+                isCard ? (
+                  <CardCreditsTab row={row} photoTemplates={photoTemplates} />
+                ) : (
+                  <CreditsTab row={row} actor={actor} team={team} patch={patch} />
+                )
+              ) : null}
+            </div>
           </div>
         </div>
         <footer className="border-t border-white/[0.08] bg-black/70 backdrop-blur-xl flex flex-col lg:flex-row">

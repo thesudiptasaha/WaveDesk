@@ -1,6 +1,6 @@
 # WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ২২ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N170** (N169 ব্যবহৃত: rundown list density)। শেষ যাচাই-করা কমিট: 630aec2 (N164, লাইভ ফিচার); N165 (e841c69) পুশ হওয়ার পর N166 (ae10478) দ্বারা রিভার্ট করা হয়েছে (২৫ নভেম্বর ২০২৬)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N171** (N170 ব্যবহৃত: drawer layout)। শেষ যাচাই-করা কমিট: 630aec2 (N164, লাইভ ফিচার); N165 (e841c69) পুশ হওয়ার পর N166 (ae10478) দ্বারা রিভার্ট করা হয়েছে (২৫ নভেম্বর ২০২৬)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -77,10 +77,10 @@
 | N166 | Revert of N165, the panel is personal tasks only | ae10478 |
 | N167 | Website favicon: new icon file at app/icon.svg (replaces the old red W placeholder; Next.js uses app/icon.svg automatically; the source file in public/logos was removed) | 70572f7 (pushed, verified on GitHub 25 Nov 2026) |
 | N168 | Rundown layout tidy: one common page width 1500px for header, filter bar, rundown and the Today's work panel, fixed column widths (Time 110, Staff 290, Action 320, Slug takes the rest), panel 340px at >= 1536px, long slugs wrap to 2 lines, header logo is the website icon (app/icon.svg) | 80b7656 (pushed 25 Nov 2026; owner test: 1920 OK, 1366 too big, status pill overflowed the Time column, rows too tall -> handled in N169) |
-| N169 | Rundown list density: Time column 140px, compact status pill (StatusBadge `compact` prop), dense staff tiles (StaffCell `dense` prop), shorter rows, extra density under 1440px via max-[1439px]: variants | committed |
+| N169 | Rundown list density: Time column 140px, compact status pill (StatusBadge `compact` prop), dense staff tiles (StaffCell `dense` prop), shorter rows, extra density under 1440px via max-[1439px]: variants | 4f9a849 (pushed 26 Nov 2026; owner visual test still to be filled, do NOT write "tested") |
+| N170 | Drawer layout: tab bar moved above the right part (Editorial, Production, Post-production, Publish on the left; QC & Audit and Credits right-aligned), folder ID chip moved to the top of the Details column, header about 40px shorter on wide screens, published links chips at the right end of the title row on wide screens; below 1024px the layout is unchanged. Layout only: no data, service or database change. | committed |
 
 পরিকল্পিত ক্রম:
-- ড্রয়ার ট্যাব (drawer tabs)
 - সাইডবার শেল (sidebar shell)
 - রিপোর্ট পেজ (reports page)
 - ডিপার্টমেন্ট পেজসমূহ (department pages)
