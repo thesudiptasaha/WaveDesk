@@ -1,6 +1,6 @@
 # WaveDesk — কাজের নম্বর ট্র্যাকার (হালনাগাদ: ২২ নভেম্বর ২০২৬)
 
-**পরবর্তী ব্যবহারযোগ্য নম্বর: N169** (N168 ব্যবহৃত: rundown layout tidy)। শেষ যাচাই-করা কমিট: 630aec2 (N164, লাইভ ফিচার); N165 (e841c69) পুশ হওয়ার পর N166 (ae10478) দ্বারা রিভার্ট করা হয়েছে (২৫ নভেম্বর ২০২৬)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
+**পরবর্তী ব্যবহারযোগ্য নম্বর: N170** (N169 ব্যবহৃত: rundown list density)। শেষ যাচাই-করা কমিট: 630aec2 (N164, লাইভ ফিচার); N165 (e841c69) পুশ হওয়ার পর N166 (ae10478) দ্বারা রিভার্ট করা হয়েছে (২৫ নভেম্বর ২০২৬)। কাজ এখন একটাই কথোপকথনে চলে (আগের A/B দ্বৈততা শেষ)।
 
 ## নিয়ম
 1. নতুন প্রম্পটের নম্বর = সর্বশেষ নম্বর + ১। নতুন কাজের আগে `git pull` + `git log -5 --oneline`।
@@ -76,10 +76,15 @@
 | N165 | Home 'Today's work' phase 2, automatic content work ("From contents") | e841c69 (pushed 25 Nov 2026, withdrawn by the owner the same day: the panel filled up with content lines) |
 | N166 | Revert of N165, the panel is personal tasks only | ae10478 |
 | N167 | Website favicon: new icon file at app/icon.svg (replaces the old red W placeholder; Next.js uses app/icon.svg automatically; the source file in public/logos was removed) | 70572f7 (pushed, verified on GitHub 25 Nov 2026) |
-| N168 | Rundown layout tidy: one common page width 1500px for header, filter bar, rundown and the Today's work panel, fixed column widths (Time 110, Staff 290, Action 320, Slug takes the rest), panel 340px at >= 1536px, long slugs wrap to 2 lines, header logo is the website icon (app/icon.svg) | committed |
+| N168 | Rundown layout tidy: one common page width 1500px for header, filter bar, rundown and the Today's work panel, fixed column widths (Time 110, Staff 290, Action 320, Slug takes the rest), panel 340px at >= 1536px, long slugs wrap to 2 lines, header logo is the website icon (app/icon.svg) | 80b7656 (pushed 25 Nov 2026; owner test: 1920 OK, 1366 too big, status pill overflowed the Time column, rows too tall -> handled in N169) |
+| N169 | Rundown list density: Time column 140px, compact status pill (StatusBadge `compact` prop), dense staff tiles (StaffCell `dense` prop), shorter rows, extra density under 1440px via max-[1439px]: variants | committed |
 
 পরিকল্পিত ক্রম:
-- N169 = in-app card editor E1 (on hold; the owner returns to it after other work)
+- ড্রয়ার ট্যাব (drawer tabs)
+- সাইডবার শেল (sidebar shell)
+- রিপোর্ট পেজ (reports page)
+- ডিপার্টমেন্ট পেজসমূহ (department pages)
+- ইন-অ্যাপ কার্ড এডিটর E1 (in-app card editor E1, কোনো নির্দিষ্ট নম্বর এখনো বরাদ্দ নেই; পরে করা হবে)
 - Later = Today's work phase 3 (give tasks to others, team tasks, notifications / Telegram reminders, calendar), report page, sample folder structure for the 7 channels, notifications for cards, E2 canvas, E3 export, E4 preview + 7-day cleanup
 
 নোট: প্রগতি লগে N120 নেই। N105, N107, N109, N111, N113 ইত্যাদি বিজোড় নম্বর পুরনো পদ্ধতির ডক্স-প্রম্পট ছিল; এখন ডক্স একই কমিটে বা অক্ষর-ধাপে।

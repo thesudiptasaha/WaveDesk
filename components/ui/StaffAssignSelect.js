@@ -45,7 +45,7 @@ export function StaffAssignSelect({ value, names, placeholder, onChange, team, t
   );
 }
 
-function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow, notify }) {
+function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow, notify, dense = false }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const actorCan = actor && actor.active !== false;
   const isEditor = field === 'video_editor';
@@ -78,42 +78,47 @@ function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow
 
   return (
     <div
-      className={`group relative flex w-[84px] shrink-0 flex-col items-center justify-start rounded-lg p-1 text-center transition select-none ${
+      className={`group relative flex ${dense ? 'w-[74px] max-[1439px]:w-[68px] p-0.5' : 'w-[84px] p-1'} shrink-0 flex-col items-center justify-start rounded-lg text-center transition select-none ${
         isEditable
           ? 'cursor-pointer hover:bg-white/[0.04] focus-within:ring-2 focus-within:ring-sky-400'
           : 'cursor-default'
       }`}
       title={tileTitle}
     >
-      <div className="relative mb-1">
+      <div className={`relative ${dense ? 'mb-0.5' : 'mb-1'}`}>
         {val ? (
-          <Avatar member={member} name={val} size="h-9 w-9" text="text-[13px]" />
+          <Avatar
+            member={member}
+            name={val}
+            size={dense ? 'h-8 w-8 max-[1439px]:h-7 max-[1439px]:w-7' : 'h-9 w-9'}
+            text={dense ? 'text-[12px] max-[1439px]:text-[11px]' : 'text-[13px]'}
+          />
         ) : isEditable ? (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-zinc-500 text-zinc-400 transition group-hover:border-zinc-300 group-hover:text-zinc-200">
-            <span className="text-[16px] leading-none select-none font-light">+</span>
+          <div className={`flex ${dense ? 'h-8 w-8 max-[1439px]:h-7 max-[1439px]:w-7' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-full border-2 border-dashed border-zinc-500 text-zinc-400 transition group-hover:border-zinc-300 group-hover:text-zinc-200`}>
+            <span className={`${dense ? 'text-[14px] max-[1439px]:text-[13px]' : 'text-[16px]'} leading-none select-none font-light`}>+</span>
           </div>
         ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-zinc-600/70 text-zinc-600">
-            <span className="text-[14px] leading-none select-none font-light">—</span>
+          <div className={`flex ${dense ? 'h-8 w-8 max-[1439px]:h-7 max-[1439px]:w-7' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-full border border-dashed border-zinc-600/70 text-zinc-600`}>
+            <span className={`${dense ? 'text-[12px] max-[1439px]:text-[11px]' : 'text-[14px]'} leading-none select-none font-light`}>—</span>
           </div>
         )}
       </div>
 
       {val ? (
-        <span className="w-full truncate text-[12px] font-semibold text-white">
+        <span className={`w-full truncate ${dense ? 'text-[11.5px] max-[1439px]:text-[11px] leading-tight' : 'text-[12px]'} font-semibold text-white`}>
           {nickname}
         </span>
       ) : isEditable ? (
-        <span className="w-full truncate text-[12px] font-semibold text-zinc-400 transition group-hover:text-zinc-200">
+        <span className={`w-full truncate ${dense ? 'text-[11.5px] max-[1439px]:text-[11px] leading-tight' : 'text-[12px]'} font-semibold text-zinc-400 transition group-hover:text-zinc-200`}>
           Assign
         </span>
       ) : (
-        <span className="w-full truncate text-[11px] italic text-zinc-600">
+        <span className={`w-full truncate ${dense ? 'text-[10.5px] leading-tight' : 'text-[11px]'} italic text-zinc-600`}>
           Not assigned
         </span>
       )}
 
-      <span className="w-full truncate text-[9px] uppercase tracking-wider text-zinc-500 font-medium mt-0.5">
+      <span className={`w-full truncate ${dense ? 'text-[8.5px] max-[1439px]:text-[8px] leading-tight' : 'text-[9px]'} uppercase tracking-wider text-zinc-500 font-medium mt-0.5`}>
         {colLabel}
       </span>
 
@@ -153,7 +158,7 @@ function StaffTileItem({ field, label, colLabel, names, r, team, actor, patchRow
   );
 }
 
-export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }) {
+export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack', dense = false }) {
   if (typeIsCard(r.content_type)) {
     const designer = r.graphic_designer;
     if (layout === 'columns') {
@@ -179,10 +184,10 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
     if (layout === 'tiles') {
       return (
         <div className="flex items-start gap-1">
-          <div className="group relative flex flex-col justify-between rounded-md border border-white/[0.06] bg-white/[0.02] p-1.5 min-w-[100px]">
-            <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500">GRAPHIC DESIGNER</div>
-            <div className="mt-1">
-              {designer ? <PersonName name={designer} team={team} hideDesignation /> : <span className="text-[11px] italic text-zinc-600">Not taken yet</span>}
+          <div className={`group relative flex flex-col justify-between rounded-md border border-white/[0.06] bg-white/[0.02] ${dense ? 'p-1 min-w-[84px]' : 'p-1.5 min-w-[100px]'}`}>
+            <div className={`${dense ? 'text-[8.5px]' : 'text-[9px]'} font-semibold uppercase tracking-wider text-zinc-500`}>GRAPHIC DESIGNER</div>
+            <div className={dense ? 'mt-0.5' : 'mt-1'}>
+              {designer ? <PersonName name={designer} team={team} hideDesignation /> : <span className={`${dense ? 'text-[10.5px]' : 'text-[11px]'} italic text-zinc-600`}>Not taken yet</span>}
             </div>
           </div>
         </div>
@@ -293,6 +298,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
             actor={actor}
             patchRow={patchRow}
             notify={notify}
+            dense={dense}
           />
         ) : null}
         {!typeConfig(r.content_type).hiddenCredits.includes('presenter_name') ? (
@@ -306,6 +312,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
             actor={actor}
             patchRow={patchRow}
             notify={notify}
+            dense={dense}
           />
         ) : null}
         {r.content_type === 'UNCUT' ? (
@@ -319,6 +326,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
             actor={actor}
             patchRow={patchRow}
             notify={notify}
+            dense={dense}
           />
         ) : null}
         {!typeConfig(r.content_type).usesVideoEditor ? null : (
@@ -332,6 +340,7 @@ export function StaffCell({ r, team, actor, patchRow, notify, layout = 'stack' }
             actor={actor}
             patchRow={patchRow}
             notify={notify}
+            dense={dense}
           />
         )}
       </div>

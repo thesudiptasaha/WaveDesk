@@ -5,6 +5,17 @@ Master documents live in docs/ in this repo. The Claude Project holds only a poi
 মূল ডকুমেন্টসমূহ: `docs/RULES.md` · `docs/blueprint-en.md` · `docs/blueprint-bn.md` · `docs/business-and-operations.md` · `docs/architecture-django-transition.md` · `docs/developer-guide-learning.md` · `docs/open-tasks.md` · `docs/progress-log.md` (ঐতিহাসিক পরিকল্পনার খসড়া: antigravity-tasks, schema-snapshot, file-management-plan)
 প্রতিটা কমিট আমি GitHub থেকে নিয়ে যাচাই করেছি (undefined-name চেক ০ এরর + `npm run build` সফল)।
 
+## 26 Nov 2026 — Rundown list density (N169)
+
+- **Rundown list density**:
+  - Time column width increased to 140px (`w-[140px] px-2 py-1`), table minimum width to 1070px (`min-w-[1070px]`).
+  - Added optional `compact` prop to `StatusBadge` in `components/ui/Badges.js` (`text-[10.5px] px-2 py-0.5 leading-tight whitespace-normal max-w-full`) so pills wrap without overflowing the column.
+  - Added optional `dense` prop to `StaffCell` in `components/ui/StaffAssignSelect.js` (avatars `h-8 w-8` down to `h-7 w-7`, smaller text and margins), keeping click targets accessible.
+  - Reduced row padding to `py-1` on all list cells, slug text reduced to `text-[15px]` (`text-[14px]` under 1440px), resulting in row height drop from ~95px to ~65–70px.
+  - Extra density below 1440px via `max-[1439px]:` variants on slug text, channel bands, staff avatars, and action button wrapper.
+  - **Files touched**: `app/page.js`, `components/ui/Badges.js`, `components/ui/StaffAssignSelect.js`.
+  - **No database changes**, **no new packages** (`package.json` untouched).
+
 ## 25 Nov 2026 — Rundown layout tidy (N168)
 
 - **Rundown layout tidy**:

@@ -3021,10 +3021,10 @@ function NewsroomApp({ authUser, onSignOut }) {
 
         {pcView === 'list' ? (
           <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#121215]">
-            <table className="w-full table-fixed min-w-[1040px] text-left text-[13px]">
+            <table className="w-full table-fixed min-w-[1070px] text-left text-[13px]">
               <thead>
                 <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-zinc-500">
-                  <th className="w-[110px] px-3 py-2 font-medium">Time</th>
+                  <th className="w-[140px] px-2 py-2 font-medium">Time</th>
                   <th className="min-w-[320px] px-3 py-2 font-medium">Slug Name</th>
                   <th className="w-[290px] px-3 py-2 font-medium">Staff Assignment</th>
                   <th className="w-[320px] px-3 py-2 font-medium">Action</th>
@@ -3043,7 +3043,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                               type="button"
                               aria-expanded={!collapsedChannels[item.name]}
                               onClick={() => setCollapsedChannels((c) => ({ ...c, [item.name]: !c[item.name] }))}
-                              className="chan-band flex min-h-[34px] w-full items-center gap-2.5 rounded-lg px-3.5 text-left"
+                              className="chan-band flex min-h-[34px] max-[1439px]:min-h-[30px] w-full items-center gap-2.5 rounded-lg px-3.5 text-left"
                             >
                               <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
                                 {collapsedChannels[item.name] ? (
@@ -3081,19 +3081,19 @@ function NewsroomApp({ authUser, onSignOut }) {
                         style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
                         className={`row-in cursor-pointer border-b border-white/[0.14] transition last:border-0 hover:bg-white/[0.04]${altNo % 2 === 0 ? ' rd-alt' : ''}`}
                       >
-                        <td className="whitespace-nowrap w-[110px] px-3 py-1.5 border-r border-white/5 tabular-nums text-zinc-300 align-top">
+                        <td className="w-[140px] px-2 py-1 border-r border-white/5 tabular-nums text-zinc-300 align-top">
                           <div className="font-medium text-white">{formatTime(timeIso)}</div>
                           {(showDate || !sameDay(range.start, range.end)) ? <div className="text-[11px] text-zinc-500">{formatDay(timeIso)}</div> : null}
                           <div className="mt-1 flex flex-col items-start gap-0.5">
-                            <StatusBadge status={r.status} removed={isRemovedPublished(r)} flash={flash} />
+                            <StatusBadge compact status={r.status} removed={isRemovedPublished(r)} flash={flash} />
                             {checkState === 'unanswered' ? (
-                              <span className="text-[11px] font-medium text-red-400">Waiting for answer</span>
+                              <span className="text-[10.5px] font-medium text-red-400">Waiting for answer</span>
                             ) : checkState === 'waiting_manager' ? (
-                              <span className="text-[11px] font-medium text-amber-400">Waiting for Manager</span>
+                              <span className="text-[10.5px] font-medium text-amber-400">Waiting for Manager</span>
                             ) : null}
                           </div>
                         </td>
-                        <td className="max-w-[360px] px-3 py-1.5 border-r border-white/5 relative align-top">
+                        <td className="max-w-[360px] px-3 py-1 border-r border-white/5 relative align-top">
                           <div className={`absolute inset-y-0 left-0 w-1 ${STATUS_META[r.status]?.dot || "bg-zinc-500"}`} />
                           <div className="pl-3 flex flex-col gap-0.5">
                             <div className="flex flex-wrap items-center gap-2">
@@ -3104,7 +3104,7 @@ function NewsroomApp({ authUser, onSignOut }) {
                             <div className="flex items-center gap-1.5">
                               <div
                                 title={r.slug_name || ''}
-                                className="uppercase text-[17px] font-bold tracking-wide text-white px-1 -ml-1 break-words line-clamp-2 w-full min-w-[150px]"
+                                className="uppercase text-[15px] max-[1439px]:text-[14px] font-bold tracking-wide text-white px-1 -ml-1 break-words line-clamp-2 w-full min-w-[150px]"
                               >
                                 {r.slug_name || 'NO SLUG...'}
                               </div>
@@ -3114,11 +3114,11 @@ function NewsroomApp({ authUser, onSignOut }) {
                             <ShortNote r={r} range={range} />
                           </div>
                         </td>
-                        <td className="w-[290px] px-3 py-1.5 border-r border-white/5 align-top">
-                          <StaffCell layout="tiles" r={r} team={team} actor={actor} patchRow={patchRow} notify={notify} />
+                        <td className="w-[290px] px-3 py-1 border-r border-white/5 align-top">
+                          <StaffCell dense layout="tiles" r={r} team={team} actor={actor} patchRow={patchRow} notify={notify} />
                         </td>
-                        <td className="min-w-[220px] px-3 py-1.5 align-top">
-                          <div className="flex flex-wrap items-center gap-2">
+                        <td className="w-[320px] px-3 py-1 align-top">
+                          <div className="flex flex-wrap items-center gap-2 max-[1439px]:gap-1.5 max-[1439px]:[&_button]:!text-[10px] max-[1439px]:[&_button]:!px-2 max-[1439px]:[&_button]:!py-0.5">
                             {checkState && canAnswer ? (
                               <button
                                 type="button"
